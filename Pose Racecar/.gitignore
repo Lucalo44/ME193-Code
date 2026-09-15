@@ -1,0 +1,23 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Downloaded MediaPipe model bundles (auto-fetched by gesture_car_control.py)
+models/
+*.task
+
+# Locally recorded gesture training data
+gesture_data*.npz
