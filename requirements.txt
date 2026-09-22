@@ -1,1 +1,2 @@
 Pillow
+paho-mqtt>=2.0  # 9_22/mqtt_listener.py, 9_22/mqtt_sender.py — MQTT publish/subscribe
