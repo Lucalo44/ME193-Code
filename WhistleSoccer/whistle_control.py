@@ -33,9 +33,11 @@ import sys
 import time
 
 import legoeducation as le
+import matplotlib.patheffects as pe
 import matplotlib.pyplot as plt
 import numpy as np
 import pyaudio
+from matplotlib.transforms import blended_transform_factory
 
 # --- Hardware -----------------------------------------------------------
 CARD_COLOR = le.LEGO_COLOR_PURPLE  # placeholder - replace with your Double Motor's actual card
@@ -161,7 +163,14 @@ def main():
     spec_buffer = np.full((plot_freqs.size, HISTORY_COLUMNS), DB_FLOOR, dtype=float)
 
     plt.ion()
-    fig, ax = plt.subplots(figsize=(9, 6))
+    # Explicit main/colorbar axes (rather than letting fig.colorbar() resize
+    # ax automatically) so the layout is fixed up front -- the band-name
+    # labels are placed in the reserved right margin and stay there
+    # regardless of what colorbar/subplots_adjust do afterward.
+    fig, (ax, cax) = plt.subplots(
+        1, 2, figsize=(10, 6), gridspec_kw={"width_ratios": [30, 1], "wspace": 0.08},
+    )
+    fig.subplots_adjust(right=0.78, left=0.1)
     fig.canvas.manager.set_window_title("Whistle Control (q to quit)")
 
     im = ax.imshow(
@@ -175,17 +184,26 @@ def main():
     )
     ax.set_xlabel("time ->")
     ax.set_ylabel("frequency (Hz)")
-    fig.colorbar(im, ax=ax, label="magnitude (dB)")
+    fig.colorbar(im, cax=cax, label="magnitude (dB)")
 
+    # x in figure-fraction (just right of the subplots_adjust(right=0.78)
+    # boundary, so it always lands in the reserved empty margin no matter
+    # how ax/cax split the space to its left), y in ax's data coordinates.
+    label_transform = blended_transform_factory(fig.transFigure, ax.transData)
     for low, high, name, color in FREQ_BANDS:
         ax.axhspan(low, high, color=color, alpha=0.15)
         ax.text(
-            HISTORY_COLUMNS + 2, (low + high) / 2, name,
+            0.86, (low + high) / 2, name, transform=label_transform,
             va="center", ha="left", color=color, fontweight="bold", clip_on=False,
         )
-    fig.subplots_adjust(right=0.78)
 
-    pitch_marker = ax.axhline(plot_freqs[0], color="white", linewidth=1.5, alpha=0.0)
+    # Bright, black-outlined line so it stays visible against every part of
+    # the "inferno" colormap, from near-black background to washed-out
+    # yellow/white peaks.
+    pitch_marker = ax.axhline(
+        plot_freqs[0], color="#39FF14", linewidth=2.2, alpha=0.0,
+        path_effects=[pe.Stroke(linewidth=4.2, foreground="black"), pe.Normal()],
+    )
     status_text = ax.text(
         0.02, 0.97, "", transform=ax.transAxes, va="top", ha="left",
         color="white", fontsize=13, fontweight="bold",
