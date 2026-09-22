@@ -15,16 +15,25 @@ stationary camera watching a moving tag, and there's no guarantee they're
 still correct with the camera itself now moving.
 
 Setting up the phone stream:
+  iPhone + this Mac -- use Continuity Camera, built into macOS (Ventura or
+    later) with no app to install. Requirements: iPhone and Mac signed into
+    the same Apple ID, both with Wi-Fi and Bluetooth on and near each other.
+    Mount the iPhone near the car, wake it, and it becomes available as a
+    camera automatically. Set VIDEO_SOURCE to an integer and try 0, 1, 2...
+    while watching the preview window -- there's no fixed index, since the
+    built-in FaceTime camera takes one of the low indices too and which is
+    which varies by machine. If the window stays black, check System
+    Settings > Privacy & Security > Camera and make sure your terminal/IDE
+    has camera access, then rerun.
+    If Continuity Camera isn't available (older iPhone, different Apple
+    IDs), fall back to "Iriun Webcam" (free) on the iPhone plus the Iriun
+    Webcam desktop app for Mac from https://iriun.com -- same VIDEO_SOURCE
+    integer approach as above once it's connected.
   Android -- install "IP Webcam" (free, Play Store). Open it, tap "Start
     server". It shows an address like http://192.168.1.23:8080 -- put that
     same address plus "/video" into VIDEO_SOURCE below, e.g.
-    "http://192.168.1.23:8080/video". Phone and PC must be on the same
+    "http://192.168.1.23:8080/video". Phone and Mac must be on the same
     Wi-Fi network.
-  iPhone -- install "Iriun Webcam" (free) plus its Windows companion app
-    from https://iriun.com on this PC. It installs the phone as a regular
-    virtual webcam instead of a network stream -- once connected, set
-    VIDEO_SOURCE to an integer (try 1, then 2, etc.) the same way
-    CAMERA_INDEX works in apriltag_pd_tracker.py, no URL needed.
 
 Update CARD_COLOR/CARD_SERIAL below to match your Double Motor's Connection
 Card (run find_devices.py if you don't know it). Tune Kp/Kd live with the
@@ -56,9 +65,9 @@ CARD_SERIAL = "5164"               # placeholder - replace with your Double Moto
 
 # --- Vision -------------------------------------------------------------
 FAMILY = cv2.aruco.DICT_APRILTAG_36h11
-VIDEO_SOURCE = 1  # Iriun Webcam showed up as index 1 on this PC (the other
-                   # open index, 0, is the laptop's built-in camera) -- if
-                   # the preview window shows the wrong feed, try 0 instead.
+VIDEO_SOURCE = 1  # try 0 first, then 1, 2... while watching the preview
+                   # window to find which index is actually the iPhone via
+                   # Continuity Camera -- see the setup notes above.
 
 # --- Control ------------------------------------------------------------
 MAX_SPEED = 100          # speed cap sent to the motors, in percent
