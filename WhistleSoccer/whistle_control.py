@@ -106,6 +106,11 @@ def try_connect(car) -> bool:
     except Exception as exc:
         print(f"Could not connect to the Double Motor: {exc}")
         return False
+    # connect() returns silently (without raising) if no matching device was
+    # found, rather than raising -- .connected is the only reliable signal.
+    if not car.connected:
+        print("Could not find a Double Motor matching that Connection Card.")
+        return False
     return True
 
 
