@@ -1,0 +1,4 @@
+legoeducation==1.1.1  # whistle_control.py -- LEGO Education hub BLE protocol (DoubleMotor)
+pyaudio>=0.2.14        # whistle_control.py -- microphone capture (AirPods mic)
+numpy>=1.24             # whistle_control.py -- FFT / frequency analysis
+matplotlib>=3.8          # whistle_control.py -- live spectrogram display
