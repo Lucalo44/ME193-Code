@@ -45,6 +45,7 @@ Calibrating:
 Press 'q' or close the window to quit early (no MQTT message is sent).
 """
 
+import signal
 import sys
 import time
 
@@ -69,9 +70,9 @@ MSG_GOAL = "goal"      # sent by the ball when it whistles its way into the goal
 
 # --- Hardware -----------------------------------------------------------
 MOTOR_CARD_COLOR = le.LEGO_COLOR_PURPLE  # placeholder - replace with your Double Motor's actual card
-MOTOR_CARD_SERIAL = "5164"               # placeholder - replace with your Double Motor's actual card
-COLOR_CARD_COLOR = le.LEGO_COLOR_PURPLE  # placeholder - replace with your Color Sensor's actual card
-COLOR_CARD_SERIAL = "5164"               # placeholder - replace with your Color Sensor's actual card
+MOTOR_CARD_SERIAL = "0995"               # placeholder - replace with your Double Motor's actual card
+COLOR_CARD_COLOR = le.LEGO_COLOR_MAGENTA  # placeholder - replace with your Color Sensor's actual card
+COLOR_CARD_SERIAL = "0995"               # placeholder - replace with your Color Sensor's actual card
 
 MOTOR_SPEED = 60        # speed sent to the motors when a command is active, in percent
 RIGHT_MOTOR_SIGN = -1   # the two motors are mirror-mounted, so equal signed
@@ -82,6 +83,9 @@ TURN_SPEED_SCALE = 0.6  # LEFT/RIGHT drive one side slower than the other
                          # rather than fully reversing it, so the car arcs
                          # instead of spinning in place. 0 = spin in place,
                          # 1 = same speed as straight (no turning effect).
+COMMAND_HOLD_FRAMES = 3  # a new command must be heard this many frames in a row
+                          # (~70 ms) before it's sent, so a wobbly whistle
+                          # flickering across a band edge doesn't spam the motor
 
 REFLECTION_THRESHOLD = 60   # ball only -- sensor.reflection (0-100) above this
                              # counts as "something is close in front of the
@@ -170,9 +174,10 @@ def try_connect(device, card_color, card_serial, label: str) -> bool:
     return True
 
 
-def drive(car, connected: bool, command: str | None):
-    if not connected:
-        return
+def drive(car, command: str | None):
+    # Every call is non-blocking: a blocking call waits for the hub's reply
+    # with no timeout, so one dropped BLE packet would freeze the whole loop
+    # (window, 'q', and Ctrl+C included).
     if command == "FORWARD":
         car.motor_run(motor=le.MOTOR_LEFT, speed=MOTOR_SPEED, blocking=False)
         car.motor_run(motor=le.MOTOR_RIGHT, speed=RIGHT_MOTOR_SIGN * MOTOR_SPEED, blocking=False)
@@ -186,7 +191,7 @@ def drive(car, connected: bool, command: str | None):
         car.motor_run(motor=le.MOTOR_LEFT, speed=MOTOR_SPEED, blocking=False)
         car.motor_run(motor=le.MOTOR_RIGHT, speed=RIGHT_MOTOR_SIGN * int(MOTOR_SPEED * TURN_SPEED_SCALE), blocking=False)
     else:
-        car.motor_stop(motor=le.MOTOR_BOTH)
+        car.motor_stop(motor=le.MOTOR_BOTH, blocking=False)
 
 
 def play_song(device, song, connected: bool):
@@ -197,7 +202,7 @@ def play_song(device, song, connected: bool):
     for frequency, duration in song:
         device.beep(frequency=int(frequency), count=1, blocking=False)
         time.sleep(duration)
-        device.stop_beep(blocking=True)
+        device.stop_beep(blocking=False)
         time.sleep(0.03)  # brief gap between notes
 
 
@@ -320,6 +325,16 @@ def main():
         "key_press_event",
         lambda event: on_close(event) if event.key == "q" else None,
     )
+    # The GUI event loop can swallow the default KeyboardInterrupt, so make
+    # Ctrl+C just flag the loop to exit and fall through to the cleanup.
+    signal.signal(signal.SIGINT, lambda *_: on_close(None))
+
+    # Only talk to the motor when the command changes, and only after it has
+    # held for COMMAND_HOLD_FRAMES in a row. Sending every audio frame floods
+    # the BLE link (~40 msgs/s) until the hub drops the connection.
+    sent_command = "INIT"  # sentinel so the first frame always sends a stop
+    candidate = None
+    candidate_frames = 0
 
     goal_hold_counter = 0
     reflection_hold_counter = 0
@@ -338,13 +353,22 @@ def main():
             peak_freq = plot_freqs[peak_idx]
             peak_amplitude = spectrum[peak_idx]
 
+            command = command_for_frequency(peak_freq, peak_amplitude) if game_state["started"] else None
+            if command == candidate:
+                candidate_frames += 1
+            else:
+                candidate, candidate_frames = command, 1
+            if motor_connected and not car.connected:
+                print("Double Motor disconnected -- continuing without motor commands or songs.")
+                motor_connected = False
+            if motor_connected and candidate != sent_command and candidate_frames >= COMMAND_HOLD_FRAMES:
+                drive(car, candidate)
+                sent_command = candidate
+
             if not game_state["started"]:
                 role_text.set_text(f"role: {ROLE}  --  waiting for {MSG_START!r}...")
-                drive(car, motor_connected, None)
             else:
                 role_text.set_text(f"role: {ROLE}  --  GO")
-                command = command_for_frequency(peak_freq, peak_amplitude)
-                drive(car, motor_connected, command)
 
                 if ROLE == "ball" and sensor_connected:
                     if color_sensor.sensor.reflection >= REFLECTION_THRESHOLD:
@@ -370,7 +394,6 @@ def main():
             else:
                 pitch_marker.set_alpha(0.0)
 
-            command = command_for_frequency(peak_freq, peak_amplitude) if game_state["started"] else None
             label = command or "-"
             status_text.set_text(f"{peak_freq:.0f} Hz  ->  {label}")
             band_colors = {name: color for _low, _high, name, color in display_bands}
@@ -381,7 +404,9 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        drive(car, motor_connected, None)
+        motor_connected = motor_connected and car.connected
+        if motor_connected:
+            drive(car, None)
 
         outcome = game_state["outcome"]
         if outcome == "blocked":
@@ -399,8 +424,8 @@ def main():
             print("The ball scored -- playing the death song.")
             play_song(car, DEATH_SONG, motor_connected)
 
-        if motor_connected:
-            car.motor_stop(motor=le.MOTOR_BOTH)
+        if motor_connected and car.connected:
+            car.motor_stop(motor=le.MOTOR_BOTH, blocking=False)
             car.disconnect()
         if sensor_connected:
             color_sensor.disconnect()
