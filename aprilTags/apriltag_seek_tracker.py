@@ -60,8 +60,8 @@ import legoeducation as le
 from lelib import doubleMotor
 
 # --- Hardware ---------------------------------------------------------------
-CARD_COLOR = le.LEGO_COLOR_PURPLE  # placeholder - replace with your Double Motor's actual card
-CARD_SERIAL = "5164"               # placeholder - replace with your Double Motor's actual card
+CARD_COLOR = le.LEGO_COLOR_ORANGE  # placeholder - replace with your Double Motor's actual card
+CARD_SERIAL = "7572"               # placeholder - replace with your Double Motor's actual card
 
 # --- Vision -------------------------------------------------------------
 FAMILY = cv2.aruco.DICT_APRILTAG_36h11
