@@ -45,8 +45,10 @@ Calibrating:
 Press 'q' or close the window to quit early (no MQTT message is sent).
 """
 
+import queue
 import signal
 import sys
+import threading
 import time
 
 import legoeducation as le
@@ -118,6 +120,15 @@ PEAK_PROMINENCE_RATIO = 4.0  # the loudest bin must be at least this many times
 PEAK_EXCLUDE_BINS = 3      # bins on either side of the peak left out of the
                            # "rest of the band" average, so the whistle's own
                            # skirt doesn't drag down the background estimate
+AUDIO_STALL_TIMEOUT = 0.5  # seconds -- audio is read on a background thread
+                           # (see AudioReader) because a Bluetooth mic can
+                           # stall stream.read() indefinitely (e.g. AirPods
+                           # audio losing airtime to the hub's BLE traffic on
+                           # the same radio), and a blocking read with no
+                           # timeout would freeze the whole window, 'q', and
+                           # Ctrl+C along with it. If no frame arrives within
+                           # this long, the main loop stops the motor and
+                           # keeps going instead of hanging.
 
 # Steering bands, low Hz, high Hz, command name, plot color. Must not
 # overlap each other or GOAL_BAND; leave gaps for a reliable "no command" zone.
@@ -152,6 +163,52 @@ def find_input_device(pa: pyaudio.PyAudio) -> int:
         if info.get("maxInputChannels", 0) > 0 and "airpods" in info.get("name", "").lower():
             return i
     return pa.get_default_input_device_info()["index"]
+
+
+class AudioReader:
+    """Reads audio on its own thread so a stalled mic (stream.read() blocks
+    with no timeout) can't freeze the render/control loop, the window, or
+    Ctrl+C along with it. The main loop pulls frames via get(timeout=...)
+    instead of calling stream.read() directly."""
+
+    def __init__(self, stream, chunk: int):
+        self._stream = stream
+        self._chunk = chunk
+        self._queue: queue.Queue = queue.Queue(maxsize=1)
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def start(self):
+        self._thread.start()
+
+    def _run(self):
+        while not self._stop.is_set():
+            try:
+                raw = self._stream.read(self._chunk, exception_on_overflow=False)
+            except Exception:
+                break
+            if self._queue.full():
+                try:
+                    self._queue.get_nowait()
+                except queue.Empty:
+                    pass
+            self._queue.put_nowait(raw)
+
+    def get(self, timeout: float):
+        """Return the newest audio frame, or None if none arrived within
+        timeout (the mic has stalled)."""
+        try:
+            return self._queue.get(timeout=timeout)
+        except queue.Empty:
+            return None
+
+    def stop(self):
+        self._stop.set()
+        # If the mic has genuinely stalled, the thread is stuck inside
+        # stream.read() and won't notice _stop until that call returns (or
+        # never, if it's truly dead) -- it's a daemon thread, so the process
+        # can still exit without waiting on it.
+        self._thread.join(timeout=1.0)
 
 
 def peak_is_prominent(spectrum: np.ndarray, peak_idx: int) -> bool:
@@ -272,6 +329,8 @@ def main():
         input_device_index=device_index,
         frames_per_buffer=CHUNK,
     )
+    audio_reader = AudioReader(stream, CHUNK)
+    audio_reader.start()
 
     car = le.DoubleMotor()
     print("Connecting to Double Motor...")
@@ -371,7 +430,19 @@ def main():
 
     try:
         while not closed and not game_state["ended"]:
-            raw = stream.read(CHUNK, exception_on_overflow=False)
+            raw = audio_reader.get(timeout=AUDIO_STALL_TIMEOUT)
+            if raw is None:
+                # Mic stalled -- stop driving on a stale command instead of
+                # continuing blind, and keep servicing the window/'q'/Ctrl+C
+                # instead of hanging like a direct stream.read() would.
+                if motor_connected and sent_command is not None:
+                    drive(car, None)
+                    sent_command, candidate, candidate_frames = None, None, 0
+                status_text.set_text("no audio -- mic stalled")
+                status_text.set_color("white")
+                fig.canvas.draw_idle()
+                fig.canvas.flush_events()
+                continue
             samples = np.frombuffer(raw, dtype=np.int16).astype(np.float64)
             spectrum = np.abs(np.fft.rfft(samples * window))[band_mask]
 
@@ -462,8 +533,15 @@ def main():
         if sensor_connected:
             color_sensor.disconnect()
         mqtt_client.close()
-        stream.stop_stream()
-        stream.close()
+        audio_reader.stop()
+        try:
+            stream.stop_stream()
+            stream.close()
+        except Exception:
+            # If the mic was stalled, the reader thread may still be inside
+            # stream.read() -- closing under it can raise. Not fatal: the
+            # process is exiting either way.
+            pass
         pa.terminate()
         plt.close(fig)
 
