@@ -108,6 +108,16 @@ AMPLITUDE_THRESHOLD = 20000  # FFT magnitude below this counts as "not whistling
                            # gain, so retune this while watching the spectrogram:
                            # too low and background noise triggers commands, too
                            # high and quiet whistles get missed.
+PEAK_PROMINENCE_RATIO = 4.0  # the loudest bin must be at least this many times
+                           # louder than the average of the rest of the band to
+                           # count as a whistle. A whistle is a narrow tone --
+                           # one sharp spike -- while talking, fans, and room
+                           # noise raise energy broadly across the band without
+                           # a sharp spike, so this rejects them even if they're
+                           # loud enough to clear AMPLITUDE_THRESHOLD.
+PEAK_EXCLUDE_BINS = 3      # bins on either side of the peak left out of the
+                           # "rest of the band" average, so the whistle's own
+                           # skirt doesn't drag down the background estimate
 
 # Steering bands, low Hz, high Hz, command name, plot color. Must not
 # overlap each other or GOAL_BAND; leave gaps for a reliable "no command" zone.
@@ -144,8 +154,23 @@ def find_input_device(pa: pyaudio.PyAudio) -> int:
     return pa.get_default_input_device_info()["index"]
 
 
-def command_for_frequency(freq: float, amplitude: float) -> str | None:
-    if amplitude < AMPLITUDE_THRESHOLD:
+def peak_is_prominent(spectrum: np.ndarray, peak_idx: int) -> bool:
+    """True if the peak bin stands out sharply from the rest of the band --
+    the signature of a narrowband whistle tone, as opposed to broadband
+    background noise (talking, fans, motors) that raises the whole spectrum
+    without a sharp spike."""
+    background_mask = np.ones(spectrum.size, dtype=bool)
+    lo = max(0, peak_idx - PEAK_EXCLUDE_BINS)
+    hi = min(spectrum.size, peak_idx + PEAK_EXCLUDE_BINS + 1)
+    background_mask[lo:hi] = False
+    background = spectrum[background_mask]
+    if background.size == 0:
+        return True
+    return spectrum[peak_idx] >= PEAK_PROMINENCE_RATIO * np.mean(background)
+
+
+def command_for_frequency(freq: float, amplitude: float, prominent: bool) -> str | None:
+    if amplitude < AMPLITUDE_THRESHOLD or not prominent:
         return None
     for low, high, name, _color in FREQ_BANDS:
         if low <= freq <= high:
@@ -153,8 +178,8 @@ def command_for_frequency(freq: float, amplitude: float) -> str | None:
     return None
 
 
-def is_goal_whistle(freq: float, amplitude: float) -> bool:
-    if amplitude < AMPLITUDE_THRESHOLD:
+def is_goal_whistle(freq: float, amplitude: float, prominent: bool) -> bool:
+    if amplitude < AMPLITUDE_THRESHOLD or not prominent:
         return False
     low, high, _name, _color = GOAL_BAND
     return low <= freq <= high
@@ -288,6 +313,11 @@ def main():
         vmin=DB_FLOOR,
         vmax=DB_FLOOR + 60,
     )
+    # vmin/vmax above are just the initial guess before any real audio has
+    # come in. The color range is rescaled every frame below (see
+    # "im.set_clim") to the actual quiet-vs-loud spread in the buffer --
+    # a fixed range saturates to solid bright color whenever the room's
+    # actual noise floor sits above it, which is what "too bright" looks like.
     ax.set_xlabel("time ->")
     ax.set_ylabel("frequency (Hz)")
     fig.colorbar(im, cax=cax, label="magnitude (dB)")
@@ -348,12 +378,14 @@ def main():
             spec_buffer = np.roll(spec_buffer, -1, axis=1)
             spec_buffer[:, -1] = np.maximum(20 * np.log10(spectrum + 1e-6), DB_FLOOR)
             im.set_data(spec_buffer)
+            im.set_clim(np.percentile(spec_buffer, 5), max(np.percentile(spec_buffer, 99.5), DB_FLOOR + 10))
 
             peak_idx = int(np.argmax(spectrum))
             peak_freq = plot_freqs[peak_idx]
             peak_amplitude = spectrum[peak_idx]
+            prominent = peak_is_prominent(spectrum, peak_idx)
 
-            command = command_for_frequency(peak_freq, peak_amplitude) if game_state["started"] else None
+            command = command_for_frequency(peak_freq, peak_amplitude, prominent) if game_state["started"] else None
             if command == candidate:
                 candidate_frames += 1
             else:
@@ -380,7 +412,7 @@ def main():
                         game_state["outcome"] = "blocked"
 
                 if ROLE == "ball" and not game_state["ended"]:
-                    if is_goal_whistle(peak_freq, peak_amplitude):
+                    if is_goal_whistle(peak_freq, peak_amplitude, prominent):
                         goal_hold_counter += 1
                     else:
                         goal_hold_counter = 0
@@ -388,7 +420,7 @@ def main():
                         game_state["ended"] = True
                         game_state["outcome"] = "scored"
 
-            if peak_amplitude >= AMPLITUDE_THRESHOLD:
+            if peak_amplitude >= AMPLITUDE_THRESHOLD and prominent:
                 pitch_marker.set_ydata([peak_freq, peak_freq])
                 pitch_marker.set_alpha(0.9)
             else:
