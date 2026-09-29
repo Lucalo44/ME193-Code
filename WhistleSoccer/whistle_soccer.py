@@ -67,8 +67,8 @@ ROLE = "ball"  # "ball" or "goalie" -- set this per robot before each match
 MQTT_TOPIC = "ME193/Rogers"
 # These exact strings must match what your opponent's script sends/expects.
 MSG_START = "start"    # match begins
-MSG_FAILED = "failed"  # sent by the ball when the goalie blocks it
-MSG_GOAL = "goal"      # sent by the ball when it whistles its way into the goal
+MSG_FAILED = "apple"  # sent by the ball when the goalie blocks it
+MSG_GOAL = "orange"      # sent by the ball when it whistles its way into the goal
 
 # --- Hardware -----------------------------------------------------------
 MOTOR_CARD_COLOR = le.LEGO_COLOR_PURPLE  # placeholder - replace with your Double Motor's actual card
@@ -76,7 +76,7 @@ MOTOR_CARD_SERIAL = "0995"               # placeholder - replace with your Doubl
 COLOR_CARD_COLOR = le.LEGO_COLOR_MAGENTA  # placeholder - replace with your Color Sensor's actual card
 COLOR_CARD_SERIAL = "0995"               # placeholder - replace with your Color Sensor's actual card
 
-MOTOR_SPEED = 60        # speed sent to the motors when a command is active, in percent
+MOTOR_SPEED = 40        # speed sent to the motors when a command is active, in percent
 RIGHT_MOTOR_SIGN = -1   # the two motors are mirror-mounted, so equal signed
                          # speeds spin the car in place instead of driving it
                          # straight -- this inverts the right side to cancel
@@ -85,7 +85,7 @@ TURN_SPEED_SCALE = 0.6  # LEFT/RIGHT drive one side slower than the other
                          # rather than fully reversing it, so the car arcs
                          # instead of spinning in place. 0 = spin in place,
                          # 1 = same speed as straight (no turning effect).
-COMMAND_HOLD_FRAMES = 3  # a new command must be heard this many frames in a row
+COMMAND_HOLD_FRAMES = 6  # a new command must be heard this many frames in a row
                           # (~70 ms) before it's sent, so a wobbly whistle
                           # flickering across a band edge doesn't spam the motor
 
@@ -103,14 +103,14 @@ CHUNK = 1024              # samples read per frame -- lower is more responsive,
 FREQ_MIN = 500             # ignore energy below this -- below typical whistle range,
                            # cuts out most voice/room noise
 FREQ_MAX = 5000            # ignore energy above this -- above typical whistle range
-AMPLITUDE_THRESHOLD = 20000  # FFT magnitude below this counts as "not whistling" ->
+AMPLITUDE_THRESHOLD = 25000  # FFT magnitude below this counts as "not whistling" ->
                            # stop. Starting point only -- measured against ambient
                            # room/laptop-fan noise on a built-in mic, which alone hit
                            # 3,000-19,000 in testing. AirPods have different mic
                            # gain, so retune this while watching the spectrogram:
                            # too low and background noise triggers commands, too
                            # high and quiet whistles get missed.
-PEAK_PROMINENCE_RATIO = 4.0  # the loudest bin must be at least this many times
+PEAK_PROMINENCE_RATIO = 5.0  # the loudest bin must be at least this many times
                            # louder than the average of the rest of the band to
                            # count as a whistle. A whistle is a narrow tone --
                            # one sharp spike -- while talking, fans, and room
