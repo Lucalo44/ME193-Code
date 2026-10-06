@@ -163,6 +163,15 @@ GAMES_PER_MATCH = 3
 PLAYER_SERVE = False              # hook for a later version; the CPU always serves in v1
 
 # --------------------------------------------------------------------------
+# Score publishing (MQTT): record number of continuous hits, as a float
+# --------------------------------------------------------------------------
+MQTT_ENABLED = True
+MQTT_BROKER = "test.mosquitto.org"    # shared class broker (same as 9_22/mqttlib.py)
+MQTT_PORT = 1883
+MQTT_TOPIC = "ME193/Rogers/Luca"
+RECORD_FILE = "streak_record.json"    # the record survives restarts
+
+# --------------------------------------------------------------------------
 # Server / UI
 # --------------------------------------------------------------------------
 HTTP_PORT = 8000

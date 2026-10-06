@@ -60,6 +60,41 @@ Other flags:
 With a real paddle, the game refuses to start until `swing_calibration.json` exists
 (see Milestone 2) unless you pass `--use-default-calibration`.
 
+## Score publishing (MQTT)
+
+The game publishes your **record number of continuous hits** to the class broker:
+
+| | |
+|---|---|
+| Broker | `test.mosquitto.org:1883` (same as `9_22/mqttlib.py`) |
+| Topic | `ME193/Rogers/Luca` |
+| Payload | the record as a floating-point number, e.g. `7.0` |
+
+A continuous hit is one of your returns that lands legally on the opponent's side. The
+streak resets when a point ends, and the record is your best streak ever.
+
+- **When it's sent:** once at startup, then every time you set a new record. The message
+  is retained, so a late subscriber gets the current record right away.
+- **Where it's saved:** `streak_record.json`, so it survives restarts.
+- **On screen:** the scorebug shows `STREAK n / BEST n`, and the status list shows the
+  MQTT connection.
+- **No network:** the game keeps running, and the latest record is sent once the broker
+  is reachable.
+
+To watch it from another terminal:
+
+```bash
+mosquitto_sub -h test.mosquitto.org -t ME193/Rogers/Luca -v
+```
+
+| Flag | What it does |
+|---|---|
+| `--reset-record` | Start the record over at 0 (and publish `0.0`) |
+| `--no-mqtt` | Don't publish |
+| `--mqtt-topic T` | Publish to a different topic |
+
+The broker, port, topic and file name are `MQTT_*` / `RECORD_FILE` in `config.py`.
+
 ## How to play
 
 1. **Start:** in the lobby, hold tag 0, 1 or 2 up to the webcam until its ring fills

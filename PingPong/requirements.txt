@@ -6,4 +6,5 @@ numpy==2.5.3
 bleak==3.0.2
 matplotlib==3.11.2                # tools/imu_logger.py live plot, tools/make_tags.py PDF
 websockets==17.2                  # Python <-> browser game-state stream
+paho-mqtt==2.1.0                  # publishes the continuous-hit record (ME193/Rogers/Luca)
 pytest==9.1.1

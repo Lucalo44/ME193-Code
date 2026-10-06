@@ -47,6 +47,8 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #050507; col
   font-size: 12px; font-weight: 600; letter-spacing: 0.16em; color: var(--dim);
 }
 #scorebug .tab .sep { opacity: 0.4; }
+#scorebug .tab.streak { margin-left: 2px; }
+#scorebug .tab.streak b { color: var(--fg); font-variant-numeric: tabular-nums; }
 #speed-chip.slow { color: var(--top); } #speed-chip.medium { color: var(--back); } #speed-chip.fast { color: var(--right); }
 
 /* ---- Status readouts (training / hardware) ---- */

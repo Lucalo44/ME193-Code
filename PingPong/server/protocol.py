@@ -13,16 +13,18 @@ state (~60 Hz):
      "required_stroke": "forehand"|"backhand"|"either"|null,
      "incoming": {"x": x_arrival, "t_to_arrival": s, "required": str} | null,
      "score": {"player", "cpu", "games_player", "games_cpu", "server", "games_needed"},
+     "streak": {"current": n, "record": n},     # continuous hits; record also goes to MQTT
      "speed_setting": "slow"|"medium"|"fast",
      "status": {"paddle": str, "paddle_kind": "real"|"sim", "camera": str, "pose": bool,
-                "stroke_check": bool, "calibration": "file"|"default", "pose_label": str|null},
+                "stroke_check": bool, "calibration": "file"|"default", "pose_label": str|null,
+                "mqtt": "connected"|"connecting"|"reconnecting"|"disabled"|...},
      "tag": {"id": int, "label": str, "progress": 0..1} | null,
      "latency": {"beats": [t...], "count": n, "offset_s": float} | null,
      "debug": {...} | null, "settings": {"hint": bool, "handedness": str, "debug": bool}}
 
 event (discrete, triggers sounds/effects):
     {"type": "event", "name": "hit"|"bounce"|"net"|"miss"|"point"|"game_over"|"tag_progress"
-                              |"tag_confirmed"|"swing"|"serve"|"message", ...fields}
+                              |"tag_confirmed"|"swing"|"serve"|"message"|"record", ...fields}
     hit:        who, pos, speed, topspin, sidespin, stroke, confidence, required
     bounce:     pos, side
     net:        pos
@@ -30,6 +32,7 @@ event (discrete, triggers sounds/effects):
     point:      winner, reason, score
     game_over:  match_over, winner, score
     swing:      summary of the SwingEvent + trace [[t_rel, lin_g, gyro_dps], ...]
+    record:     record (new best number of continuous hits)
 
 camera_frame (~12 fps):
     {"type": "camera_frame", "jpeg_b64": "..."}

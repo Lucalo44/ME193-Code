@@ -64,6 +64,11 @@ export class Hud {
       : (st.pose ? (st.pose_label || 'detected') : 'not detected');
     this._stat('chip-pose', 'POSE', poseText, st.camera === 'off' ? '' : !st.stroke_check ? 'warn' : st.pose ? 'ok' : 'bad');
     this._stat('chip-cal', 'CALIBRATION', st.calibration, st.calibration === 'file' ? 'ok' : 'warn');
+    this._stat('chip-mqtt', 'MQTT', st.mqtt, st.mqtt === 'connected' ? 'ok' : st.mqtt === 'disabled' ? '' : 'warn');
+    if (s.streak) {
+      $('streak-now').textContent = s.streak.current;
+      $('streak-best').textContent = s.streak.record;
+    }
 
     // Stroke hint (arrow points to the side the ball is coming to).
     const hint = $('stroke-hint');

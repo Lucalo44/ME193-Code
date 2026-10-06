@@ -37,6 +37,7 @@ from game import physics as P
 from game import state_machine as SM
 from game.opponent import Opponent
 from game.rules import Match, other, required_stroke, stroke_ok
+from game.streak import StreakTracker
 from server import protocol
 
 SERVE_HEIGHT = 0.22
@@ -74,7 +75,8 @@ class Game:
                  publish_state: Optional[Callable[[str], None]] = None,
                  publish_event: Optional[Callable[[str], None]] = None,
                  debug: bool = False, seed: Optional[int] = None,
-                 clock: Callable[[], float] = time.monotonic):
+                 clock: Callable[[], float] = time.monotonic,
+                 streak: Optional[StreakTracker] = None, mqtt_status: Callable[[], str] = lambda: "off"):
         self.paddle = paddle
         self.vision = vision
         self._publish_state = publish_state or (lambda m: None)
@@ -101,6 +103,8 @@ class Game:
         self.commands: "queue.Queue[dict]" = queue.Queue()
         self._stop = threading.Event()
         self._last_tag = (None, 0.0)
+        self.streak = streak or StreakTracker()
+        self._mqtt_status = mqtt_status
 
     # ======================================================================
     # Running
@@ -199,6 +203,7 @@ class Game:
         self._emit("message", text=f"{setting.upper()} - game on!")
 
     def reset(self) -> None:
+        self.streak.reset_streak()
         self.sm.reset(self.sim_t)
         self._clear_rally()
         self.ball = P.Ball(dead=True)
@@ -246,6 +251,8 @@ class Game:
                 self._end_point(f.receiver, "NET" if f.net else "OWN SIDE")
                 return
             f.bounces += 1
+            if f.hitter == "player" and f.bounces == 1:
+                self._count_hit()
             if f.receiver == "player":
                 if self.incoming is None:
                     self._predict_incoming(bounced=True)
@@ -304,7 +311,13 @@ class Game:
             return
         self.incoming = Incoming(self.sim_t + arr.t, arr.pos, required_stroke(arr.pos[0]))
 
+    def _count_hit(self) -> None:
+        """One continuous hit: the player's return landed in. Tracks the record."""
+        if self.streak.hit():
+            self._emit("record", record=self.streak.record)
+
     def _end_point(self, winner: str, reason: str, game_penalty: bool = False, **extra) -> None:
+        self.streak.reset_streak()
         if winner == "cpu":
             self._emit("miss", reason=reason, **extra)
         result = self.match.award_game(winner) if game_penalty else self.match.award_point(winner)
@@ -499,6 +512,7 @@ class Game:
             "pose": bool(v and v.pose_detected),
             "stroke_check": bool(v and v.stroke_check_enabled),
             "pose_label": v.prediction if v else None,
+            "mqtt": self._mqtt_status(),
         }
         tag = None
         if v and v.tag_lead is not None and v.tag_progress > 0:
@@ -532,6 +546,7 @@ class Game:
             incoming={"x": inc.pos[0], "t_to_arrival": inc.t - self.sim_t, "required": inc.required}
             if inc else None,
             score=self.match.snapshot(),
+            streak=self.streak.snapshot(),
             speed_setting=self.speed_setting,
             status=status,
             tag=tag,

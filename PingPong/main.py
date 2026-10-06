@@ -39,7 +39,9 @@ sys.path.insert(0, HERE)
 
 import config as C  # noqa: E402
 from game.loop import Game  # noqa: E402
+from game.streak import StreakTracker, default_path  # noqa: E402
 from hardware.swing import Calibration, load_calibration  # noqa: E402
+from server.mqtt_publisher import ScorePublisher  # noqa: E402
 from server.ws_server import GameServer  # noqa: E402
 
 
@@ -57,6 +59,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--debug", action="store_true", help="debug overlay on, verbose event logging")
     p.add_argument("--no-browser", action="store_true", help="don't open the browser automatically")
     p.add_argument("--seed", type=int, default=None, help="random seed (reproducible rallies)")
+    p.add_argument("--no-mqtt", action="store_true", help="don't publish the hit record over MQTT")
+    p.add_argument("--mqtt-topic", default=C.MQTT_TOPIC, help=f"MQTT topic for the record (default {C.MQTT_TOPIC})")
+    p.add_argument("--reset-record", action="store_true", help="start the continuous-hit record over at 0")
     p.add_argument("--http-port", type=int, default=C.HTTP_PORT)
     p.add_argument("--ws-port", type=int, default=C.WS_PORT)
     return p
@@ -145,7 +150,17 @@ def main() -> int:
 
     publish_event = log_and_publish if args.debug else server.publish_event
 
-    game = Game(paddle, vision, server.publish_state, publish_event, debug=args.debug, seed=args.seed)
+    # Record number of continuous hits -> MQTT (as a float), sent at startup and on every new record.
+    scores = ScorePublisher(topic=args.mqtt_topic, enabled=C.MQTT_ENABLED and not args.no_mqtt)
+    streak = StreakTracker(default_path(), on_record=scores.publish_record)
+    if args.reset_record:
+        streak.reset_record()
+    scores.publish_record(streak.record)
+    if scores.enabled:
+        print(f"Publishing the hit record ({float(streak.record)}) to {args.mqtt_topic} on {C.MQTT_BROKER}")
+
+    game = Game(paddle, vision, server.publish_state, publish_event, debug=args.debug, seed=args.seed,
+                streak=streak, mqtt_status=lambda: scores.status)
     game_ref["game"] = game
 
     stop = threading.Event()
@@ -185,6 +200,7 @@ def main() -> int:
         if vision:
             vision.stop()
         server.stop()
+        scores.close()
     return 0
 
 
