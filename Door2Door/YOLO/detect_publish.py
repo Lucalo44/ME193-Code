@@ -115,7 +115,7 @@ MAX_SPEED_INIT = 80  # starting ceiling well below the full 255 range, so a
                       # before the car drives off the track/out of frame.
 DIRECTION_SIGN = 1     # flip to -1 if the car drives away from center
                        # instead of toward it
-RIGHT_MOTOR_SIGN = 1  # placeholder, unconfirmed for this chassis -- the two
+RIGHT_MOTOR_SIGN = -1  # placeholder, unconfirmed for this chassis -- the two
                        # motors are likely mirror-mounted (same as
                        # whistle_soccer.py/apriltag_pd_tracker.py elsewhere
                        # in this repo), so sending the same speed to both
