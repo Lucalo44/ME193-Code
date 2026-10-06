@@ -26,7 +26,7 @@
 // ---------------------------------------------------------------------------
 
 import * as THREE from 'three';
-import { THEME, TABLE_H } from './scene/theme.js';
+import { THEME, TABLE_H, opponentFor } from './scene/theme.js';
 import { buildArena, buildSideHint } from './scene/table.js';
 import { BallView } from './scene/ball.js';
 import { OpponentView } from './scene/opponent.js';
@@ -167,7 +167,7 @@ function onEvent(ev) {
     case 'miss': hud.miss(ev); sounds.miss(); break;
     case 'point': hud.point(ev); sounds.point(ev.winner === 'player'); break;
     case 'game_over':
-      if (!ev.match_over) hud.centerMessage(ev.winner === 'player' ? 'GAME' : `GAME ${THEME.opponent.name}`,
+      if (!ev.match_over) hud.centerMessage(ev.winner === 'player' ? 'GAME' : `GAME ${opponentFor(latest && latest.speed_setting).name}`,
         `games ${ev.score.games_player} – ${ev.score.games_cpu}`, ev.winner === 'player' ? 'good' : 'bad', 2600);
       break;
     case 'swing': paddleView.swing(); hud.trace(ev.trace); break;
@@ -260,6 +260,7 @@ function frame() {
     const spin = spinToScene(s.ball.spin);
     ballView.update(ballPos, spin, topspinOf(s.ball.vel, s.ball.spin), sidespinOf(s.ball.vel, s.ball.spin),
       s.ball.visible, s.paused ? 0 : dt);
+    opponentView.setCharacter(latest.speed_setting);   // one athlete per speed setting
     opponentView.update(s.opponent, dt);
     const inc = s.incoming;
     paddleView.update(s.paddle, inc ? inc.x : null, dt);

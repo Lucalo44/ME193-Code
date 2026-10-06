@@ -1,6 +1,6 @@
 // hud.js -- DOM overlay: scorebug, status readouts, last-shot spin compass and power
 // meter, messages, camera picture-in-picture, lobby / game-over / latency / pause.
-import { THEME } from './scene/theme.js';
+import { THEME, OPPONENTS, opponentFor } from './scene/theme.js';
 
 const $ = (id) => document.getElementById(id);
 const SEGMENTS = 12;
@@ -16,8 +16,12 @@ export class Hud {
     this.lastPhase = null;
     this.traceCtx = $('trace').getContext('2d');
     this.lastFrameAt = 0;
-    this.cpuName = THEME.opponent.name;
-    $('cpu-name').textContent = this.cpuName;
+    this.cpuName = opponentFor('medium').name;
+    // Lobby cards: who you face at each speed.
+    document.querySelectorAll('.tag .who').forEach((el) => {
+      const o = OPPONENTS[el.dataset.speed];
+      el.innerHTML = `VS ${o.name}<i>${o.country} \u00b7 ${o.tagline}</i>`;
+    });
     $('bar-speed').innerHTML = '<i></i>'.repeat(SEGMENTS);
   }
 
@@ -34,6 +38,12 @@ export class Hud {
   update(s) {
     if (!s) return;
     const sc = s.score;
+    const opp = opponentFor(s.speed_setting);
+    if (opp.name !== this.cpuName || !$('cpu-country').textContent) {
+      this.cpuName = opp.name;
+      $('cpu-name').textContent = opp.name;
+      $('cpu-country').textContent = opp.country;
+    }
     $('pts-player').textContent = sc.player;
     $('pts-cpu').textContent = sc.cpu;
     this._games('games-player', sc.games_player, sc.games_needed);

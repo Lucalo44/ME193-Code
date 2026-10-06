@@ -25,7 +25,7 @@
       </div>
       <div class="row cpu">
         <span class="strip"></span><span class="serve" id="srv-cpu"></span>
-        <span class="name" id="cpu-name">CPU</span>
+        <span class="name"><span id="cpu-name">CPU</span> <span class="country" id="cpu-country"></span></span>
         <span class="games" id="games-cpu"></span>
         <span class="pts" id="pts-cpu">0</span>
       </div>
@@ -88,9 +88,9 @@
     <div class="rule"></div>
     <p class="sub">SHOW A TAG TO THE CAMERA TO START</p>
     <div class="tags">
-      <div class="tag slow" data-id="0"><div class="tag-img"><img src="tags/tag_0.png" alt="tag 0"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg></div><b>SLOW</b><small>TAG 0 &middot; KEY 1</small></div>
-      <div class="tag medium" data-id="1"><div class="tag-img"><img src="tags/tag_1.png" alt="tag 1"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg></div><b>MEDIUM</b><small>TAG 1 &middot; KEY 2</small></div>
-      <div class="tag fast" data-id="2"><div class="tag-img"><img src="tags/tag_2.png" alt="tag 2"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg></div><b>FAST</b><small>TAG 2 &middot; KEY 3</small></div>
+      <div class="tag slow" data-id="0"><div class="tag-img"><img src="tags/tag_0.png" alt="tag 0"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg></div><b>SLOW</b><span class="who" data-speed="slow"></span><small>TAG 0 &middot; KEY 1</small></div>
+      <div class="tag medium" data-id="1"><div class="tag-img"><img src="tags/tag_1.png" alt="tag 1"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg></div><b>MEDIUM</b><span class="who" data-speed="medium"></span><small>TAG 1 &middot; KEY 2</small></div>
+      <div class="tag fast" data-id="2"><div class="tag-img"><img src="tags/tag_2.png" alt="tag 2"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg></div><b>FAST</b><span class="who" data-speed="fast"></span><small>TAG 2 &middot; KEY 3</small></div>
     </div>
     <div class="legend">
       <span class="sw top"></span>TOPSPIN <span class="sw back"></span>BACKSPIN <span class="sw left"></span>LEFT <span class="sw right"></span>RIGHT

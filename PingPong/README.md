@@ -257,13 +257,23 @@ Every tunable is in `config.py`, with a comment for each.
 
 ### Look and feel
 
-The presentation is a tribute to Rockstar Games' *Table Tennis* (2006), built entirely
-from original assets (no Rockstar logos, fonts or characters):
+The presentation is a tribute to Rockstar Games' *Table Tennis* (2006). All 3D models are
+original, built from primitives; no Rockstar logos or fonts are used.
 
 - A dark, sparsely designed venue with overhead lamps throwing a pool of light on a
   matte blue table, a red court mat, printed barriers, and a silhouette crowd.
-- A human opponent ("REYES") in a polo shirt, with shuffle steps and full-body
-  forehand/backhand swings.
+- A different opponent for each speed, named after characters from that game:
+
+  | Speed | Opponent | Look and movement |
+  |---|---|---|
+  | Slow | **Cassidy** (IRL, 5'7", the defender) | Green polo, white skirt, auburn ponytail. Stands upright with calm footwork. |
+  | Medium | **Liu Ping** (CHN, 5'9", the attacker) | Red and gold polo, short black hair. Deep, aggressive crouch. |
+  | Fast | **Kumi** (JPN, 5'2", the speedster) | White and red polo, navy shorts, hair buns. Bouncy, quick feet. |
+
+  Each model is lathed and jointed, with a face, a polo collar and a detailed paddle. The
+  opponent only changes how the match looks: difficulty still comes from the speed
+  setting in `config.py`. The names belong to Rockstar, so swap them out in
+  `OPPONENTS` in `web/scene/theme.js` before publishing anything.
 - **The ball glows in the color of its spin**, using the Xbox 360 face-button colors that
   game used:
 
@@ -284,7 +294,7 @@ from original assets (no Rockstar logos, fonts or characters):
   celluloid "tock" sounds, and crowd applause when you win a point.
 
 To restyle the scene, edit `web/scene/theme.js`. It holds every color, light, material,
-the camera and the opponent's name and outfit, and no game logic lives in `web/`.
+the camera, and each opponent's name, build, outfit and movement style, and no game logic lives in `web/`.
 
 ## Layout
 
