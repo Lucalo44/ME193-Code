@@ -45,6 +45,7 @@ Press 'q', Ctrl+C, or close the window to quit.
 import math
 import signal
 import sys
+import time
 
 import legoeducation as le
 import matplotlib.patheffects as pe
@@ -77,6 +78,12 @@ ARRIVE_TOLERANCE = 3       # within this many degrees of a limit counts as
 COMMAND_HOLD_FRAMES = 3    # a new command must be heard this many frames in a row
                            # (~70 ms) before it's sent, so a wobbly whistle
                            # flickering across a band edge doesn't spam the motor
+KEEPALIVE_SECONDS = 5      # LEGO devices power themselves off after ~1 minute of
+                           # hearing nothing from the laptop -- even while connected.
+                           # Since motor commands are only sent on change, poke every
+                           # connected device this often so it stays on.
+NOTIFICATION_DELAY_MS = 100  # sensor/motor update interval -- the keep-alive re-sends
+                             # this same value, so it changes nothing on the device
 
 # --- Audio ----------------------------------------------------------------
 CHUNK = 1024              # samples read per frame -- lower is more responsive,
@@ -119,16 +126,29 @@ def command_for_frequency(freq: float, amplitude: float) -> str | None:
     return None
 
 
+def keep_alive(devices):
+    """Re-send each device its notification interval (the value it already
+    has), non-blocking. Harmless, but counts as activity, so the device's
+    ~1-minute idle power-off never kicks in."""
+    for device in devices:
+        device.device_notification_request(NOTIFICATION_DELAY_MS, blocking=False)
+
+
 def try_connect(motor) -> bool:
     try:
-        motor.connect(card_color=CARD_COLOR, card_serial=CARD_SERIAL)
+        motor.connect(
+            card_color=CARD_COLOR, card_serial=CARD_SERIAL,
+            device_notification_delay=NOTIFICATION_DELAY_MS,
+        )
     except Exception as exc:
         print(f"Could not connect to the Single Motor: {exc}")
         return False
     # connect() returns silently (without raising) if no matching device was
     # found, rather than raising -- .connected is the only reliable signal.
     if not motor.connected:
-        print("Could not find a Single Motor matching that Connection Card.")
+        print("Could not find a Single Motor matching that Connection Card. Is it switched on? LEGO devices turn\n"
+              "  themselves off after about a minute with no activity -- press its button to wake it,\n"
+              "  and make sure no other laptop or the LEGO website is connected to it.")
         return False
     return True
 
@@ -278,6 +298,7 @@ def main():
     active_command = None  # debounced command currently in effect
     heading_to_neg_x = True  # which x-axis limit the arm is heading for
     sent_target = None     # limit the motor was last told to go to, or None if stopped
+    last_keepalive = time.monotonic()
 
     try:
         while not closed and not game_state["ended"]:
@@ -306,6 +327,9 @@ def main():
             if connected and not arm.connected:
                 print("Single Motor disconnected -- continuing in preview-only mode.")
                 connected = False
+            if connected and time.monotonic() - last_keepalive >= KEEPALIVE_SECONDS:
+                keep_alive([arm])
+                last_keepalive = time.monotonic()
 
             position = arm.motor.position if connected else float("nan")
             # Degrees from the +x axis toward -x: 0 = +x, 90 = up, 180 = -x.

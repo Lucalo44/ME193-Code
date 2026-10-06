@@ -88,6 +88,12 @@ TURN_SPEED_SCALE = 0.6  # LEFT/RIGHT drive one side slower than the other
 COMMAND_HOLD_FRAMES = 6  # a new command must be heard this many frames in a row
                           # (~70 ms) before it's sent, so a wobbly whistle
                           # flickering across a band edge doesn't spam the motor
+KEEPALIVE_SECONDS = 5      # LEGO devices power themselves off after ~1 minute of
+                           # hearing nothing from the laptop -- even while connected.
+                           # Since motor commands are only sent on change, poke every
+                           # connected device this often so it stays on.
+NOTIFICATION_DELAY_MS = 100  # sensor/motor update interval -- the keep-alive re-sends
+                             # this same value, so it changes nothing on the device
 
 REFLECTION_THRESHOLD = 60   # ball only -- sensor.reflection (0-100) above this
                              # counts as "something is close in front of the
@@ -242,16 +248,29 @@ def is_goal_whistle(freq: float, amplitude: float, prominent: bool) -> bool:
     return low <= freq <= high
 
 
+def keep_alive(devices):
+    """Re-send each device its notification interval (the value it already
+    has), non-blocking. Harmless, but counts as activity, so the device's
+    ~1-minute idle power-off never kicks in."""
+    for device in devices:
+        device.device_notification_request(NOTIFICATION_DELAY_MS, blocking=False)
+
+
 def try_connect(device, card_color, card_serial, label: str) -> bool:
     try:
-        device.connect(card_color=card_color, card_serial=card_serial)
+        device.connect(
+            card_color=card_color, card_serial=card_serial,
+            device_notification_delay=NOTIFICATION_DELAY_MS,
+        )
     except Exception as exc:
         print(f"Could not connect to the {label}: {exc}")
         return False
     # connect() returns silently (without raising) if no matching device was
     # found, rather than raising -- .connected is the only reliable signal.
     if not device.connected:
-        print(f"Could not find a {label} matching that Connection Card.")
+        print(f"Could not find a {label} matching that Connection Card. Is it switched on? LEGO devices turn\n"
+              "  themselves off after about a minute with no activity -- press its button to wake it,\n"
+              "  and make sure no other laptop or the LEGO website is connected to it.")
         return False
     return True
 
@@ -427,6 +446,7 @@ def main():
 
     goal_hold_counter = 0
     reflection_hold_counter = 0
+    last_keepalive = time.monotonic()
 
     try:
         while not closed and not game_state["ended"]:
@@ -464,6 +484,12 @@ def main():
             if motor_connected and not car.connected:
                 print("Double Motor disconnected -- continuing without motor commands or songs.")
                 motor_connected = False
+            if sensor_connected and not color_sensor.connected:
+                print("Color Sensor disconnected -- blocking by the goalie won't be detected.")
+                sensor_connected = False
+            if time.monotonic() - last_keepalive >= KEEPALIVE_SECONDS:
+                keep_alive([d for d, ok in ((car, motor_connected), (color_sensor, sensor_connected)) if ok])
+                last_keepalive = time.monotonic()
             if motor_connected and candidate != sent_command and candidate_frames >= COMMAND_HOLD_FRAMES:
                 drive(car, candidate)
                 sent_command = candidate
