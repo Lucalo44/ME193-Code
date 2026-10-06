@@ -129,39 +129,40 @@ export function spinColor(topspin, sidespin, out) {
 // One opponent per speed setting, named after characters from Rockstar's game.
 // Purely visual: difficulty still comes from config.py's speed settings.
 //   heightM     standing height (the whole model scales with it)
-//   hair        'short' | 'ponytail' | 'buns'
+//   hair        'short' | 'ponytail' | 'bob' | 'buns'
 //   bottom      'shorts' | 'skirt'
 //   style       crouch (thigh angle, rad), knee bend, bounce Hz / amplitude (m),
 //               lean (torso pitch), footwork (shuffle speed multiplier)
 export const OPPONENTS = {
+  // Kits and hair follow each player's style, not nationality -- no flag colors.
   slow: {
-    name: 'CASSIDY', country: 'IRL', tagline: 'THE DEFENDER',
+    name: 'CASSIDY', tagline: 'THE DEFENDER',
     heightM: 1.70,
-    skin: '#f1cdb0', hair: '#8c3a1a', hairStyle: 'ponytail', brows: '#7a3418',
-    shirt: '#1d7a47', trim: '#f4f6fb', accent: '#f4b33d',
-    bottom: 'skirt', bottomColor: '#f4f6fb',
-    socks: '#f4f6fb', shoes: '#f4f6fb', shoeAccent: '#1d7a47',
-    wristband: null,
+    skin: '#e6bf9e', hair: '#4a3021', hairStyle: 'ponytail', brows: '#3d281c',
+    shirt: '#24476e', trim: '#9fd3ff', accent: '#9fd3ff',
+    bottom: 'skirt', bottomColor: '#1a2233',
+    socks: '#f4f6fb', shoes: '#f4f6fb', shoeAccent: '#24476e',
+    wristband: '#9fd3ff',
     style: { crouch: -0.32, knee: 0.6, bounceHz: 1.6, bounceAmp: 0.006, lean: 0.2, footwork: 0.9 },
   },
   medium: {
-    name: 'LIU PING', country: 'CHN', tagline: 'THE ATTACKER',
+    name: 'LIU PING', tagline: 'THE ATTACKER',
     heightM: 1.75,
-    skin: '#d8a47a', hair: '#141110', hairStyle: 'short', brows: '#141110',
-    shirt: '#c41e2a', trim: '#ffcc33', accent: '#ffcc33',
-    bottom: 'shorts', bottomColor: '#14161c',
-    socks: '#f4f6fb', shoes: '#1a1a1e', shoeAccent: '#c41e2a',
-    wristband: '#f4f6fb',
+    skin: '#c99872', hair: '#1c1714', hairStyle: 'short', brows: '#1c1714',
+    shirt: '#2e2f36', trim: '#ff7a1a', accent: '#ff7a1a',
+    bottom: 'shorts', bottomColor: '#141519',
+    socks: '#2e2f36', shoes: '#1a1a1e', shoeAccent: '#ff7a1a',
+    wristband: '#ff7a1a',
     style: { crouch: -0.55, knee: 0.95, bounceHz: 2.4, bounceAmp: 0.008, lean: 0.34, footwork: 1.0 },
   },
   fast: {
-    name: 'KUMI', country: 'JPN', tagline: 'THE SPEEDSTER',
+    name: 'KUMI', tagline: 'THE SPEEDSTER',
     heightM: 1.57,
-    skin: '#ecc6a2', hair: '#17110e', hairStyle: 'buns', brows: '#17110e',
-    shirt: '#f4f6fb', trim: '#d0263a', accent: '#d0263a',
-    bottom: 'shorts', bottomColor: '#1b2a5c',
-    socks: '#f4f6fb', shoes: '#f4f6fb', shoeAccent: '#d0263a',
-    wristband: '#d0263a',
+    skin: '#d9ad8a', hair: '#3a2519', hairStyle: 'bob', brows: '#2f1e14',
+    shirt: '#5b3a91', trim: '#c6f04a', accent: '#c6f04a',
+    bottom: 'shorts', bottomColor: '#211f29',
+    socks: '#f4f6fb', shoes: '#c6f04a', shoeAccent: '#5b3a91',
+    wristband: null,
     style: { crouch: -0.48, knee: 0.85, bounceHz: 4.2, bounceAmp: 0.014, lean: 0.28, footwork: 1.5 },
   },
 };

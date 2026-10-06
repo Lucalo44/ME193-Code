@@ -14,19 +14,23 @@ const THIGH = 0.43, SHIN = 0.43, FOOT_H = 0.08;
 const lerp = (a, b, u) => a + (b - a) * u;
 const smooth = (u) => u * u * (3 - 2 * u);
 
-// Swing keyframes: [u, torsoYaw, shoulderYaw, shoulderPitch, elbow, wrist]
+// Swing keyframes, in torso space (x = the athlete's left, y up, z toward the player):
+//   [u, torsoYaw, wrist target xyz, elbow pole xyz, paddle-face normal xyz]
+// The arm is solved with two-bone IK, so only the hand's path is keyframed.
+const READY = [0.0, 0.0, -0.17, 0.26, 0.34, -0.6, -1, -0.4, 0.15, 0.1, 1];
 const FOREHAND = [
-  [0.0, 0.0, -0.3, -1.0, -1.0, 0.0],
-  [0.35, -0.8, -1.15, -0.7, -0.55, 0.35],   // wind-up: shoulders turn right, paddle back and low
-  [0.6, 0.35, 0.4, -1.3, -1.2, -0.2],       // contact, brushing up
-  [1.0, 0.55, 0.95, -1.75, -1.65, -0.4],    // follow-through over the left shoulder
+  READY,
+  [0.35, -0.8, -0.40, 0.02, 0.02, -0.7, -1, -0.5, -0.2, 0.3, 1],    // wind-up: low and back, shoulders turned
+  [0.6, 0.35, -0.14, 0.30, 0.42, -0.6, -1, -0.1, 0.1, 0.4, 1],      // contact out front, face closing (topspin)
+  [1.0, 0.55, 0.12, 0.52, 0.22, -0.3, -0.6, -0.6, 0.6, 0.5, 0.6],   // follow-through up by the left shoulder
 ];
 const BACKHAND = [
-  [0.0, 0.0, -0.3, -1.0, -1.0, 0.0],
-  [0.35, 0.55, 0.95, -1.0, -1.75, 0.5],     // paddle tucked in front of the body
-  [0.6, -0.2, -0.3, -1.25, -0.9, -0.3],     // flick out
-  [1.0, -0.35, -0.8, -1.45, -0.6, -0.5],
+  READY,
+  [0.35, 0.5, 0.02, 0.12, 0.22, -1, -0.4, 0.3, 0.2, 0.2, 1],        // paddle tucked in front, elbow out
+  [0.6, -0.15, -0.14, 0.30, 0.42, -1, -0.3, 0.2, 0.0, 0.3, 1],      // flick through the ball
+  [1.0, -0.35, -0.36, 0.40, 0.32, -1, -0.2, 0.0, -0.4, 0.4, 0.8],   // finish out to the right
 ];
+const UPPER_ARM = 0.28, FOREARM = 0.245;
 function keyframe(frames, u) {
   for (let i = 1; i < frames.length; i++) {
     if (u <= frames[i][0]) {
@@ -72,6 +76,169 @@ function lathe(parent, profile, material, depth = 0.7, width = 1.0) {
   const m = add(parent, new THREE.LatheGeometry(pts, 32), material);
   m.scale.set(width, 1, depth);
   return m;
+}
+
+// ---------------------------------------------------------------- head + face
+// The head is a lathe (egg shape, narrower jaw) whose UVs wrap like a globe with the
+// face centered at u = 0.5, so features can be painted onto a canvas texture.
+const HEAD_R = 0.1, HEAD_HH = 0.112, HEAD_CY = 0.1, HEAD_SX = 0.88, HEAD_ROWS = 40;
+const FACE_W = 1024, FACE_H = 512;
+const headTheta = (j) => Math.PI * (1 - j / HEAD_ROWS);           // polar angle from the top
+const headRadius = (th) => {
+  const low = Math.max(0, -Math.cos(th));                         // 0 above the equator, 1 at the chin
+  return Math.sin(th) * HEAD_R * (1 - 0.3 * low * low);
+};
+function headGeometry() {
+  const pts = [];
+  for (let j = 0; j <= HEAD_ROWS; j++) {
+    const th = headTheta(j);
+    pts.push(new THREE.Vector2(Math.max(headRadius(th), 1e-4), Math.cos(th) * HEAD_HH));
+  }
+  return new THREE.LatheGeometry(pts, 64, Math.PI);                 // phiStart = PI puts u = 0.5 at the front
+}
+// Head-local point (x toward the athlete's left, y up from head center) -> canvas px.
+function facePx(x, y) {
+  const th = Math.acos(Math.max(-1, Math.min(1, y / HEAD_HH)));
+  const r = headRadius(th) * HEAD_SX;
+  const ang = Math.asin(Math.max(-1, Math.min(1, x / Math.max(r, 1e-4))));
+  return [(0.5 + ang / (2 * Math.PI)) * FACE_W, (th / Math.PI) * FACE_H];
+}
+const PX_X = FACE_W / (2 * Math.PI * HEAD_R * HEAD_SX);           // canvas px per meter near the face
+const PX_Y = FACE_H / (Math.PI * HEAD_HH);
+
+function faceTexture(spec) {
+  const c = document.createElement('canvas');
+  c.width = FACE_W; c.height = FACE_H;
+  const g = c.getContext('2d');
+  const skin = new THREE.Color(spec.skin);
+  const shade = (k) => `#${skin.clone().multiplyScalar(k).getHexString()}`;
+  g.fillStyle = spec.skin;
+  g.fillRect(0, 0, FACE_W, FACE_H);
+
+  const soft = (x, y, rx, ry, color, alpha) => {           // soft radial blob
+    const [cx, cy] = facePx(x, y);
+    g.save();
+    g.translate(cx, cy);
+    g.scale(rx * PX_X, ry * PX_Y);
+    const grad = g.createRadialGradient(0, 0, 0, 0, 0, 1);
+    grad.addColorStop(0, color);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    g.globalAlpha = alpha;
+    g.fillStyle = grad;
+    g.beginPath(); g.arc(0, 0, 1, 0, Math.PI * 2); g.fill();
+    g.restore();
+  };
+
+  // Gentle modelling: eye sockets, cheeks, under the nose and lower lip, jawline.
+  for (const s of [-1, 1]) {
+    soft(s * 0.033, 0.012, 0.024, 0.016, shade(0.82), 0.55);  // eye socket
+    soft(s * 0.042, -0.03, 0.022, 0.016, '#e8908a', 0.18);    // cheek warmth
+  }
+  soft(0, -0.03, 0.012, 0.006, shade(0.72), 0.5);              // under the nose
+  soft(0, -0.066, 0.016, 0.007, shade(0.8), 0.45);             // under the lip
+  soft(0, -0.1, 0.06, 0.02, shade(0.82), 0.35);                // jaw shadow
+
+  // Brows.
+  g.strokeStyle = spec.brows;
+  g.lineCap = 'round';
+  for (const s of [-1, 1]) {
+    const a = facePx(s * 0.017, 0.03), b = facePx(s * 0.034, 0.035), e = facePx(s * 0.05, 0.028);
+    g.lineWidth = 0.0045 * PX_Y;
+    g.globalAlpha = 0.85;
+    g.beginPath(); g.moveTo(a[0], a[1]); g.quadraticCurveTo(b[0], b[1] - 3, e[0], e[1]); g.stroke();
+  }
+  g.globalAlpha = 1;
+
+  // Eyes: almond-shaped white, brown iris, pupil, catch-light, upper lid line, crease.
+  for (const s of [-1, 1]) {
+    const [cx, cy] = facePx(s * 0.033, 0.008);
+    const w = 0.0125 * PX_X, h = 0.0052 * PX_Y;
+    const almond = () => {
+      g.beginPath();
+      g.moveTo(cx - w, cy);
+      g.quadraticCurveTo(cx, cy - h * 2.0, cx + w, cy);
+      g.quadraticCurveTo(cx, cy + h * 1.5, cx - w, cy);
+      g.closePath();
+    };
+    g.save();
+    almond();
+    g.fillStyle = '#efe7de';
+    g.fill();
+    g.clip();
+    g.fillStyle = '#4a3020';
+    g.beginPath(); g.arc(cx, cy, h * 1.35, 0, Math.PI * 2); g.fill();      // iris
+    g.fillStyle = '#120b07';
+    g.beginPath(); g.arc(cx, cy, h * 0.6, 0, Math.PI * 2); g.fill();       // pupil
+    g.fillStyle = 'rgba(0,0,0,0.25)';
+    g.fillRect(cx - w, cy - h * 2, w * 2, h * 0.9);                          // lid shadow on the eye
+    g.restore();
+    g.fillStyle = 'rgba(255,255,255,0.9)';
+    g.beginPath(); g.arc(cx + h * 0.45, cy - h * 0.45, h * 0.3, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#2a1a12';
+    g.lineWidth = 3;
+    g.beginPath(); g.moveTo(cx - w * 1.05, cy + 1); g.quadraticCurveTo(cx, cy - h * 2.05, cx + w * 1.05, cy); g.stroke();
+    g.strokeStyle = shade(0.7);
+    g.lineWidth = 2;
+    g.globalAlpha = 0.6;
+    g.beginPath(); g.moveTo(cx - w * 0.8, cy - h * 1.6); g.quadraticCurveTo(cx, cy - h * 3.0, cx + w * 0.85, cy - h * 1.5); g.stroke();
+    g.globalAlpha = 1;
+  }
+
+  // Nostrils.
+  for (const s of [-1, 1]) soft(s * 0.007, -0.026, 0.004, 0.0025, shade(0.45), 0.7);
+
+  // Lips: soft rosy shape with a darker parting line.
+  const [mx, my] = facePx(0, -0.052);
+  const lw = 0.019 * PX_X, lh = 0.0045 * PX_Y;
+  const lip = skin.clone().lerp(new THREE.Color('#b0524a'), 0.45);
+  g.fillStyle = `#${lip.getHexString()}`;
+  g.globalAlpha = 0.85;
+  g.beginPath();
+  g.moveTo(mx - lw, my);
+  g.quadraticCurveTo(mx - lw * 0.4, my - lh * 1.6, mx, my - lh * 0.9);
+  g.quadraticCurveTo(mx + lw * 0.4, my - lh * 1.6, mx + lw, my);
+  g.quadraticCurveTo(mx, my + lh * 2.2, mx - lw, my);
+  g.fill();
+  g.globalAlpha = 1;
+  g.strokeStyle = `#${lip.clone().multiplyScalar(0.55).getHexString()}`;
+  g.lineWidth = 2.5;
+  g.beginPath(); g.moveTo(mx - lw * 0.95, my); g.quadraticCurveTo(mx, my + lh * 0.5, mx + lw * 0.95, my); g.stroke();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  return tex;
+}
+
+// ---------------------------------------------------------------- two-bone arm IK
+const _v = () => new THREE.Vector3();
+const IK = { dir: _v(), pole: _v(), upper: _v(), fore: _v(), x: _v(), y: _v(), z: _v(), m: new THREE.Matrix4(),
+             q: new THREE.Quaternion(), qe: new THREE.Quaternion() };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// Point the arm's wrist at `target` (torso space) with the elbow bending toward
+// `pole`. Returns the forearm direction (torso space) for orienting the paddle.
+function solveArm(arm, target, pole) {
+  const S = arm.shoulder.position;
+  const d0 = IK.dir.copy(target).sub(S);
+  const d = clamp(d0.length(), Math.abs(UPPER_ARM - FOREARM) + 1e-3, UPPER_ARM + FOREARM - 1e-3);
+  const dir = d0.normalize();
+  const a = Math.acos(clamp((UPPER_ARM ** 2 + d * d - FOREARM ** 2) / (2 * UPPER_ARM * d), -1, 1));
+  const b = Math.acos(clamp((UPPER_ARM ** 2 + FOREARM ** 2 - d * d) / (2 * UPPER_ARM * FOREARM), -1, 1));
+  const p = IK.pole.copy(pole).addScaledVector(dir, -pole.dot(dir));
+  if (p.lengthSq() < 1e-6) p.set(0, -1, 0).addScaledVector(dir, dir.y);
+  p.normalize();
+  const upper = IK.upper.copy(dir).multiplyScalar(Math.cos(a)).addScaledVector(p, Math.sin(a));
+  // Forearm runs from the elbow to the target.
+  const fore = IK.fore.copy(dir).multiplyScalar(d).addScaledVector(upper, -UPPER_ARM).normalize();
+  const y = IK.y.copy(upper).negate();                                   // local +y runs up the arm
+  const z = IK.z.copy(fore).addScaledVector(upper, -fore.dot(upper));    // bend direction
+  if (z.lengthSq() < 1e-6) z.copy(p).negate();
+  z.normalize();
+  const x = IK.x.crossVectors(y, z).normalize();
+  arm.shoulder.quaternion.setFromRotationMatrix(IK.m.makeBasis(x, y, z));
+  arm.elbow.rotation.set(-(Math.PI - b), 0, 0);
+  return fore;
 }
 
 // ---------------------------------------------------------------- the athlete
@@ -138,26 +305,19 @@ function buildAthlete(spec) {
   // ---- neck + head ----
   add(rig.torso, new THREE.CylinderGeometry(0.044, 0.05, 0.11, 16), skin, 0, 0.6, 0.005);
   rig.head = pivot(rig.torso, 0, 0.64, 0.01);
-  const skull = add(rig.head, new THREE.SphereGeometry(0.1, 28, 22), skin, 0, 0.1, 0);
-  skull.scale.set(0.9, 1.08, 0.98);
-  const jaw = add(rig.head, new THREE.SphereGeometry(0.075, 22, 16), skin, 0, 0.045, 0.02);
-  jaw.scale.set(0.86, 0.72, 0.9);
-  for (const s of [-1, 1]) {
-    const ear = add(rig.head, new THREE.SphereGeometry(0.022, 10, 8), skin, s * 0.09, 0.095, -0.005);
-    ear.scale.set(0.45, 1, 0.75);
-    const white = add(rig.head, new THREE.SphereGeometry(0.014, 12, 10), plain('#f4f1ea', 0.3), s * 0.034, 0.108, 0.082);
-    white.scale.set(1.3, 0.85, 0.6);
-    add(rig.head, new THREE.SphereGeometry(0.0085, 10, 8), plain('#1b130e', 0.2), s * 0.034, 0.108, 0.0895);
-    const brow = add(rig.head, new THREE.BoxGeometry(0.03, 0.006, 0.008), plain(spec.brows, 0.8), s * 0.035, 0.127, 0.087);
-    brow.rotation.z = -s * 0.12;
+  const head = add(rig.head, headGeometry(), new THREE.MeshStandardMaterial({ map: faceTexture(spec), roughness: 0.6 }), 0, HEAD_CY, 0);
+  head.scale.set(HEAD_SX, 1, 1);
+  for (const sx of [-1, 1]) {
+    const ear = add(rig.head, new THREE.SphereGeometry(0.022, 12, 10), skin, sx * 0.087, 0.098, -0.005);
+    ear.scale.set(0.4, 1, 0.72);
   }
-  const nose = add(rig.head, new THREE.ConeGeometry(0.012, 0.034, 10), skin, 0, 0.085, 0.098);
-  nose.rotation.x = Math.PI / 2 + 0.35;
-  add(rig.head, new THREE.BoxGeometry(0.03, 0.005, 0.006), plain('#8a4a3c', 0.6), 0, 0.048, 0.086);  // mouth
+  // A soft nose bump so the profile isn't flat; the painted shading does the rest.
+  const nose = add(rig.head, new THREE.SphereGeometry(0.013, 14, 10), skin, 0, HEAD_CY - 0.012, 0.096);
+  nose.scale.set(0.85, 1.5, 1.0);
 
   // ---- hair ----
-  const cap = add(rig.head, new THREE.SphereGeometry(0.106, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.5), hairMat, 0, 0.103, -0.006);
-  cap.scale.set(0.94, 1.05, 1.0);
+  const cap = add(rig.head, new THREE.SphereGeometry(0.109, 32, 20, 0, Math.PI * 2, 0, Math.PI * 0.5), hairMat, 0, 0.104, -0.006);
+  cap.scale.set(0.93, 1.12, 1.0);
   cap.rotation.x = -0.55;               // hairline on the forehead, down to the nape at the back
   const nape = add(rig.head, new THREE.SphereGeometry(0.1, 20, 12, Math.PI * 0.6, Math.PI * 0.8, Math.PI * 0.35, Math.PI * 0.3), hairMat, 0, 0.1, -0.006);
   nape.scale.set(0.95, 1.05, 1.0);
@@ -169,6 +329,14 @@ function buildAthlete(spec) {
     const tail = add(rig.ponytail, new THREE.CapsuleGeometry(0.028, 0.15, 6, 12), hairMat, 0, -0.09, -0.02);
     tail.scale.set(1, 1, 0.8);
     rig.ponytail.rotation.x = 0.45;
+  } else if (spec.hairStyle === 'bob') {
+    // Jaw-length bob: a shell around the sides and back, open over the face.
+    const bob = add(rig.head, new THREE.SphereGeometry(0.112, 32, 20, Math.PI / 2 + 0.95, Math.PI * 2 - 1.9, 0, Math.PI * 0.66), hairMat, 0, 0.104, -0.004);
+    bob.scale.set(0.95, 1.1, 1.0);
+    bob.material = hairMat.clone();
+    bob.material.side = THREE.DoubleSide;
+    const fringe = add(rig.head, new THREE.SphereGeometry(0.111, 24, 8, -Math.PI * 0.32, Math.PI * 0.64, Math.PI * 0.17, Math.PI * 0.13), hairMat, 0, 0.104, 0.002);
+    fringe.scale.set(0.94, 1.1, 1.0);
   } else if (spec.hairStyle === 'buns') {
     for (const s of [-1, 1]) {
       add(rig.head, new THREE.SphereGeometry(0.038, 16, 12), hairMat, s * 0.065, 0.19, -0.03);
@@ -181,8 +349,8 @@ function buildAthlete(spec) {
 
   // ---- arms ----
   const arm = (s) => {
-    const shoulder = pivot(rig.torso, s * 0.195, 0.46, 0);
-    add(shoulder, new THREE.SphereGeometry(0.056, 16, 12), shirt);
+    const shoulder = pivot(rig.torso, s * 0.185, 0.45, 0);
+    add(shoulder, new THREE.SphereGeometry(0.05, 16, 12), shirt);
     const sleeve = segment(shoulder, 0.056, 0.05, 0.14, shirt);
     sleeve.position.y = -0.065;
     const cuff = add(shoulder, new THREE.TorusGeometry(0.05, 0.006, 6, 20), trim, 0, -0.135, 0);
@@ -202,7 +370,7 @@ function buildAthlete(spec) {
   rig.lArm = arm(1);
 
   // ---- paddle in the right hand: wood blade, two rubbers, flared handle ----
-  rig.paddle = pivot(rig.rArm.wrist, 0, -0.05, 0.005);
+  rig.paddle = pivot(rig.rArm.wrist, 0, -0.045, 0);
   const blade = new THREE.Group();
   blade.position.y = -0.13;
   blade.scale.set(1, 1.05, 1);
@@ -232,7 +400,11 @@ export class OpponentView {
     scene.add(this.anchor);
     this.time = 0;
     this.stride = 0;
-    this.key = null;
+    this._target = new THREE.Vector3();
+    this._pole = new THREE.Vector3();
+    this._px = new THREE.Vector3();
+    this._py = new THREE.Vector3();
+    this._pz = new THREE.Vector3();
     this.setCharacter('medium');
   }
 
@@ -276,27 +448,38 @@ export class OpponentView {
     }
     r.hips.position.y = lowest + 0.02 + bounce + Math.abs(Math.sin(this.stride)) * 0.015 * moving;
 
-    // Swing: torso, hips and right arm follow keyframes; otherwise hold the ready pose.
+    // Swing: keyframed hand path + torso turn; arms solved with IK every frame.
     const t = state && state.swing ? state.swing_t : 99;
-    let torsoYaw = 0, sYaw = -0.3, sPitch = -1.0, elbow = -1.0, wrist = 0;
-    if (t >= 0 && t < SWING_DURATION) {
-      [torsoYaw, sYaw, sPitch, elbow, wrist] = keyframe(state.swing === 'forehand' ? FOREHAND : BACKHAND, t / SWING_DURATION);
-    }
+    const swinging = t >= 0 && t < SWING_DURATION;
+    const kf = swinging ? keyframe(state.swing === 'forehand' ? FOREHAND : BACKHAND, t / SWING_DURATION) : READY.slice(1);
+    const [torsoYaw, hx, hy, hz, px, py, pz, nx, ny, nz] = kf;
     const k = Math.min(1, dt * 30);
     r.hips.rotation.y += (torsoYaw * 0.35 - r.hips.rotation.y) * k;
     r.torso.rotation.x = st.lean;
     r.torso.rotation.y += (torsoYaw * 0.65 - r.torso.rotation.y) * k;
     r.torso.rotation.z += ((-vx * 0.05) - r.torso.rotation.z) * Math.min(1, dt * 6);
-    const ra = r.rArm;
-    ra.shoulder.rotation.y += (sYaw - ra.shoulder.rotation.y) * k;
-    ra.shoulder.rotation.x += (sPitch - ra.shoulder.rotation.x) * k;
-    ra.shoulder.rotation.z = 0.25;
-    ra.elbow.rotation.x += (elbow - ra.elbow.rotation.x) * k;
-    ra.wrist.rotation.x += (wrist - ra.wrist.rotation.x) * k;
-    r.paddle.rotation.y = 0.4;
-    // Free arm out front for balance, swinging slightly against the stroke.
-    r.lArm.shoulder.rotation.set(-0.65, 0.25 - torsoYaw * 0.3, -0.28);
-    r.lArm.elbow.rotation.x = -1.35;
+
+    // Paddle hand. A little idle sway keeps the ready position alive.
+    const sway = swinging ? 0 : Math.sin(this.time * 1.7) * 0.012;
+    this._target.set(hx + sway, hy + bounce * 2 + Math.sin(this.time * 2.3) * 0.008, hz);
+    this._pole.set(px, py, pz);
+    const fore = solveArm(r.rArm, this._target, this._pole);
+
+    // Paddle: handle continues the forearm; forehand rubber (red) faces the ball on
+    // forehands, the backhand rubber (black) on backhands.
+    const side = state && state.swing === 'backhand' && swinging ? 1 : -1;
+    const py_ = this._py.copy(fore).negate();
+    const px_ = this._px.set(nx, ny, nz).multiplyScalar(side);
+    px_.addScaledVector(py_, -px_.dot(py_)).normalize();
+    const pz_ = this._pz.crossVectors(px_, py_);
+    const want = IK.q.setFromRotationMatrix(IK.m.makeBasis(px_, py_, pz_));
+    const parent = IK.qe.copy(r.rArm.shoulder.quaternion).multiply(r.rArm.elbow.quaternion);
+    r.paddle.quaternion.copy(parent.invert().multiply(want));
+
+    // Free arm: out front for balance, drawn back as the body turns into the stroke.
+    this._target.set(0.17 + torsoYaw * 0.06 - sway, 0.25 + bounce * 2, 0.3 - Math.abs(torsoYaw) * 0.12);
+    this._pole.set(0.6, -1, -0.4);
+    solveArm(r.lArm, this._target, this._pole);
     r.head.rotation.x = -st.lean * 0.6;
     r.head.rotation.y = -r.torso.rotation.y * 0.8;           // eyes stay on the ball
     if (r.ponytail) {

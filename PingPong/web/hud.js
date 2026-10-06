@@ -20,7 +20,7 @@ export class Hud {
     // Lobby cards: who you face at each speed.
     document.querySelectorAll('.tag .who').forEach((el) => {
       const o = OPPONENTS[el.dataset.speed];
-      el.innerHTML = `VS ${o.name}<i>${o.country} \u00b7 ${o.tagline}</i>`;
+      el.innerHTML = `VS ${o.name}<i>${o.tagline}</i>`;
     });
     $('bar-speed').innerHTML = '<i></i>'.repeat(SEGMENTS);
   }
@@ -39,10 +39,9 @@ export class Hud {
     if (!s) return;
     const sc = s.score;
     const opp = opponentFor(s.speed_setting);
-    if (opp.name !== this.cpuName || !$('cpu-country').textContent) {
+    if (opp.name !== $('cpu-name').textContent) {
       this.cpuName = opp.name;
       $('cpu-name').textContent = opp.name;
-      $('cpu-country').textContent = opp.country;
     }
     $('pts-player').textContent = sc.player;
     $('pts-cpu').textContent = sc.cpu;

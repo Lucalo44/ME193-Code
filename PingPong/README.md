@@ -266,11 +266,11 @@ original, built from primitives; no Rockstar logos or fonts are used.
 
   | Speed | Opponent | Look and movement |
   |---|---|---|
-  | Slow | **Cassidy** (IRL, 5'7", the defender) | Green polo, white skirt, auburn ponytail. Stands upright with calm footwork. |
-  | Medium | **Liu Ping** (CHN, 5'9", the attacker) | Red and gold polo, short black hair. Deep, aggressive crouch. |
-  | Fast | **Kumi** (JPN, 5'2", the speedster) | White and red polo, navy shorts, hair buns. Bouncy, quick feet. |
+  | Slow | **Cassidy** (5'7", the defender) | Navy and sky-blue kit, brown ponytail. Stands upright with calm footwork. |
+  | Medium | **Liu Ping** (5'9", the attacker) | Charcoal and orange kit, short hair. Deep, aggressive crouch. |
+  | Fast | **Kumi** (5'2", the speedster) | Purple and lime kit, jaw-length bob. Bouncy, quick feet. |
 
-  Each model is lathed and jointed, with a face, a polo collar and a detailed paddle. The
+  Kits and hairstyles follow each player's style, not nationality. Each model is lathed and jointed, with a face, a polo collar and a detailed paddle. The
   opponent only changes how the match looks: difficulty still comes from the speed
   setting in `config.py`. The names belong to Rockstar, so swap them out in
   `OPPONENTS` in `web/scene/theme.js` before publishing anything.
