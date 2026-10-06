@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['Minifig']
+
+roboflow:
+  workspace: luca-lodewick
+  project: minifig-5hy2a
+  version: 2
+  license: Private
+  url: https://app.roboflow.com/luca-lodewick/minifig-5hy2a/2
