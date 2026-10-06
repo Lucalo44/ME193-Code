@@ -160,7 +160,29 @@ OPPONENT_SPIN_MAX = 0.5           # opponent spin as a fraction of SPIN_MAX_RADS
 # --------------------------------------------------------------------------
 POINTS_TO_WIN = 11
 GAMES_PER_MATCH = 3
-PLAYER_SERVE = False              # hook for a later version; the CPU always serves in v1
+SERVES_PER_TURN = 5               # the server switches every this-many points
+DEUCE_SERVE_EVERY_POINT = False   # True = real-table-tennis rule: alternate every point at 10-10
+PLAYER_SERVE = True               # False = the CPU serves every point (the old v1 behavior)
+
+# --------------------------------------------------------------------------
+# Serving
+# --------------------------------------------------------------------------
+SERVE_POS = (0.25, 0.18, -1.6)    # where the player holds the ball (x, height above table, z)
+SERVE_CONTACT_Y = 0.30            # the toss is struck as it falls back to this height
+TOSS_HEIGHT_MIN = 0.22            # m; toss height for the gentlest flick ...
+TOSS_HEIGHT_MAX = 0.55            # ... and the strongest
+SERVE_ARM_DELAY_S = 0.6          # the toss is accepted this long after your serve comes up
+TOSS_IGNORE_S = 0.15              # swings this soon after the toss are the toss itself, not a hit
+SERVE_SPEED_MIN = 3.6             # player's serve speed at swing strength 0 (m/s)
+SERVE_SPEED_MAX = 6.0             # ... and at strength 1
+SERVE_SPIN_SCALE = 0.8            # serves carry this fraction of the swing's spin
+SERVE_OWN_BOUNCE_Z = 0.7          # nominal depth of the serve's first bounce (own half, m from net)
+CPU_SERVE_SPEED_FACTOR = 0.75     # CPU serve speed = base shot speed * this
+# Toss detection on the real paddle: a sharp UPWARD jolt with little rotation.
+TOSS_ACCEL_G = 0.8                # upward linear acceleration that counts as a toss (g)
+TOSS_MAX_GYRO_DPS = 120.0         # more rotation than this = a swing, not a toss
+TOSS_UP_FRACTION = 0.7            # the jolt must be mostly along "up"
+TOSS_COOLDOWN_S = 1.0
 
 # --------------------------------------------------------------------------
 # Score publishing (MQTT): record number of continuous hits, as a float

@@ -71,7 +71,8 @@ The game publishes your **record number of continuous hits** to the class broker
 | Payload | the record as a floating-point number, e.g. `7.0` |
 
 A continuous hit is one of your returns that lands legally on the opponent's side. The
-streak resets when a point ends, and the record is your best streak ever.
+streak carries on through points you win and breaks only when you lose a point. The
+record is your best streak ever.
 
 - **When it's sent:** once at startup, then every time you set a new record. The message
   is retained, so a late subscriber gets the current record right away.
@@ -101,12 +102,23 @@ The broker, port, topic and file name are `MQTT_*` / `RECORD_FILE` in `config.py
    (or press 1/2/3). The tag sets the opponent's shot speed for the whole match.
 2. **Hold the paddle still at your ready position** when it connects. It zeroes itself
    then. Press **Z** any time to re-zero.
-3. The opponent serves every point. Watch where the ball is heading:
+3. **Serving switches every 5 points**, like a real match (the yellow dot in the scorebug
+   shows who serves). The opponent serves first.
+   - **Your serve:** the ball waits in your hand and **YOUR SERVE** appears. Toss it by
+     flicking the paddle sharply **straight up** (Space on the keyboard paddle; Shift+Space
+     tosses higher). Then strike it out of the air with a normal swing as it falls through
+     the ring.
+   - Like a real serve, it must bounce on your half first, then the opponent's. The game
+     aims it for you, and swing strength and face angle still set speed and spin. A
+     serve that clips the net and lands is a **LET** and is replayed.
+   - Swinging too early or too late is a fault, and so is letting the ball drop without
+     swinging (**MISSED SERVE**).
+4. When the opponent hits, watch where the ball is heading:
    - **Right of the centerline → forehand. Left → backhand.** (Inverted if `HANDEDNESS = "left"`.)
      Close to the line, either stroke works.
    - The hint arrow and the colored half of the table show which stroke is needed
      (**H** toggles the hint).
-4. **Swing when the ball reaches the ring.** The ring turns green during the hit window
+5. **Swing when the ball reaches the ring.** The ring turns green during the hit window
    (±0.2 s).
    - Swing harder for a faster return.
    - A closed face (tilted down) gives topspin: the ball dips, and on the bounce it kicks
@@ -114,9 +126,9 @@ The broker, port, topic and file name are `MQTT_*` / `RECORD_FILE` in `config.py
    - An open face gives backspin: the ball floats and checks up. Hard flat or backspin
      shots can sail long.
    - Fast, spinny shots make the opponent miss more often.
-5. **You lose the point** for **NO SWING**, **EARLY**, **LATE**, **WRONG STROKE**, or a return
-   that goes **OUT** or into the **NET**.
-6. Games go to 11 (win by 2) and a match is best of 3. On the game-over screen, show a
+6. **You lose the point** for **NO SWING**, **EARLY**, **LATE**, **WRONG STROKE**, a return
+   that goes **OUT** or into the **NET**, or a **SERVE FAULT** / **MISSED SERVE** on your serve.
+7. Games go to 11 (win by 2) and a match is best of 3. On the game-over screen, show a
    tag to play again.
 
 ### Keys (browser window, or type into the terminal + Enter)
@@ -138,8 +150,8 @@ Keyboard paddle (`--no-motor`):
 
 | Key | Action |
 |---|---|
-| Space | Swing |
-| Shift+Space | Hard swing |
+| Space | Swing, or toss the ball when it's your serve |
+| Shift+Space | Hard swing, or a higher toss |
 | hold `W` / `S` | Topspin / backspin |
 | hold `A` / `D` | Sidespin |
 | hold `F` / `B` | Force forehand / backhand. Only with `--no-camera`, for testing WRONG STROKE. Without it, every stroke counts as correct when the camera is off. |
@@ -289,6 +301,11 @@ Every tunable is in `config.py`, with a comment for each.
 | `BALL_SPEED_*` | the opponent's shot speed for each tag |
 | `HIT_WINDOW_S` | How far before or after the ball arrives a swing still counts |
 | `OPPONENT_MISS_*` | Base miss chance, plus extra per unit of incoming speed and spin |
+| `SERVES_PER_TURN` | Points per serve turn (5) |
+| `DEUCE_SERVE_EVERY_POINT` | `True` = the standard rule of alternating every point at 10–10 |
+| `PLAYER_SERVE` | `False` = the CPU serves every point |
+| `TOSS_ACCEL_G`, `TOSS_MAX_GYRO_DPS` | How sharp an upward flick must be, and how little it may rotate, to count as a toss. Tune these with the real paddle if tosses are missed or swings toss by accident. |
+| `TOSS_HEIGHT_*`, `SERVE_SPEED_*`, `SERVE_CONTACT_Y` | Toss height range, serve speed range, and the height the serve is struck at |
 
 ### Look and feel
 

@@ -14,6 +14,7 @@ state (~60 Hz):
      "incoming": {"x": x_arrival, "t_to_arrival": s, "required": str} | null,
      "score": {"player", "cpu", "games_player", "games_cpu", "server", "games_needed"},
      "streak": {"current": n, "record": n},     # continuous hits; record also goes to MQTT
+     "serve": {"server": "player"|"cpu", "state": null|"cpu"|"await_toss"|"tossed", "paddle_kind": str},
      "speed_setting": "slow"|"medium"|"fast",
      "status": {"paddle": str, "paddle_kind": "real"|"sim", "camera": str, "pose": bool,
                 "stroke_check": bool, "calibration": "file"|"default", "pose_label": str|null,
@@ -24,7 +25,8 @@ state (~60 Hz):
 
 event (discrete, triggers sounds/effects):
     {"type": "event", "name": "hit"|"bounce"|"net"|"miss"|"point"|"game_over"|"tag_progress"
-                              |"tag_confirmed"|"swing"|"serve"|"message"|"record", ...fields}
+                              |"tag_confirmed"|"swing"|"serve"|"message"|"record"
+                              |"serve_prompt"|"toss"|"let", ...fields}
     hit:        who, pos, speed, topspin, sidespin, stroke, confidence, required
     bounce:     pos, side
     net:        pos
@@ -33,6 +35,9 @@ event (discrete, triggers sounds/effects):
     game_over:  match_over, winner, score
     swing:      summary of the SwingEvent + trace [[t_rel, lin_g, gyro_dps], ...]
     record:     record (new best number of continuous hits)
+    serve:      pos, by ("cpu")         serve_prompt: by ("player")
+    toss:       height, pos             let: (a serve clipped the net -- replay it)
+    miss reasons also include "SERVE FAULT" and "MISSED SERVE"
 
 camera_frame (~12 fps):
     {"type": "camera_frame", "jpeg_b64": "..."}

@@ -40,21 +40,31 @@ def test_disabled_publisher_never_touches_network():
     assert p.status == "disabled"
 
 
-def test_game_counts_returns_that_land_and_resets_after_the_point():
+def test_game_counts_returns_that_land():
     published = []
     game, clock, events = make_game(seed=7)
     game.streak = StreakTracker(on_record=published.append)
     game.start_game("medium")
-    hits_before_miss = None
     for _ in range(400):
         if game.sm.phase == SM.RALLY and game.incoming and not game.incoming.resolved and game.pending is None:
             inc = game.incoming
             advance(game, clock, max(0.0, inc.t - game.sim_t - 0.03))
             swing_at(game, inc.t)
         advance(game, clock, 0.05)
-        if game.sm.phase == SM.POINT_OVER and hits_before_miss is None and game.streak.record > 0:
-            hits_before_miss = game.streak.record
-            assert game.streak.current == 0      # streak resets when the point ends
     assert game.streak.record >= 1
     assert published and published[-1] == game.streak.record
     assert any(e["name"] == "record" for e in events)
+
+
+def test_streak_survives_points_won_and_breaks_on_points_lost():
+    game, clock, events = make_game()
+    game.streak = StreakTracker()
+    game.start_game("medium")
+    for _ in range(3):
+        game.streak.hit()
+    game.sm.phase = SM.RALLY
+    game._end_point("player", "CPU MISSED")      # player wins the point
+    assert game.streak.current == 3
+    game.sm.phase = SM.RALLY
+    game._end_point("cpu", "NO SWING")           # player loses the point
+    assert game.streak.snapshot() == {"current": 0, "record": 3}

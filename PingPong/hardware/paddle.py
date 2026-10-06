@@ -13,7 +13,7 @@ The motors are never driven during play (they're held stopped), except for
 the optional haptic buzz on a hit (HAPTICS_ENABLED).
 
 Interface shared with hardware/sim_paddle.py:
-    status, kind, calibration, swing_events
+    status, kind, calibration, swing_events, toss_events, toss_armed
     start(), shutdown(), latest(), window(t0, t1), zero(), orientation(),
     haptic(), handle_key(key, down, shift)
 """
@@ -27,7 +27,7 @@ from collections import deque
 from typing import Deque, List, Optional
 
 import config as C
-from hardware.swing import Calibration, ImuSample, SwingDetector
+from hardware.swing import Calibration, ImuSample, SwingDetector, TossDetector
 
 try:
     import legoeducation as le
@@ -46,7 +46,10 @@ class PaddleBase:
     def __init__(self, calibration: Calibration):
         self.calibration = calibration
         self.detector = SwingDetector(calibration)
+        self.toss = TossDetector(self.detector)
         self.swing_events: "queue.Queue" = queue.Queue()
+        self.toss_events: "queue.Queue" = queue.Queue()   # serve tosses (upward flicks)
+        self.toss_armed = False                            # set by the game while you're due to toss
         self.status = "disconnected"
         self._buf: Deque[ImuSample] = deque()
         self._lock = threading.Lock()
@@ -65,6 +68,9 @@ class PaddleBase:
         ev = self.detector.push(s)
         if ev is not None:
             self.swing_events.put(ev)
+        toss = self.toss.push(s)
+        if toss is not None:
+            self.toss_events.put(toss)
 
     def latest(self) -> Optional[ImuSample]:
         with self._lock:

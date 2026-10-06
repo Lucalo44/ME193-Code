@@ -1,13 +1,12 @@
 """
 game/rules.py -- scoring, serve rotation, game and match end.
 
-Games go to POINTS_TO_WIN (11), win by 2. Serve alternates every 2 points,
-and every point once both players reach 10. The first server alternates
-between games. A match is best of GAMES_PER_MATCH.
+Games go to POINTS_TO_WIN (11), win by 2. The serve switches every
+SERVES_PER_TURN points (5); with DEUCE_SERVE_EVERY_POINT it alternates every
+point once both players reach 10. The first server alternates between games.
+A match is best of GAMES_PER_MATCH.
 
-In v1 the CPU physically puts every ball in play (see PLAYER_SERVE in
-config.py); `server` still rotates so the scoreboard reads like real
-table tennis.
+`server` decides who actually serves (see PLAYER_SERVE in config.py).
 """
 
 from __future__ import annotations
@@ -35,8 +34,12 @@ class PointResult:
 
 class Match:
     def __init__(self, games_per_match: int = C.GAMES_PER_MATCH,
-                 points_to_win: int = C.POINTS_TO_WIN, first_server: str = "cpu"):
+                 points_to_win: int = C.POINTS_TO_WIN, first_server: str = "cpu",
+                 serves_per_turn: int = C.SERVES_PER_TURN,
+                 deuce_every_point: bool = C.DEUCE_SERVE_EVERY_POINT):
         self.games_per_match = games_per_match
+        self.serves_per_turn = serves_per_turn
+        self.deuce_every_point = deuce_every_point
         self.points_to_win = points_to_win
         self.match_first_server = first_server
         self.reset()
@@ -56,10 +59,11 @@ class Match:
         p, c = self.points["player"], self.points["cpu"]
         deuce_at = self.points_to_win - 1
         total = p + c
-        if p >= deuce_at and c >= deuce_at:
-            flips = (2 * deuce_at) // 2 + (total - 2 * deuce_at)
+        per = self.serves_per_turn
+        if self.deuce_every_point and p >= deuce_at and c >= deuce_at:
+            flips = (2 * deuce_at) // per + (total - 2 * deuce_at)
         else:
-            flips = total // 2
+            flips = total // per
         return self.game_first_server if flips % 2 == 0 else other(self.game_first_server)
 
     def game_winner(self) -> Optional[str]:

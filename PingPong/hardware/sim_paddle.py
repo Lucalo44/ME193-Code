@@ -4,7 +4,8 @@ hardware/sim_paddle.py -- keyboard stand-in for the Double Motor (--no-motor).
 Same interface as hardware/paddle.py, so the whole game is playable without
 hardware. Keys arrive from the browser (and the terminal):
 
-    space          swing at medium strength
+    space          swing at medium strength -- or, when it's your serve and the
+                   ball is in your hand, toss it (shift = higher toss)
     shift + space  hard swing
     W / S (held)   topspin / backspin, and tilts the ghost paddle face
     A / D (held)   sidespin left / right
@@ -17,7 +18,7 @@ from __future__ import annotations
 import time
 
 from hardware.paddle import PaddleBase
-from hardware.swing import Calibration, ImuSample, SwingEvent, strength_to_speed
+from hardware.swing import Calibration, ImuSample, SwingEvent, TossEvent, strength_to_speed, toss_height
 
 MEDIUM_STRENGTH = 0.45
 HARD_STRENGTH = 0.95
@@ -40,7 +41,12 @@ class SimPaddle(PaddleBase):
         if key in ("w", "s", "a", "d", "f", "b"):
             (self.held.add if down else self.held.discard)(key)
         elif key in (" ", "space") and down:
-            self._swing(HARD_STRENGTH if shift else MEDIUM_STRENGTH)
+            if self.toss_armed:
+                strength = 0.8 if shift else 0.4
+                self.toss_armed = False
+                self.toss_events.put(TossEvent(time.monotonic(), strength, toss_height(strength)))
+            else:
+                self._swing(HARD_STRENGTH if shift else MEDIUM_STRENGTH)
 
     def _swing(self, strength: float) -> None:
         topspin = (1.0 if "w" in self.held else 0.0) - (1.0 if "s" in self.held else 0.0)

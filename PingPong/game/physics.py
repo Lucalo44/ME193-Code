@@ -204,13 +204,15 @@ class Arrival:
 
 
 def predict_receive(ball: Ball, receiver: str, plane_z: float, max_t: float = 3.0,
-                    rng: Optional[random.Random] = None, bounced: bool = False) -> Optional[Arrival]:
+                    rng: Optional[random.Random] = None, bounced: bool = False,
+                    serve: bool = False) -> Optional[Arrival]:
     """Forward-simulate a ball heading toward `receiver` and return where/when
     it can be struck: the first time after it bounces on the receiver's half
     that it reaches the receiver's hit plane, or (for short balls) the moment
     just before it would bounce a second time. None if the shot is not good
     (net, out, bounces on the hitter's side). Pass bounced=True if the ball
-    has already bounced on the receiver's side."""
+    has already bounced on the receiver's side, serve=True for a serve that
+    still has to bounce once on the server's side first."""
     b = ball.copy()
     # A fixed seed keeps predictions reproducible through net-cord randomness.
     rng = rng or random.Random(0)
@@ -221,7 +223,10 @@ def predict_receive(ball: Ball, receiver: str, plane_z: float, max_t: float = 3.
         t += DT
         for ev in events:
             if ev.kind == "bounce":
-                if ev.side != receiver or bounced:
+                if ev.side != receiver and serve and not bounced:
+                    serve = False          # the serve's bounce on the server's side
+                    continue
+                if ev.side != receiver or bounced or serve:
                     return None
                 bounced = True
             elif ev.kind == "floor":
@@ -334,3 +339,69 @@ def player_return(start: Vec, speed: float, topspin: float, sidespin: float,
     heading = v_unit((hx0 + assist * (hx1 - hx0), 0.0, hz0 + assist * (hz1 - hz0)))
     vel = launch_velocity(speed, theta, (heading[0], heading[2]))
     return Shot(vel, spin_vector(vel, top_rads, side_rads), theta, (corrected_x, tz))
+
+
+# --------------------------------------------------------------------------
+# Serves
+# --------------------------------------------------------------------------
+
+def serve_result(ball: Ball, server: str, max_t: float = 3.0) -> str:
+    """Fly a serve and classify it: "good" (bounces once on the server's side,
+    then on the receiver's), "let" (good, but touched the net), or "fault"."""
+    b = ball.copy()
+    rng = random.Random(0)
+    own = False
+    net = False
+    t = 0.0
+    while t < max_t and not b.dead:
+        for ev in step(b, DT, rng):
+            if ev.kind == "net":
+                net = True
+            elif ev.kind == "bounce":
+                if ev.side == server and not own:
+                    own = True
+                elif ev.side != server and own:
+                    return "let" if net else "good"
+                else:
+                    return "fault"
+            elif ev.kind == "floor":
+                return "fault"
+        t += DT
+    return "fault"
+
+
+def serve_shot(start: Vec, speed: float, topspin: float, sidespin: float, server: str,
+               rng: random.Random, assist: float = C.ASSIST_LEVEL) -> Shot:
+    """A serve: aimed to bounce first on the server's own half (spin-blind, like
+    player returns), then nudged toward a legal serve by `assist`."""
+    top_rads = topspin * C.SPIN_MAX_RADS * C.SERVE_SPIN_SCALE
+    side_rads = sidespin * C.SIDESPIN_MAX_RADS * C.SERVE_SPIN_SCALE
+    sgn = -1.0 if server == "player" else 1.0           # the server's half has this sign of z
+    tx = max(-0.5, min(0.5, start[0] * 0.5 + rng.uniform(-0.2, 0.2)))
+    nominal = aim(start, (tx, sgn * C.SERVE_OWN_BOUNCE_Z), speed, top_rads, side_rads, spin_aware=False)
+    if assist <= 0 or serve_result(Ball(start, nominal.vel, nominal.spin), server) == "good":
+        return nominal
+    # Search own-side bounce depths (nearest the nominal first), then slightly
+    # different speeds, for a legal serve.
+    depths = sorted([0.25 + 0.05 * i for i in range(20)], key=lambda z: abs(z - C.SERVE_OWN_BOUNCE_Z))
+    for factor in (1.0, 0.9, 1.1, 0.8, 1.2, 0.7, 1.3, 0.6):
+        for z in depths:
+            fix = aim(start, (tx, sgn * z), speed * factor, top_rads, side_rads, spin_aware=True)
+            if serve_result(Ball(start, fix.vel, fix.spin), server) == "good":
+                vel = tuple(n + assist * (f - n) for n, f in zip(nominal.vel, fix.vel))
+                return Shot(vel, spin_vector(vel, top_rads, side_rads), fix.theta, (tx, sgn * z))
+    return nominal
+
+
+def toss_contact(start: Vec, height: float, contact_y: float) -> Tuple[Vec, float]:
+    """Vertical serve toss from `start` rising `height` m. Returns the launch
+    velocity and the time it falls back to `contact_y` (when it should be hit)."""
+    vy = math.sqrt(2 * C.GRAVITY * height)
+    b = Ball(start, (0.0, vy, 0.0))
+    t = 0.0
+    while t < 3.0:
+        step(b, DT, collide=False)
+        t += DT
+        if b.vel[1] < 0 and b.pos[1] <= contact_y:
+            break
+    return (0.0, vy, 0.0), t

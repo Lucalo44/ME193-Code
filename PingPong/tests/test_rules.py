@@ -28,8 +28,17 @@ def test_win_by_two_at_deuce():
     assert r.game_over and r.game_winner == "cpu"
 
 
+def test_serve_switches_every_five_points():
+    m = Match(first_server="cpu", serves_per_turn=5)
+    servers = []
+    for i in range(12):
+        servers.append(m.server)
+        m.award_point("player" if i % 2 else "cpu")
+    assert servers == ["cpu"] * 5 + ["player"] * 5 + ["cpu"] * 2
+
+
 def test_serve_alternates_every_two_points():
-    m = Match(first_server="cpu")
+    m = Match(first_server="cpu", serves_per_turn=2)
     servers = []
     for _ in range(8):
         servers.append(m.server)
@@ -38,7 +47,7 @@ def test_serve_alternates_every_two_points():
 
 
 def test_serve_alternates_every_point_at_deuce():
-    m = Match(first_server="cpu")
+    m = Match(first_server="cpu", serves_per_turn=2, deuce_every_point=True)
     play(m, ["player", "cpu"] * 10)          # 10-10
     servers = []
     for who in ["player", "cpu", "player", "cpu"]:
@@ -53,6 +62,14 @@ def test_first_server_alternates_between_games():
     m.start_next_game()
     assert m.server == "player"
     assert m.points == {"player": 0, "cpu": 0}
+
+
+def test_five_serves_hold_through_deuce_by_default():
+    m = Match(first_server="cpu", serves_per_turn=5, deuce_every_point=False)
+    play(m, ["player", "cpu"] * 10)          # 10-10, total 20 -> 4 full turns done
+    assert m.server == "cpu"
+    m.award_point("player")
+    assert m.server == "cpu"                  # still the same 5-serve turn
 
 
 def test_best_of_three_match():

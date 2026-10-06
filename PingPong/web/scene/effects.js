@@ -147,5 +147,6 @@ export class Sounds {
     for (let i = 0; i < 40; i++) this._noise(0.025, 1500 + Math.random() * 1500, 1.5, 0.12 * level * Math.random(), 'bandpass', 4, Math.random() * 1.4);
   }
   beat() { this._tone(1000, 0.06, 'sine', 0.12); }
+  toss() { this._noise(0.05, 900, 1.2, 0.18, 'bandpass', 2); }
   tag() { this._tone(660, 0.08, 'triangle', 0.1); }
 }

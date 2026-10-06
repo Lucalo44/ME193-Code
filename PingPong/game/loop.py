@@ -10,6 +10,17 @@ Time: `sim_t` is the game clock (seconds, frozen while paused), advanced in
 fixed physics sub-steps of 1/PHYSICS_HZ. Swing and camera timestamps are
 time.monotonic(); `clock_offset` converts them (sim = mono - clock_offset).
 
+Serving
+-------
+The server switches every SERVES_PER_TURN points (Match.server). When it's the
+player's serve the ball waits in their hand ("await_toss") until a toss:
+an upward flick of the real paddle (hardware TossDetector) or Space on the
+keyboard paddle. The ball flies straight up, and the player strikes it out of
+the air with a normal swing as it falls back to SERVE_CONTACT_Y -- the usual
+hit window applies (EARLY / LATE / MISSED SERVE). Serves (both sides) must
+bounce on the server's half first, then the receiver's; a serve that clips
+the net and still lands is a let and is replayed.
+
 The referee
 -----------
 After each hit the ball must first bounce on the receiver's half. A ball
@@ -43,6 +54,11 @@ from server import protocol
 SERVE_HEIGHT = 0.22
 
 
+def serve_speed(strength: float) -> float:
+    s = max(0.0, min(1.0, strength)) ** C.RETURN_STRENGTH_CURVE
+    return C.SERVE_SPEED_MIN + (C.SERVE_SPEED_MAX - C.SERVE_SPEED_MIN) * s
+
+
 @dataclass
 class Flight:
     hitter: str
@@ -51,6 +67,8 @@ class Flight:
     bounces: int = 0              # bounces on the receiver's half
     net: bool = False
     struck: bool = False          # CPU receiver already swung at it
+    serve: bool = False           # a serve: must bounce on the server's half first
+    own_bounced: bool = False     # ... and has it?
 
 
 @dataclass
@@ -59,6 +77,7 @@ class Incoming:
     pos: P.Vec
     required: str                 # "forehand" | "backhand" | "either"
     resolved: bool = False
+    serve: bool = False           # the player's own serve toss (any stroke is fine)
 
 
 @dataclass
@@ -68,6 +87,7 @@ class PendingHit:
     stroke: Optional[str]
     confidence: float
     required: str
+    serve: bool = False
 
 
 class Game:
@@ -104,6 +124,8 @@ class Game:
         self._stop = threading.Event()
         self._last_tag = (None, 0.0)
         self.streak = streak or StreakTracker()
+        self.serve_state: Optional[str] = None   # None | "cpu" | "await_toss" | "tossed"
+        self.toss_t = -10.0
         self._mqtt_status = mqtt_status
 
     # ======================================================================
@@ -148,6 +170,7 @@ class Game:
         self.clock_offset = self.clock() - (self.sim_t + self._acc)
         self.paddle.tick(dt)
         self._drain_swings(ignore=paused)
+        self._drain_tosses(ignore=paused)
         self._poll_tags()
         if not paused:
             self.opponent.update(dt, self.sim_t)
@@ -160,14 +183,24 @@ class Game:
         ph, now = self.sm.phase, self.sim_t
         elapsed = self.sm.elapsed(now)
         if ph == SM.SERVE:
-            self.ball = P.Ball((self.opponent.x, SERVE_HEIGHT, C.OPPONENT_HIT_PLANE_Z))
-            if elapsed >= C.SERVE_DELAY_S:
-                start, shot = self.opponent.serve(now)
-                self.ball = P.Ball(start, shot.vel, shot.spin)
-                self.sm.to(SM.RALLY, now)
-                self._begin_flight("cpu")
-                self._emit("serve", pos=start)
-                self._emit("hit", who="cpu", pos=start, speed=P.v_norm(shot.vel))
+            if self.player_serves:
+                # Ball in the player's hand, waiting for the toss.
+                if self.serve_state != "await_toss":
+                    self.serve_state = "await_toss"
+                    self._emit("serve_prompt", by="player")
+                self.paddle.toss_armed = elapsed >= C.SERVE_ARM_DELAY_S
+                self.ball = P.Ball(C.SERVE_POS)
+            else:
+                self.serve_state = "cpu"
+                self.paddle.toss_armed = False
+                self.ball = P.Ball((self.opponent.x, SERVE_HEIGHT, C.OPPONENT_HIT_PLANE_Z))
+                if elapsed >= C.SERVE_DELAY_S:
+                    start, shot = self.opponent.serve(now)
+                    self.ball = P.Ball(start, shot.vel, shot.spin)
+                    self.sm.to(SM.RALLY, now)
+                    self._begin_flight("cpu", serve=True)
+                    self._emit("serve", pos=start, by="cpu")
+                    self._emit("hit", who="cpu", pos=start, speed=P.v_norm(shot.vel))
         elif ph == SM.RALLY:
             f = self.flight
             plan = self.opponent.plan
@@ -203,17 +236,22 @@ class Game:
         self._emit("message", text=f"{setting.upper()} - game on!")
 
     def reset(self) -> None:
-        self.streak.reset_streak()
         self.sm.reset(self.sim_t)
         self._clear_rally()
         self.ball = P.Ball(dead=True)
         self.opponent.reset()
         self.latency = None
 
+    @property
+    def player_serves(self) -> bool:
+        return C.PLAYER_SERVE and self.match.server == "player"
+
     def _clear_rally(self) -> None:
         self.flight = None
         self.incoming = None
         self.pending = None
+        self.serve_state = None
+        self.paddle.toss_armed = False
 
     # ======================================================================
     # Physics sub-step + referee
@@ -245,10 +283,20 @@ class Game:
         if ev.kind == "net":
             f.net = True
             if f.hitter == "cpu":
-                self._predict_incoming()
+                self._predict_incoming(serve=f.serve and not f.own_bounced)
         elif ev.kind == "bounce":
             if ev.side == f.hitter:
-                self._end_point(f.receiver, "NET" if f.net else "OWN SIDE")
+                if f.serve and not f.own_bounced and f.bounces == 0:
+                    f.own_bounced = True          # a serve's first bounce, on the server's half
+                    return
+                self._end_point(f.receiver, "SERVE FAULT" if f.serve and not f.net else
+                                "NET" if f.net else "OWN SIDE")
+                return
+            if f.serve and not f.own_bounced:
+                self._end_point(f.receiver, "SERVE FAULT")   # skipped the server's half
+                return
+            if f.serve and f.net and f.bounces == 0:
+                self._let()
                 return
             f.bounces += 1
             if f.hitter == "player" and f.bounces == 1:
@@ -294,18 +342,18 @@ class Game:
         if inc and not inc.resolved and self.pending is None \
                 and self.sim_t > inc.t + C.HIT_WINDOW_S + C.LATE_ZONE_S:
             inc.resolved = True
-            self._player_miss("NO SWING")
+            self._player_miss("MISSED SERVE" if inc.serve else "NO SWING")
 
-    def _begin_flight(self, hitter: str) -> None:
-        self.flight = Flight(hitter, other(hitter), self.sim_t)
+    def _begin_flight(self, hitter: str, serve: bool = False) -> None:
+        self.flight = Flight(hitter, other(hitter), self.sim_t, serve=serve)
         if hitter == "cpu":
-            self._predict_incoming()
+            self._predict_incoming(serve=serve)
         else:
             self.incoming = None
-            self.opponent.on_incoming(self.ball, self.sim_t)
+            self.opponent.on_incoming(self.ball, self.sim_t, serve=serve)
 
-    def _predict_incoming(self, bounced: bool = False) -> None:
-        arr = P.predict_receive(self.ball, "player", C.PLAYER_HIT_PLANE_Z, bounced=bounced)
+    def _predict_incoming(self, bounced: bool = False, serve: bool = False) -> None:
+        arr = P.predict_receive(self.ball, "player", C.PLAYER_HIT_PLANE_Z, bounced=bounced, serve=serve)
         if arr is None:
             self.incoming = None
             return
@@ -317,8 +365,8 @@ class Game:
             self._emit("record", record=self.streak.record)
 
     def _end_point(self, winner: str, reason: str, game_penalty: bool = False, **extra) -> None:
-        self.streak.reset_streak()
         if winner == "cpu":
+            self.streak.reset_streak()      # only losing a point breaks the streak
             self._emit("miss", reason=reason, **extra)
         result = self.match.award_game(winner) if game_penalty else self.match.award_point(winner)
         self.point_result = result
@@ -327,6 +375,15 @@ class Game:
             self._emit("game_over", match_over=result.match_over, winner=result.game_winner,
                        match_winner=result.match_winner, score=self.match.snapshot())
         self._clear_rally()
+        self.opponent.target_x = 0.0
+        self.opponent.plan = None
+        self.sm.to(SM.POINT_OVER, self.sim_t)
+
+    def _let(self) -> None:
+        """A serve clipped the net and landed: no point, serve again."""
+        self._emit("let")
+        self._clear_rally()
+        self.point_result = None
         self.opponent.target_x = 0.0
         self.opponent.plan = None
         self.sm.to(SM.POINT_OVER, self.sim_t)
@@ -347,6 +404,30 @@ class Game:
             if not ignore:
                 self._on_swing(ev)
 
+    def _drain_tosses(self, ignore: bool = False) -> None:
+        while True:
+            try:
+                ev = self.paddle.toss_events.get_nowait()
+            except queue.Empty:
+                return
+            if not ignore and self.sm.phase == SM.SERVE and self.serve_state == "await_toss" \
+                    and self.sm.elapsed(self.sim_t) >= C.SERVE_ARM_DELAY_S:
+                self._toss(ev)
+
+    def _toss(self, ev) -> None:
+        """Throw the ball straight up; the player must hit it as it comes down."""
+        start = C.SERVE_POS
+        vel, t_contact = P.toss_contact(start, ev.height, C.SERVE_CONTACT_Y)
+        self.ball = P.Ball(start, vel)
+        contact = (start[0], C.SERVE_CONTACT_Y, start[2])
+        self.toss_t = self.sim_t
+        self.flight = None                     # nothing to referee until it's struck
+        self.incoming = Incoming(self.sim_t + t_contact, contact, "either", serve=True)
+        self.serve_state = "tossed"
+        self.paddle.toss_armed = False
+        self.sm.to(SM.RALLY, self.sim_t)
+        self._emit("toss", height=ev.height, pos=start)
+
     def _on_swing(self, ev) -> None:
         t = ev.t_peak - self.clock_offset          # sim time of the swing peak
         t_corr = t - C.LATENCY_OFFSET_S
@@ -357,6 +438,8 @@ class Game:
         inc = self.incoming
         if self.sm.phase != SM.RALLY or inc is None or inc.resolved or self.pending:
             return
+        if inc.serve and t < self.toss_t + C.TOSS_IGNORE_S:
+            return  # the tossing motion itself, not the serve stroke
         dt = t_corr - inc.t
         if dt < -C.EARLY_ZONE_S or dt > C.HIT_WINDOW_S + C.LATE_ZONE_S:
             return  # stray swing, nowhere near the ball
@@ -367,6 +450,11 @@ class Game:
         if dt > C.HIT_WINDOW_S:
             inc.resolved = True
             self._player_miss("LATE", by_s=dt)
+            return
+        if inc.serve:
+            # Any stroke can serve; no pose check.
+            inc.resolved = True
+            self.pending = PendingHit(max(t_corr, inc.t), ev, "serve", 1.0, "either", serve=True)
             return
         stroke, conf = self._judge(ev, inc.required)
         inc.resolved = True
@@ -396,21 +484,27 @@ class Game:
         pos = self._ball_pos_at(h.t)
         pos = (pos[0], max(pos[1], 0.06), pos[2])
         sw = h.swing
-        shot = P.player_return(pos, sw.return_speed, sw.topspin, sw.sidespin, self.rng)
+        if h.serve:
+            speed = serve_speed(sw.strength)
+            shot = P.serve_shot(pos, speed, sw.topspin, sw.sidespin, "player", self.rng)
+            self.serve_state = None
+        else:
+            speed = sw.return_speed
+            shot = P.player_return(pos, speed, sw.topspin, sw.sidespin, self.rng)
         self.pending = None
         self.incoming = None
         self.player_strength = sw.strength
         self.ball = P.Ball(pos, shot.vel, shot.spin)
-        self.flight = Flight("player", "cpu", self.sim_t)
+        self.flight = Flight("player", "cpu", self.sim_t, serve=h.serve)
         # Contact happened at h.t; catch the ball up to the present.
         for _ in range(int((self.sim_t - h.t) / P.DT)):
             for ev in P.step(self.ball, P.DT, self.rng):
                 self._referee(ev)
             if self.sm.phase != SM.RALLY:
                 return
-        self.opponent.on_incoming(self.ball, self.sim_t)
+        self.opponent.on_incoming(self.ball, self.sim_t, serve=h.serve)
         self.paddle.haptic()
-        self._emit("hit", who="player", pos=pos, speed=sw.return_speed, strength=sw.strength,
+        self._emit("hit", who="player", pos=pos, speed=speed, strength=sw.strength, serve=h.serve,
                    topspin=sw.topspin, sidespin=sw.sidespin, stroke=h.stroke,
                    confidence=h.confidence, required=h.required)
 
@@ -547,6 +641,8 @@ class Game:
             if inc else None,
             score=self.match.snapshot(),
             streak=self.streak.snapshot(),
+            serve={"server": self.match.server, "state": self.serve_state,
+                   "paddle_kind": self.paddle.kind},
             speed_setting=self.speed_setting,
             status=status,
             tag=tag,

@@ -11,10 +11,11 @@
 //    paddle:{pitch, roll, yaw},             // degrees, relative to the zeroed ready pose
 //    required_stroke, incoming:{x, t_to_arrival, required}|null,
 //    score:{player, cpu, games_player, games_cpu, server, games_needed}, streak:{current, record},
+//    serve:{server, state:null|"cpu"|"await_toss"|"tossed", paddle_kind},
 //    speed_setting, status:{paddle, paddle_kind, camera, pose, stroke_check, calibration, pose_label},
 //    tag:{id, label, progress}|null, latency:{beats, count}|null, debug:{...}|null,
 //    settings:{hint, handedness, debug, hit_window_s}}
-//   {type:"event", name:"hit"|"bounce"|"net"|"miss"|"point"|"game_over"|"tag_progress"
+//   {type:"event", name:"hit"|"bounce"|"net"|"miss"|"point"|"game_over"|"tag_progress"|"toss"|"let"
 //                       |"tag_confirmed"|"swing"|"serve"|"message", ...}
 //   {type:"camera_frame", jpeg_b64}
 // Browser -> Python
@@ -173,6 +174,8 @@ function onEvent(ev) {
     case 'swing': paddleView.swing(); hud.trace(ev.trace); break;
     case 'tag_confirmed': sounds.point(true); break;
     case 'message': hud.toast(ev.text); break;
+    case 'toss': sounds.toss(); break;
+    case 'let': hud.centerMessage('LET', 'replay the serve', 'good', 1200); sounds.net(); break;
     case 'record': hud.toast(`NEW RECORD \u00b7 ${ev.record} CONTINUOUS HITS`); break;
   }
 }

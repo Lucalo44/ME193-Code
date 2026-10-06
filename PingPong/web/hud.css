@@ -90,6 +90,15 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #050507; col
 #hint-text { font-size: 26px; font-weight: 800; letter-spacing: 0.22em; padding: 4px 18px; background: var(--panel);
   border-bottom: 3px solid var(--fg); }
 
+/* ---- Serve prompt ---- */
+#serve-prompt { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); text-align: center;
+  opacity: 0; transition: opacity 0.2s; }
+#serve-prompt.show { opacity: 1; }
+#serve-prompt .who { display: inline-block; font-size: 28px; font-weight: 800; letter-spacing: 0.22em; padding: 4px 18px;
+  background: var(--panel); border-bottom: 3px solid var(--back); }
+#serve-prompt .how { margin-top: 8px; font-size: 14px; font-weight: 700; letter-spacing: 0.2em; color: var(--fg);
+  text-shadow: 0 2px 8px #000; }
+
 /* ---- Last-shot spin / power panel ---- */
 .label {
   font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: #0b0b0d; background: var(--fg);

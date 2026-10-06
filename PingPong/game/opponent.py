@@ -64,8 +64,8 @@ class Opponent:
         }
 
     # -- reacting to the player's shot ------------------------------------
-    def on_incoming(self, ball: P.Ball, now: float) -> None:
-        self.plan = P.predict_receive(ball, "cpu", C.OPPONENT_HIT_PLANE_Z)
+    def on_incoming(self, ball: P.Ball, now: float, serve: bool = False) -> None:
+        self.plan = P.predict_receive(ball, "cpu", C.OPPONENT_HIT_PLANE_Z, serve=serve)
         self.move_after = now + C.OPPONENT_REACTION_S[self.speed_setting]
         self.swing = None
         if self.plan is None:
@@ -103,10 +103,14 @@ class Opponent:
         return self._good_shot(ball.pos, speed)
 
     def serve(self, now: float) -> tuple:
-        """Put the ball in play from the CPU's end. Returns (start_pos, Shot)."""
-        start = (self.x, 0.22, C.OPPONENT_HIT_PLANE_Z)
+        """Serve from the CPU's end: first bounce on its own half, then the
+        player's, like a real serve. Returns (start_pos, Shot)."""
+        start = (self.x, C.SERVE_CONTACT_Y, C.OPPONENT_HIT_PLANE_Z)
         self.start_swing(self.x - 0.1, now)
-        return start, self._good_shot(start, self.base_speed)
+        top, side = self._spin()
+        shot = P.serve_shot(start, self.base_speed * C.CPU_SERVE_SPEED_FACTOR, top / C.SPIN_MAX_RADS,
+                            side / C.SIDESPIN_MAX_RADS, "cpu", self.rng, assist=1.0)
+        return start, shot
 
     def _pick_target(self) -> tuple:
         side = self.rng.choice((-1.0, 1.0))

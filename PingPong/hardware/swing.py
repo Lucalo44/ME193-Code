@@ -33,6 +33,13 @@ SWING_END_QUIET_S; one event is emitted per swing, and a SWING_COOLDOWN_S
 refractory period suppresses double triggers. t_peak is the time of peak
 linear acceleration.
 
+Serve toss
+----------
+TossDetector watches the same stream for the serve toss: a sharp jolt of the
+paddle straight UP (linear acceleration along the at-rest gravity direction,
+above TOSS_ACCEL_G) with little rotation (gyro below TOSS_MAX_GYRO_DPS), so it
+isn't confused with a swing. The jolt's strength sets the toss height.
+
 Spin
 ----
 Which axes mean "face angle" and "brushing direction" depends on how the motor
@@ -350,6 +357,63 @@ class SwingDetector:
             features=feats,
             raw=list(self._window),
         )
+
+
+@dataclass
+class TossEvent:
+    t_peak: float
+    strength: float               # 0..1
+    height: float                 # m the ball is tossed above the hand
+
+
+def toss_height(strength: float) -> float:
+    s = max(0.0, min(1.0, strength))
+    return C.TOSS_HEIGHT_MIN + (C.TOSS_HEIGHT_MAX - C.TOSS_HEIGHT_MIN) * s
+
+
+class TossDetector:
+    """Detects the serve toss: an upward jolt with little rotation. Shares the
+    swing detector's gravity estimate (and calibration)."""
+
+    def __init__(self, swing: "SwingDetector"):
+        self.swing = swing
+        self._active = False
+        self._peak = 0.0
+        self._peak_t = 0.0
+        self._max_gyro = 0.0
+        self._up_ok = False
+        self._last_t = -math.inf
+
+    def push(self, s: ImuSample) -> Optional[TossEvent]:
+        cal = self.swing.cal
+        g = self.swing.gravity
+        gmag = math.sqrt(sum(x * x for x in g)) or 1.0
+        up = [x / gmag for x in g]               # at rest the accelerometer reads +1 g "up"
+        a = accel_g(s, cal)
+        lin = [a[i] - g[i] for i in range(3)]
+        up_comp = sum(lin[i] * up[i] for i in range(3))
+        lin_mag = math.sqrt(sum(x * x for x in lin)) or 1e-9
+        gyr = gyro_dps(s, cal)
+        if not self._active:
+            if up_comp > C.TOSS_ACCEL_G * 0.5:
+                self._active = True
+                self._peak, self._peak_t, self._max_gyro, self._up_ok = up_comp, s.t, gyr, False
+            else:
+                return None
+        self._max_gyro = max(self._max_gyro, gyr)
+        if up_comp > self._peak:
+            self._peak, self._peak_t = up_comp, s.t
+            self._up_ok = up_comp / lin_mag >= C.TOSS_UP_FRACTION
+        if up_comp > C.TOSS_ACCEL_G * 0.3 and s.t - self._peak_t < 0.3:
+            return None
+        # Jolt over: was it a clean upward toss?
+        self._active = False
+        if (self._peak >= C.TOSS_ACCEL_G and self._up_ok and self._max_gyro <= C.TOSS_MAX_GYRO_DPS
+                and self._peak_t - self._last_t >= C.TOSS_COOLDOWN_S):
+            self._last_t = self._peak_t
+            strength = min(1.0, (self._peak - C.TOSS_ACCEL_G) / (2.0 * C.TOSS_ACCEL_G))
+            return TossEvent(self._peak_t, strength, toss_height(strength))
+        return None
 
 
 def detect_all(samples: Sequence[ImuSample], cal: Optional[Calibration] = None) -> List[SwingEvent]:

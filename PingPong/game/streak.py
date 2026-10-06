@@ -2,9 +2,9 @@
 game/streak.py -- the record number of continuous hits.
 
 A "hit" is one of the player's returns that lands legally on the opponent's
-side. The current streak counts those within one rally and resets when the
-point ends; the record is the best streak ever, saved to RECORD_FILE so it
-survives restarts. Every time the record is beaten, `on_record(record)` is
+side. The current streak keeps counting across points the player wins and
+resets only when the player loses a point. The record is the best streak
+ever, saved to RECORD_FILE so it survives restarts. Every time the record is beaten, `on_record(record)` is
 called (main.py publishes it over MQTT).
 """
 

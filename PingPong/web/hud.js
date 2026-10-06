@@ -7,6 +7,7 @@ const SEGMENTS = 12;
 
 const REASON_SUB = {
   'CPU MISSED': 'missed the return', 'OUT': 'hit it long', 'NET': 'into the net', 'OWN SIDE': 'own side',
+  'SERVE FAULT': 'served a fault',
 };
 
 export class Hud {
@@ -80,6 +81,15 @@ export class Hud {
       hint.className = 'show';
     } else {
       hint.className = '';
+    }
+
+    // Serve prompt: the ball is in your hand, waiting for the toss.
+    const sv = s.serve;
+    const awaiting = sv && sv.state === 'await_toss' && s.phase === 'SERVE' && !s.paused;
+    $('serve-prompt').classList.toggle('show', !!awaiting);
+    if (awaiting) {
+      const how = sv.paddle_kind === 'sim' ? 'PRESS SPACE TO TOSS \u00b7 THEN SWING' : 'FLICK THE PADDLE UP TO TOSS \u00b7 THEN SWING';
+      if ($('serve-how').textContent !== how) $('serve-how').textContent = how;
     }
 
     // Overlays.
@@ -156,6 +166,10 @@ export class Hud {
     let sub = '';
     if (ev.reason === 'WRONG STROKE') {
       sub = `needed ${ev.needed}` + (ev.judged ? ` · saw ${ev.judged}` : ' · no stroke seen');
+    } else if (ev.reason === 'SERVE FAULT') {
+      sub = 'a serve must bounce on your side first';
+    } else if (ev.reason === 'MISSED SERVE') {
+      sub = 'swing as the ball falls';
     } else if (ev.reason === 'EARLY' || ev.reason === 'LATE') {
       sub = `by ${Math.round(ev.by_s * 1000)} ms`;
     }
