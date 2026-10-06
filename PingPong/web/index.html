@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LEGO Paddle Pong</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="hud.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/addons/" } }
+  </script>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <div id="vignette"></div>
+
+  <div id="hud">
+    <!-- Broadcast scorebug -->
+    <div id="scorebug">
+      <div class="row you">
+        <span class="strip"></span><span class="serve" id="srv-player"></span>
+        <span class="name">YOU</span>
+        <span class="games" id="games-player"></span>
+        <span class="pts" id="pts-player">0</span>
+      </div>
+      <div class="row cpu">
+        <span class="strip"></span><span class="serve" id="srv-cpu"></span>
+        <span class="name" id="cpu-name">CPU</span>
+        <span class="games" id="games-cpu"></span>
+        <span class="pts" id="pts-cpu">0</span>
+      </div>
+      <div class="tab"><span id="speed-chip">MEDIUM</span><span class="sep">/</span><span id="phase-label">LOBBY</span></div>
+    </div>
+
+    <!-- Hardware / training status -->
+    <div id="status">
+      <div class="stat" id="chip-paddle"></div>
+      <div class="stat" id="chip-camera"></div>
+      <div class="stat" id="chip-pose"></div>
+      <div class="stat" id="chip-cal"></div>
+    </div>
+
+    <div id="stroke-hint"><span id="hint-text"></span></div>
+    <div id="center-msg"><div class="big" id="msg-big"></div><div class="bar"></div><div class="small" id="msg-small"></div></div>
+    <div id="toast"></div>
+
+    <!-- Spin + speed of the last shot -->
+    <div id="shot-card">
+      <div class="label">LAST SHOT</div>
+      <div class="shot-body">
+        <svg id="spin-compass" viewBox="-60 -60 120 120">
+          <polygon class="tri top" points="0,-56 -14,-34 14,-34"/>
+          <polygon class="tri back" points="0,56 -14,34 14,34"/>
+          <polygon class="tri left" points="-56,0 -34,-14 -34,14"/>
+          <polygon class="tri right" points="56,0 34,-14 34,14"/>
+          <rect x="-30" y="-30" width="60" height="60" transform="rotate(45)" class="frame"/>
+          <line x1="-30" y1="0" x2="30" y2="0" class="axis"/><line x1="0" y1="-30" x2="0" y2="30" class="axis"/>
+          <line id="spin-vec" x1="0" y1="0" x2="0" y2="0" class="vec"/>
+          <circle id="spin-dot" cx="0" cy="0" r="6" class="dot"/>
+        </svg>
+        <div class="meters">
+          <div class="meter-label">POWER <span id="val-speed">--</span></div>
+          <div class="segments" id="bar-speed"></div>
+          <div class="readout"><span>SPIN</span><b id="val-top">--</b></div>
+          <div class="readout"><span>SIDE</span><b id="val-side">--</b></div>
+          <div class="readout"><span>STROKE</span><b id="val-stroke">--</b></div>
+        </div>
+      </div>
+      <canvas id="trace" width="300" height="46"></canvas>
+    </div>
+
+    <!-- Camera picture-in-picture -->
+    <div id="pip">
+      <div class="label">CAMERA</div>
+      <img id="cam" alt="">
+      <div id="pip-label">camera off</div>
+    </div>
+
+    <button id="pause-btn" class="hud-btn" tabindex="-1" title="Pause (P)"><span class="icon"></span><span id="pause-label">PAUSE</span></button>
+
+    <pre id="debug-panel"></pre>
+    <div id="keys">P PAUSE &nbsp; R LOBBY &nbsp; Z ZERO &nbsp; G DEBUG &nbsp; H HINT &nbsp; L LATENCY &nbsp; V BLOOM &nbsp; M MUTE</div>
+  </div>
+
+  <div id="lobby" class="overlay">
+    <div class="presents">ME193 PRESENTS</div>
+    <h1>LEGO PADDLE PONG</h1>
+    <div class="rule"></div>
+    <p class="sub">SHOW A TAG TO THE CAMERA TO START</p>
+    <div class="tags">
+      <div class="tag slow" data-id="0"><div class="tag-img"><img src="tags/tag_0.png" alt="tag 0"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg></div><b>SLOW</b><small>TAG 0 &middot; KEY 1</small></div>
+      <div class="tag medium" data-id="1"><div class="tag-img"><img src="tags/tag_1.png" alt="tag 1"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg></div><b>MEDIUM</b><small>TAG 1 &middot; KEY 2</small></div>
+      <div class="tag fast" data-id="2"><div class="tag-img"><img src="tags/tag_2.png" alt="tag 2"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/></svg></div><b>FAST</b><small>TAG 2 &middot; KEY 3</small></div>
+    </div>
+    <div class="legend">
+      <span class="sw top"></span>TOPSPIN <span class="sw back"></span>BACKSPIN <span class="sw left"></span>LEFT <span class="sw right"></span>RIGHT
+    </div>
+    <p class="howto" id="howto"></p>
+  </div>
+
+  <div id="gameover" class="overlay hidden">
+    <div class="presents">MATCH RESULT</div>
+    <h1 id="go-title">MATCH OVER</h1>
+    <div class="rule"></div>
+    <p class="final" id="go-score"></p>
+    <p class="sub">SHOW A TAG TO PLAY AGAIN &middot; OR PRESS 1 / 2 / 3</p>
+  </div>
+
+  <div id="latency" class="overlay hidden">
+    <div class="presents">CALIBRATION</div>
+    <h2>SWING ON THE BEAT</h2>
+    <div id="beat"></div>
+    <p id="beat-count"></p>
+  </div>
+
+  <div id="paused" class="overlay hidden"><h1>PAUSED</h1><div class="rule"></div><p class="sub">PRESS P OR</p><button id="resume-btn" class="hud-btn big" tabindex="-1"><span class="icon play"></span>RESUME</button></div>
+  <div id="disconnected" class="overlay"><h2>CONNECTING TO THE GAME&hellip;</h2><p class="sub">Is <code>python main.py</code> running?</p></div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>

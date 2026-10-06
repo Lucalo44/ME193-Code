@@ -1,0 +1,75 @@
+"""
+server/protocol.py -- every message exchanged between Python and the browser.
+Mirrored as a comment block at the top of web/main.js; keep them in sync.
+
+Python -> browser
+-----------------
+state (~60 Hz):
+    {"type": "state", "t": sim_time, "phase": "LOBBY|SERVE|RALLY|POINT_OVER|GAME_OVER|LATENCY_CAL",
+     "paused": bool,
+     "ball": {"pos": [x,y,z], "vel": [vx,vy,vz], "spin": [sx,sy,sz], "visible": bool},
+     "opponent": {"x": float, "swing": "forehand"|"backhand"|null, "swing_t": seconds since swing start},
+     "paddle": {"pitch": deg, "roll": deg, "yaw": deg},
+     "required_stroke": "forehand"|"backhand"|"either"|null,
+     "incoming": {"x": x_arrival, "t_to_arrival": s, "required": str} | null,
+     "score": {"player", "cpu", "games_player", "games_cpu", "server", "games_needed"},
+     "speed_setting": "slow"|"medium"|"fast",
+     "status": {"paddle": str, "paddle_kind": "real"|"sim", "camera": str, "pose": bool,
+                "stroke_check": bool, "calibration": "file"|"default", "pose_label": str|null},
+     "tag": {"id": int, "label": str, "progress": 0..1} | null,
+     "latency": {"beats": [t...], "count": n, "offset_s": float} | null,
+     "debug": {...} | null, "settings": {"hint": bool, "handedness": str, "debug": bool}}
+
+event (discrete, triggers sounds/effects):
+    {"type": "event", "name": "hit"|"bounce"|"net"|"miss"|"point"|"game_over"|"tag_progress"
+                              |"tag_confirmed"|"swing"|"serve"|"message", ...fields}
+    hit:        who, pos, speed, topspin, sidespin, stroke, confidence, required
+    bounce:     pos, side
+    net:        pos
+    miss:       reason ("EARLY"|"LATE"|"WRONG STROKE"|"NO SWING"|"OUT"|"NET"), needed, judged
+    point:      winner, reason, score
+    game_over:  match_over, winner, score
+    swing:      summary of the SwingEvent + trace [[t_rel, lin_g, gyro_dps], ...]
+
+camera_frame (~12 fps):
+    {"type": "camera_frame", "jpeg_b64": "..."}
+
+Browser -> Python
+-----------------
+    {"type": "key", "key": "p", "down": true, "shift": false}
+"""
+
+from __future__ import annotations
+
+import json
+from typing import Any
+
+
+def _round(v: Any, nd: int = 4) -> Any:
+    if isinstance(v, float):
+        return round(v, nd)
+    if isinstance(v, (list, tuple)):
+        return [_round(x, nd) for x in v]
+    if isinstance(v, dict):
+        return {k: _round(x, nd) for k, x in v.items()}
+    return v
+
+
+def state_message(**fields) -> str:
+    return json.dumps(_round({"type": "state", **fields}))
+
+
+def event_message(name: str, **fields) -> str:
+    return json.dumps(_round({"type": "event", "name": name, **fields}))
+
+
+def camera_frame_message(jpeg_b64: str) -> str:
+    return json.dumps({"type": "camera_frame", "jpeg_b64": jpeg_b64})
+
+
+def parse_client_message(raw: str) -> dict:
+    try:
+        msg = json.loads(raw)
+        return msg if isinstance(msg, dict) else {}
+    except ValueError:
+        return {}

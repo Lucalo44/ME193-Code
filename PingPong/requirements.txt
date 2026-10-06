@@ -1,0 +1,9 @@
+# Same pins as the repo's Pose Racecar environment (Python 3.12 venv on macOS).
+legoeducation==1.1.1
+mediapipe==0.10.35
+opencv-contrib-python==5.0.0.93   # contrib build provides cv2.aruco AprilTag dictionaries
+numpy==2.5.3
+bleak==3.0.2
+matplotlib==3.11.2                # tools/imu_logger.py live plot, tools/make_tags.py PDF
+websockets==17.2                  # Python <-> browser game-state stream
+pytest==9.1.1
