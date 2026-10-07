@@ -1,9 +1,21 @@
 """
 hardware/orientation.py -- 3D orientation of the paddle for the on-screen paddle.
 
-The Double Motor's own yaw/pitch/roll are Euler angles about the motor's axes,
-whose meaning depends on how the motor is held, so they can't be mapped onto
-the screen reliably. Instead this tracks a quaternion:
+Two sources, chosen by ORIENTATION_SOURCE in config.py:
+
+  * "onboard" (default): the Double Motor's own fused yaw/pitch/roll. Measured
+    on our motor (imu_logs, Oct 7) these are aerospace Z-Y-X Euler angles in
+    decidegrees -- yaw about the motor's z, then pitch about y, then roll about
+    x -- which matched the gyro ~3x better than any other convention. Turned
+    into a quaternion (never used as raw Euler angles on screen, so there is no
+    gimbal flipping), it stayed within ~1 deg of gravity at every still moment,
+    including right after sharp serve flicks.
+  * "fusion": our own gyro + accelerometer filter below. It drifts on sharp
+    motions (the gyro integration lost 40-50 deg over a set of serve flicks),
+    so it is kept only as a fallback.
+
+Either way the result is relative to the zeroed ready pose and mapped onto the
+browser's scene frame with scene_mapping(). The fusion filter details:
 
   * OrientationFilter integrates the gyro (Mahony-style) and uses the
     accelerometer to stop "up" from drifting while the paddle isn't
@@ -206,3 +218,33 @@ class OrientationFilter:
 def to_scene(q_motor: Quat, mapping: Quat) -> Quat:
     """Express a motor-frame rotation in the scene frame."""
     return qnormalize(qmul(qmul(mapping, q_motor), qconj(mapping)))
+
+
+# --------------------------------------------------------------------------
+# The motor's own orientation
+# --------------------------------------------------------------------------
+
+def onboard_quat(yaw_deg: float, pitch_deg: float, roll_deg: float) -> Quat:
+    """Motor body -> motor world, from its Z-Y-X (yaw, pitch, roll) Euler angles."""
+    return qmul(qmul(qaxis((0.0, 0.0, 1.0), math.radians(yaw_deg)), qaxis((0.0, 1.0, 0.0), math.radians(pitch_deg))),
+                qaxis((1.0, 0.0, 0.0), math.radians(roll_deg)))
+
+
+class OnboardOrientation:
+    """Orientation relative to the zeroed pose, from the motor's fused angles."""
+
+    def __init__(self):
+        self.q0_inv: Quat = IDENTITY
+        self.q: Quat = IDENTITY            # current body -> zero-pose body (same meaning as OrientationFilter.q)
+        self._last: Optional[Quat] = None
+
+    def update(self, yaw_deg: float, pitch_deg: float, roll_deg: float) -> Quat:
+        self._last = onboard_quat(yaw_deg, pitch_deg, roll_deg)
+        self.q = qnormalize(qmul(self.q0_inv, self._last))
+        return self.q
+
+    def reset(self) -> None:
+        """Make the latest pose the zero (ready) pose."""
+        if self._last is not None:
+            self.q0_inv = qconj(self._last)
+            self.q = IDENTITY

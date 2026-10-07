@@ -45,8 +45,14 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, HERE)
 
 import config as C  # noqa: E402
-from hardware.swing import (Calibration, ImuSample, SwingDetector, SwingEvent, TossDetector, detect_all,
-                            load_csv, save_csv)  # noqa: E402
+from hardware import swing_model  # noqa: E402
+from hardware.swing import (Calibration, ImuSample, SwingDetector, SwingEvent, TossDetector, combine_terms, detect_all,
+                            load_csv as _load_csv, retime, save_csv)
+
+
+def load_csv(path):
+    """Recordings are re-timed onto the motor's even clock (older ones have bursty arrival times)."""
+    return retime(_load_csv(path))  # noqa: E402
 
 STEPS = [
     ("soft", "{n} SOFT FOREHAND swings"),
@@ -147,6 +153,42 @@ def analyze_tilt(rest: Sequence[ImuSample], tilt: Sequence[ImuSample], cal: Cali
     return mag / angle, [x / mag for x in integ], angle
 
 
+class _Feats:
+    """Adapter: spin_terms() wants objects with .features."""
+    def __init__(self, features):
+        self.features = features
+
+
+# decision -> (positive sets, negative sets, feature groups for the single-feature rule)
+DECISIONS = {
+    "stroke": (FOREHAND_SETS, BACKHAND_SETS, [STROKE_FEATURES]),
+    "topspin_fh": (("closed",), ("open",), [TOPSPIN_ANGLE_FEATURES, TOPSPIN_GYRO_FEATURES]),
+    "topspin_bh": (("bh_closed",), ("bh_open",), [TOPSPIN_ANGLE_FEATURES, TOPSPIN_GYRO_FEATURES]),
+    "sidespin": (("right",), ("left",), [SIDESPIN_FEATURES]),
+}
+
+
+def train_models(sets: Dict[str, List[SwingEvent]]) -> Dict[str, dict]:
+    """For each decision: fit the classifier, score it and the single-feature
+    rule by leave-one-out, and mark the classifier "use" only if it's at least
+    as accurate. Returns {decision: model} (each with both scores)."""
+    models = {}
+    for name, (pos_sets, neg_sets, groups) in DECISIONS.items():
+        pos = [e.features for k in pos_sets for e in sets.get(k, [])]
+        neg = [e.features for k in neg_sets for e in sets.get(k, [])]
+        model = swing_model.fit(pos, neg)
+        if model is None:
+            continue
+        def fit_terms(p, n, groups=groups):
+            terms = spin_terms([_Feats(f) for f in p], [_Feats(f) for f in n], groups)
+            return terms[:1] if name == "stroke" else terms
+        rule = swing_model.loo_accuracy_of_terms(pos, neg, fit_terms, combine_terms)
+        model["rule_loo_accuracy"] = rule
+        model["use"] = rule is None or model["loo_accuracy"] >= rule
+        models[name] = model
+    return models
+
+
 def build_calibration(rest: Sequence[ImuSample], sets: Dict[str, List[SwingEvent]],
                       base: Calibration) -> Calibration:
     cal = Calibration(**{k: getattr(base, k) for k in ("accel_raw_per_g", "gyro_raw_per_dps", "angle_raw_per_deg",
@@ -164,6 +206,13 @@ def build_calibration(rest: Sequence[ImuSample], sets: Dict[str, List[SwingEvent
         # Trip at half of the gentlest swing, but well clear of the noise floor.
         cal.accel_threshold = max(5 * cal.noise_g, 0.3, 0.5 * min(e.peak_accel_g for e in all_swings))
         cal.gyro_threshold = max(5 * cal.noise_dps, 40.0, 0.5 * min(e.peak_gyro_dps for e in all_swings))
+    fit_decisions(cal, sets)
+    cal.source = "file"
+    return cal
+
+
+def fit_decisions(cal: Calibration, sets: Dict[str, List[SwingEvent]]) -> None:
+    """Spin and stroke decisions (single-feature rules + classifiers) from labelled swings."""
     if sets.get("closed") and sets.get("open"):
         cal.topspin_terms = spin_terms(sets["closed"], sets["open"],
                                        [TOPSPIN_ANGLE_FEATURES, TOPSPIN_GYRO_FEATURES]) or cal.topspin_terms
@@ -177,10 +226,63 @@ def build_calibration(rest: Sequence[ImuSample], sets: Dict[str, List[SwingEvent
         # sign of the rotation about the swing axis.
         terms = spin_terms(forehands, backhands, [STROKE_FEATURES])
         cal.stroke_terms = terms[:1] or None
+    cal.models = train_models(sets) or None
     if sets.get("right") and sets.get("left"):
         cal.sidespin_terms = spin_terms(sets["right"], sets["left"], [SIDESPIN_FEATURES]) or cal.sidespin_terms
-    cal.source = "file"
-    return cal
+
+
+def refit_with_game_detector(cal: Calibration, recordings: Dict[str, List[ImuSample]]) -> Dict[str, List[SwingEvent]]:
+    """Second pass: now that the game's thresholds are set, find the swings again
+    with exactly the detector the game uses and re-fit the spin/stroke decisions
+    on those -- so the classifiers learn from what they'll see in play (the
+    loose first-pass detector catches each swing at a slightly different moment)."""
+    sets = {k: clean_set(detect_all(v, cal)) for k, v in recordings.items()}
+    fit_decisions(cal, sets)
+    return sets
+
+
+def scene_yaw_trace(cal: Calibration, rest: Sequence[ImuSample], samples: Sequence[ImuSample]):
+    """On-screen yaw (deg) over a recording, relative to the ready pose of `rest`."""
+    from hardware.orientation import OnboardOrientation, euler_yxz_deg, scene_mapping, to_scene
+    k = cal.angle_raw_per_deg
+    mapping = scene_mapping(cal.gravity, cal.close_axis)
+    o = OnboardOrientation()
+    if rest:
+        r = rest[-1]
+        o.update(r.yaw / k, r.pitch / k, r.roll / k)
+        o.reset()
+    times, yaws = [], []
+    for smp in samples:
+        o.update(smp.yaw / k, smp.pitch / k, smp.roll / k)
+        times.append(smp.t)
+        yaws.append(euler_yxz_deg(to_scene(o.q, mapping))["yaw"])
+    return times, yaws
+
+
+def learn_backswing(cal: Calibration, rest: Sequence[ImuSample], recordings: Dict[str, List[ImuSample]],
+                    sets: Dict[str, List[SwingEvent]]) -> List[str]:
+    """How far this player draws back on each side (signed on-screen yaw), for the
+    live Wii-style stroke. Returns warnings."""
+    from hardware.stroke import backswing_from_recording
+    learned = {}
+    for side, keys in (("forehand", ("soft", "hard")), ("backhand", ("bh_soft", "bh_hard"))):
+        picks = []
+        for k in keys:
+            if recordings.get(k) and sets.get(k):
+                times, yaws = scene_yaw_trace(cal, rest, recordings[k])
+                v = backswing_from_recording(times, yaws, [e.t_peak for e in sets[k]])
+                if v is not None:
+                    picks.append(v)
+        if picks:
+            learned[side] = statistics.median(picks)
+    fh, bh = learned.get("forehand"), learned.get("backhand")
+    if fh is None or bh is None:
+        return ["backswing: not enough forehands/backhands -- using the default live-stroke settings"]
+    if (fh >= 0) == (bh >= 0) or min(abs(fh), abs(bh)) < 20:
+        return [f"backswing: forehand ({fh:+.0f} deg) and backhand ({bh:+.0f} deg) don't draw back to opposite "
+                "sides clearly -- using the defaults. Turn the paddle back more on the backswing and recalibrate."]
+    cal.stroke_back_fh_deg, cal.stroke_back_bh_deg = fh, bh
+    return []
 
 
 def toss_candidates(samples: Sequence[ImuSample], cal: Calibration) -> List[dict]:
@@ -234,6 +336,29 @@ def calibrate_toss(cal: Calibration, toss_samples: Sequence[ImuSample],
         warnings.append("toss: some swings look like tosses (as upward and as twist-free); keep the toss flick "
                         "straight up and the swings sweeping")
     return warnings
+
+
+MERGE_S = 0.45
+
+
+def clean_set(events: List[SwingEvent]) -> List[SwingEvent]:
+    """Within one calibration set every swing should look alike, so drop what
+    isn't one of them: detections under MERGE_S apart are one swing (keep the
+    stronger), and outliers far weaker than the set's median (a start-up jolt,
+    a twitch) are not swings at all. (Calibration swings can come as fast as
+    one every ~0.6 s, so MERGE_S stays below that.)"""
+    merged: List[SwingEvent] = []
+    for e in events:
+        if merged and e.t_peak - merged[-1].t_peak < MERGE_S:
+            if e.peak_accel_g > merged[-1].peak_accel_g:
+                merged[-1] = e
+            continue
+        merged.append(e)
+    if len(merged) < 3:
+        return merged
+    med_g = statistics.median(e.peak_accel_g for e in merged)
+    med_w = statistics.median(e.peak_gyro_dps for e in merged)
+    return [e for e in merged if e.peak_accel_g >= 0.4 * med_g and e.peak_gyro_dps >= 0.4 * med_w]
 
 
 def permissive(cal: Calibration) -> Calibration:
@@ -358,7 +483,7 @@ def main() -> int:
         else:
             input(f"\nNext: {text.format(n=n)}. Press Enter to start. ")
             samples = rec.record_until_enter()
-        events = detect_all(samples, seg)
+        events = clean_set(detect_all(samples, seg))
         sets[step] = events
         swing_samples[step] = samples
         if not args.from_logs:
@@ -374,8 +499,12 @@ def main() -> int:
     if rec:
         rec.paddle.shutdown()
     cal = build_calibration(rest, sets, base)
+    game_sets = refit_with_game_detector(cal, swing_samples)
+    print("   re-detected with the game's thresholds: "
+          + ", ".join(f"{k} {len(v)}" for k, v in game_sets.items()))
     toss_warnings = calibrate_toss(cal, toss, list(swing_samples.values())) if toss else \
         ["toss: no toss recording -- keeping the default toss settings"]
+    toss_warnings += learn_backswing(cal, rest, swing_samples, game_sets)
     cal.save(args.out)
 
     print("\n=== Swing calibration ===")
@@ -383,6 +512,9 @@ def main() -> int:
     print("neutral angles (deg) " + ", ".join(f"{k} {v:.1f}" for k, v in cal.neutral.items()))
     print(f"thresholds           accel {cal.accel_threshold:.2f} g, gyro {cal.gyro_threshold:.0f} dps")
     print(f"strength range       {cal.strength_min_g:.2f} g (soft) .. {cal.strength_max_g:.2f} g (hard)")
+    if cal.stroke_back_fh_deg is not None:
+        print(f"backswing (live)     forehand {cal.stroke_back_fh_deg:+.0f} deg, backhand {cal.stroke_back_bh_deg:+.0f} deg "
+              "of paddle turn = fully drawn back on screen")
     print(f"serve toss           >= {cal.toss_accel_g:.2f} g upward, <= {cal.toss_max_gyro_dps:.0f} deg/s rotation, "
           f">= {cal.toss_up_fraction:.0%} straight up")
     if toss:
@@ -395,6 +527,15 @@ def main() -> int:
         for t in terms:
             print(f"{name:9s} term       {t['feature']:14s} center {t['center']:8.2f} scale {t['scale']:8.2f} "
                   f"weight {t['weight']:.2f}  (separation {t.get('separation', '-')})")
+    labels = {"stroke": "forehand vs backhand", "topspin_fh": "topspin, forehand",
+              "topspin_bh": "topspin, backhand", "sidespin": "sidespin left/right"}
+    if cal.models:
+        print("accuracy on swings it wasn't trained on (leave-one-out):")
+        for name, m in cal.models.items():
+            rule = m.get("rule_loo_accuracy")
+            print(f"  {labels[name]:22s} classifier {m['loo_accuracy']:4.0%}   single-feature rule "
+                  f"{rule if rule is None else format(rule, '4.0%')}   -> using the "
+                  f"{'classifier' if m['use'] else 'single-feature rule'}  ({m['n']} swings)")
     weak = [t for t in cal.topspin_terms + (cal.topspin_terms_backhand or []) + cal.sidespin_terms
             + (cal.stroke_terms or []) if t.get("separation", 9) < 1.0]
     if weak:

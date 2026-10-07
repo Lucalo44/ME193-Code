@@ -38,7 +38,15 @@ HAPTICS_SPEED = 40
 # Raw-unit guesses used until calibration says otherwise (see hardware/swing.py docstring).
 DEFAULT_ACCEL_RAW_PER_G = 1000.0  # replaced at zero() by the measured at-rest magnitude
 DEFAULT_GYRO_RAW_PER_DPS = 1.0    # raw gyro counts per degree/second -- verify with tools/imu_logger.py
-ANGLE_RAW_PER_DEG = 10.0          # raw yaw/pitch/roll counts per degree (decidegrees) -- verify with imu_logger
+ANGLE_RAW_PER_DEG = 10.0          # raw yaw/pitch/roll counts per degree (decidegrees) -- verified Oct 7
+# Live stroke (Wii-style): drawing the paddle back draws the on-screen paddle back, the
+# forward swing sweeps it through the ball. Defaults from our recordings; calibrate_swing.py
+# learns each player's own (left-handed players: the signs flip automatically).
+LIVE_STROKE = True
+STROKE_FH_BACK_DEG = 80.0         # on-screen yaw of a full forehand backswing
+STROKE_BH_BACK_DEG = -65.0        # ... and of a full backhand backswing (opposite sign)
+ORIENTATION_SOURCE = "onboard"    # on-screen paddle: "onboard" = the motor's own fused angles (stable),
+                                  # "fusion" = our gyro+accel filter (drifts on sharp flicks; fallback)
 
 # --------------------------------------------------------------------------
 # AprilTags (start the game + pick ball speed)
@@ -72,6 +80,9 @@ SWING_HYSTERESIS = 0.6            # swing ends once both signals fall below thre
 SWING_END_QUIET_S = 0.05          # ... and stay there this long
 SWING_MAX_DURATION_S = 0.6
 SWING_COOLDOWN_S = 0.4            # refractory period: one swing -> one event
+SWING_RECOVERY_S = 0.65           # a detection this soon after a swing ...
+SWING_RECOVERY_RATIO = 0.8        # ... and weaker than this fraction of it is the return to ready, not a swing
+SWING_STRIKE_WINDOW_S = (0.15, 0.08)  # swing features are measured this long before / after peak acceleration
 DEFAULT_STRENGTH_MIN_G = 1.5      # peak linear accel mapped to strength 0 (overridden by calibration)
 DEFAULT_STRENGTH_MAX_G = 6.0      # ... and to strength 1
 SWING_CALIBRATION_FILE = "swing_calibration.json"

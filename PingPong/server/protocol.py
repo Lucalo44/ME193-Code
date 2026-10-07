@@ -10,8 +10,12 @@ state (~60 Hz):
      "ball": {"pos": [x,y,z], "vel": [vx,vy,vz], "spin": [sx,sy,sz], "visible": bool},
      "opponent": {"x": float, "swing": "forehand"|"backhand"|null, "swing_t": seconds since swing start},
      "paddle": {"q": [x, y, z, w], "pitch": deg, "roll": deg, "yaw": deg},   # scene frame, vs. ready pose
+     "stroke": {"phase": -1.3..1.3, "side": "forehand"|"backhand", "mode": "ready"|"forward"|"settle"} | null,
+                                               # live stroke (real paddle): +1 drawn back, 0 contact, -1 follow-through
      "required_stroke": "forehand"|"backhand"|"either"|null,
      "incoming": {"x": x_arrival, "t_to_arrival": s, "required": str} | null,
+     "contact": {"pos": [x,y,z], "t_to_contact": s, "serve": bool, "swung": bool} | null,
+                                               # where the paddle meets the ball; drives auto-positioning
      "score": {"player", "cpu", "games_player", "games_cpu", "server", "games_needed"},
      "streak": {"current": n, "record": n},     # continuous hits; record also goes to MQTT
      "serve": {"server": "player"|"cpu", "state": null|"cpu"|"await_toss"|"tossed", "paddle_kind": str},

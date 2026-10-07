@@ -82,7 +82,9 @@ def tilt_recording(raw_per_dps=1.6, angle_deg=45.0, axis="gx"):
         ay, az = 1000 * math.sin(th), 1000 * math.cos(th)
         g = {"gx": 0.0, "gy": 0.0, "gz": 0.0}
         g[axis] = w * raw_per_dps
-        out.append(ImuSample(t, 0, 0, 0, 0, ay, az, g["gx"], g["gy"], g["gz"]))
+        # The motor's own angles (decidegrees): a rotation about x is roll.
+        roll = math.degrees(th) * 10 if axis == "gx" else 0.0
+        out.append(ImuSample(t, 0, 0, roll, 0, ay, az, g["gx"], g["gy"], g["gz"]))
         t += DT
     return out
 
@@ -97,7 +99,13 @@ def test_tilt_step_measures_gyro_scale_and_axis():
     assert axis[0] > 0.99
 
 
-def test_paddle_end_to_end_tilt_shows_closed_face():
+import pytest
+
+
+@pytest.mark.parametrize("source", ["onboard", "fusion"])
+def test_paddle_end_to_end_tilt_shows_closed_face(source, monkeypatch):
+    import config as C
+    monkeypatch.setattr(C, "ORIENTATION_SOURCE", source)
     cal = Calibration(gyro_raw_per_dps=1.6, close_axis=[1.0, 0.0, 0.0])
     p = PaddleBase(cal)
     samples = tilt_recording(raw_per_dps=1.6)
@@ -142,3 +150,46 @@ def test_calibration_learns_backhands_separately():
     assert fh_closed.imu_stroke == "forehand" and fh_closed.topspin > 0.5
     assert bh_closed.imu_stroke == "backhand" and bh_closed.topspin > 0.5
     assert bh_open.imu_stroke == "backhand" and bh_open.topspin < -0.5
+
+
+def test_onboard_angles_are_zyx_euler():
+    from hardware.orientation import onboard_quat
+    # Pure yaw/pitch/roll rotate about the motor's z / y / x axes.
+    for (y, p, r), axis in (((30, 0, 0), (0, 0, 1)), ((0, 30, 0), (0, 1, 0)), ((0, 0, 30), (1, 0, 0))):
+        q = onboard_quat(y, p, r)
+        assert abs(math.degrees(2 * math.acos(q[0])) - 30) < 1e-6
+        assert all(abs(q[i + 1] / math.sin(math.radians(15)) - axis[i]) < 1e-6 for i in range(3))
+    # Order: yaw applied first (outermost), then pitch, then roll.
+    q = onboard_quat(90, 90, 0)
+    x_axis = qrotate(q, (1, 0, 0))
+    assert abs(x_axis[2] + 1) < 1e-6        # pitch 90 about the yawed y axis points body x straight down
+
+
+def test_onboard_orientation_is_relative_to_zero_and_stable():
+    from hardware.orientation import OnboardOrientation
+    o = OnboardOrientation()
+    o.update(-27.3, 5.7, -1.8)              # whatever the motor reports at the ready pose
+    o.reset()
+    assert o.q == (1.0, 0.0, 0.0, 0.0)
+    for _ in range(100):
+        o.update(-27.3, 5.7, -1.8)          # held still: no drift, no spinning
+    assert abs(o.q[0] - 1.0) < 1e-9
+
+
+def test_sample_clock_evens_out_bluetooth_bursts():
+    from hardware.swing import SampleClock, retime
+    # Real pattern: samples every 15 ms, delivered in pairs or batches.
+    true_t = [i * 0.015 for i in range(400)]
+    arrivals = []
+    for i, t in enumerate(true_t):
+        group_end = true_t[min(len(true_t) - 1, (i // 2) * 2 + 1)]           # pairs
+        if 200 <= i < 210:
+            group_end = true_t[209]                                           # one 150 ms batch
+        arrivals.append(group_end + 0.004)
+    clock = SampleClock()
+    stamped = [clock.stamp(a) for a in arrivals]
+    gaps = [b - a for a, b in zip(stamped[60:], stamped[61:])]
+    assert all(abs(g - 0.015) < 0.0025 for g in gaps), (min(gaps), max(gaps))
+    assert all(s <= a for s, a in zip(stamped, arrivals))                    # never in the future
+    rt = retime([ImuSample(a, 0, 0, 0, 0, 0, 1000, 0, 0, 0) for a in arrivals])
+    assert max(abs((b.t - a.t) - 0.015) for a, b in zip(rt, rt[1:])) < 0.0025

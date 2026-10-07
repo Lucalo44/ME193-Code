@@ -10,6 +10,8 @@
 //    opponent:{x, swing:"forehand"|"backhand"|null, swing_t},
 //    paddle:{q:[x,y,z,w], pitch, roll, yaw},  // scene-frame orientation vs. the zeroed ready pose
 //    required_stroke, incoming:{x, t_to_arrival, required}|null,
+//    contact:{pos, t_to_contact, serve, swung}|null,     // where the paddle should meet the ball
+//    stroke:{phase, side, mode}|null,   // live stroke from the real paddle: +1 drawn back, 0 at the ball, -1 follow-through
 //    score:{player, cpu, games_player, games_cpu, server, games_needed}, streak:{current, record},
 //    serve:{server, state:null|"cpu"|"await_toss"|"tossed", paddle_kind},
 //    speed_setting, status:{paddle, paddle_kind, camera, pose, stroke_check, calibration, pose_label},
@@ -77,7 +79,8 @@ const arena = buildArena(scene);
 const sideHint = buildSideHint(scene);
 const ballView = new BallView(scene);
 const opponentView = new OpponentView(scene, OPP_PLANE_Z);
-const paddleView = new PlayerPaddleView(scene, -PLAYER_PLANE_Z);
+const paddleView = new PlayerPaddleView(scene, -PLAYER_PLANE_Z, toScene);
+window.__paddle = paddleView;   // debug hook: inspect the paddle from the browser console
 const effects = new Effects(scene, arena.net);
 const sounds = new Sounds();
 const hud = new Hud();
@@ -161,11 +164,11 @@ function onEvent(ev) {
     case 'hit':
       effects.hit(toScene(ev.pos));
       sounds.hit(ev.strength ?? 0.5);
-      if (ev.who === 'player') hud.shot(ev);
+      if (ev.who === 'player') { hud.shot(ev); paddleView.hit(ev.pos, ev.stroke); }
       break;
     case 'bounce': effects.bounce(toScene(ev.pos)); sounds.bounce(); break;
     case 'net': effects.netHit(); sounds.net(); break;
-    case 'miss': hud.miss(ev); sounds.miss(); break;
+    case 'miss': hud.miss(ev); sounds.miss(); paddleView.miss(); break;
     case 'point': hud.point(ev); sounds.point(ev.winner === 'player'); break;
     case 'game_over':
       if (!ev.match_over) hud.centerMessage(ev.winner === 'player' ? 'GAME' : `GAME ${opponentFor(latest && latest.speed_setting).name}`,
@@ -224,7 +227,10 @@ hud.bindPause(() => {
 function sample(renderT) {
   if (!snapshots.length) return null;
   let a = snapshots[0], b = snapshots[snapshots.length - 1];
-  if (renderT >= b.t) return { ...b, _alpha: 1 };
+  if (renderT >= b.t) {
+    return { ...b, _alpha: 1,
+             contact: b.contact ? { ...b.contact, t_to_contact: b.contact.t_to_contact - (renderT - b.t) } : null };
+  }
   for (let i = snapshots.length - 1; i > 0; i--) {
     if (snapshots[i - 1].t <= renderT) { a = snapshots[i - 1]; b = snapshots[i]; break; }
   }
@@ -241,6 +247,12 @@ function sample(renderT) {
     // Paddle orientation: newest quaternion (the view slerps toward it), Euler lerped for the HUD.
     paddle: { ...b.paddle, pitch: lerp(a.paddle.pitch, b.paddle.pitch), roll: lerp(a.paddle.roll, b.paddle.roll),
               yaw: lerp(a.paddle.yaw, b.paddle.yaw) },
+    // Live stroke phase, interpolated like everything else.
+    stroke: a.stroke && b.stroke && a.stroke.side === b.stroke.side
+      ? { ...b.stroke, phase: lerp(a.stroke.phase, b.stroke.phase) } : b.stroke,
+    // Time to contact as seen at the (slightly delayed) render time, so the paddle
+    // meets the ball where it's drawn.
+    contact: b.contact ? { ...b.contact, t_to_contact: b.contact.t_to_contact + (b.t - renderT) } : null,
   };
 }
 
@@ -268,12 +280,14 @@ function frame() {
     opponentView.setCharacter(latest.speed_setting);   // one athlete per speed setting
     opponentView.update(s.opponent, dt);
     const inc = s.incoming;
-    paddleView.update(s.paddle, inc ? inc.x : null, dt);
+    paddleView.update(s, s.paused ? 0 : dt);
 
     // Target ring + side highlight for the incoming ball.
     const hintOn = s.settings.hint && s.phase === 'RALLY';
     const tToArr = inc ? inc.t_to_arrival - (latest.t - s.t) : null;
-    effects.target(inc ? new THREE.Vector3(inc.x, TABLE_H + 0.25, -PLAYER_PLANE_Z) : null, tToArr,
+    // The ring marks the real contact point -- the same spot the paddle goes to.
+    const ringAt = s.contact ? toScene(s.contact.pos) : inc ? new THREE.Vector3(inc.x, TABLE_H + 0.25, -PLAYER_PLANE_Z) : null;
+    effects.target(inc ? ringAt : null, tToArr,
       s.settings.hit_window_s, hintOn);
     const req = s.required_stroke;
     if (hintOn && inc && req && req !== 'either') {

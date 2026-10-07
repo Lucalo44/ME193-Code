@@ -56,6 +56,8 @@ Other flags:
 | `--debug` | Debug overlay on; logs events to the terminal |
 | `--seed N` | Reproducible rallies |
 | `--no-browser` | Don't auto-open the browser |
+| `--replay CSV` | Play a recorded IMU log (e.g. `imu_logs/calib_hard.csv`) as the paddle, in real time and looping. Lets you test without the motor. |
+| `--record-file PATH` | Save the hit record somewhere other than `streak_record.json` (useful for test runs) |
 
 With a real paddle, the game refuses to start until `swing_calibration.json` exists
 (see Milestone 2) unless you pass `--use-default-calibration`.
@@ -214,6 +216,19 @@ from 3 to 30) asks for more. That makes the spin and forehand/backhand detection
 reliable, with little extra gain past about 10–15, when fatigue starts to change your
 swing. Every detected swing and flick is used, even if you do more or fewer than asked.
 
+**How it decides spin and stroke.** For each decision — forehand vs. backhand, topspin
+vs. backspin on each stroke, left vs. right sidespin — the tool trains a small classifier
+(logistic regression, `hardware/swing_model.py`) on your labelled swings. It also builds
+the older single-reading rule, and scores both by **leave-one-out**: each swing is
+predicted by a model trained without it. The game uses whichever scores better.
+
+Before training, the tool cleans each set:
+- the return to ready after a swing is ignored;
+- duplicate and start-up detections are dropped;
+- features are measured around the moment of the strike;
+- the swings are finally re-detected with the game's own thresholds, so the classifiers
+  learn from exactly what the game will see.
+
 **Check the calibration.** The tool prints:
 - which IMU features it picked for topspin (forehand and backhand separately), sidespin,
   and telling forehands from backhands, each with a separation score (aim for 1.0 or
@@ -222,6 +237,8 @@ swing. Every detected swing and flick is used, even if you do more or fewer than
   right;
 - how many soft forehands and backhands it reads as the right stroke.
 - how many of your 5 flicks count as tosses, and how many swings do (should be 0).
+- the leave-one-out accuracy of each decision, classifier vs. single-reading rule, and
+  which one the game will use.
 
 **If a toss still isn't recognized in the game**, the game says why while you're due to
 serve (e.g. "Toss not counted: too much rotation (310 deg/s, max 180)"). The debug
@@ -235,14 +252,23 @@ files still work but lack them.
 5 events per file. To recompute without the hardware, run
 `python tools/calibrate_swing.py --from-logs`.
 
-**Check the on-screen paddle.** Run `python main.py --no-camera`. The paddle at the
-bottom of the screen should:
-- follow the real paddle's 3D orientation (closing the face tips it toward the table);
-- swing back and through with your stroke, since it pivots on a virtual forearm at the
-  elbow.
+**Check the on-screen paddle.** Run `python main.py --no-camera`. Like Wii Sports, the
+game moves the paddle to the ball and you control the stroke:
+- As a ball comes in, the paddle **glides to the contact point** (the ring).
+- With the real paddle the stroke is **live**:
+  - **Draw back** (turn the paddle back) and the screen paddle draws back with you.
+  - **Swing forward** and it sweeps through the ball into the follow-through at your
+    speed.
+  - Forehand or backhand is told by which way you draw back. A quick turn back through
+    ready is a swing, a slow one is a new backswing.
+  - How far *you* draw back is learned from your calibration swings (`hardware/stroke.py`).
+- With the keyboard paddle the stroke is scripted: an automatic wind-up, then Space swings
+  through the ball.
+- Your paddle's orientation only shapes the **face**: closing it tips the face toward the
+  table, and a little of your turning shows. This is smoothed and limited, so it can't
+  throw the paddle around.
 
-Heading (turning left/right) slowly re-centers whenever you hold still, because the motor
-has no compass. Press **Z** at your ready position to re-zero.
+Press **Z** at your ready position to re-zero.
 
 ### 3. Real paddle in the game
 
@@ -319,9 +345,16 @@ key-repeat. Swing-sync mode arms a class with 0/1/2, and then each real swing la
   LEGO handle changes which axes mean "face angle", "brushing direction" and
   "forehand vs. backhand", and how the motor maps onto the screen. The calibration tool
   measures all of them from your swings. Recalibrate whenever the mounting changes.
-- **On-screen orientation** comes from fusing the gyro and accelerometer into a 3D
-  rotation (`hardware/orientation.py`), not from the motor's built-in yaw/pitch/roll
-  angles, which depend on how the motor is held.
+- **On-screen orientation** comes from the motor's own fused yaw/pitch/roll, measured to
+  be Z-Y-X Euler angles in decidegrees. They're converted to a quaternion relative to the
+  zeroed ready pose, then mapped onto the screen using the calibration's tilt step.
+  - On real recordings this stayed within about 1° of gravity, even after sharp serve
+    flicks. Our own gyro integration drifted 40–50° there, so it's only a fallback:
+    `ORIENTATION_SOURCE = "fusion"` in `config.py`.
+- **Sample timing.** Bluetooth delivers IMU samples in bursts (half arrive under 5 ms
+  apart, with gaps up to 300 ms), although the motor measures every ~15 ms.
+  `SampleClock` re-times each sample onto the motor's even clock. That makes swing
+  timing and anything integrated over time more accurate.
 - **Notification rate.** Swings need 15 ms IMU notifications. `paddle.py` connects with
   `device_notification_delay=15` and records every sample through the notification
   callback (it doesn't poll `motor.imu_device`).

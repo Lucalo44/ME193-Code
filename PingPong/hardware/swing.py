@@ -59,6 +59,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Deque, Dict, List, Optional, Sequence
 
 import config as C
+from hardware import swing_model
 
 
 @dataclass
@@ -76,6 +77,48 @@ class ImuSample:
 
 
 CSV_FIELDS = ["t", "yaw", "pitch", "roll", "ax", "ay", "az", "gx", "gy", "gz"]
+
+
+class SampleClock:
+    """Bluetooth delivers the motor's samples in bursts (half arrive <5 ms after
+    the previous one, with 30-300 ms gaps between bursts) although the motor
+    takes one every ~15 ms. Timestamping on arrival scrambles anything that
+    integrates over time, so this rebuilds an even clock: each sample is one
+    period after the previous, never later than its arrival and never more than
+    MAX_LAG_S before it. The period is learned from the arrival rate."""
+
+    MAX_LAG_S = 0.4
+    WINDOW = 200
+
+    def __init__(self, period_s: float = C.IMU_NOTIFICATION_MS / 1000.0):
+        self.period = period_s
+        self._arrivals: Deque[float] = deque(maxlen=self.WINDOW)
+        self._t: Optional[float] = None
+
+    def stamp(self, arrival: float) -> float:
+        self._arrivals.append(arrival)
+        if len(self._arrivals) >= 50:
+            self.period = (self._arrivals[-1] - self._arrivals[0]) / (len(self._arrivals) - 1)
+        if self._t is None:
+            self._t = arrival
+        else:
+            self._t = min(arrival, max(self._t + self.period, arrival - self.MAX_LAG_S))
+        return self._t
+
+
+def retime(samples: Sequence["ImuSample"]) -> List["ImuSample"]:
+    """Re-time a recording made with arrival timestamps (offline version of SampleClock)."""
+    from dataclasses import replace
+    if len(samples) < 2:
+        return list(samples)
+    period = (samples[-1].t - samples[0].t) / (len(samples) - 1)
+    # Offline we can see the whole recording: walk back from the end so each
+    # sample is one period before the next, never later than its own arrival
+    # and never more than MAX_LAG_S before it.
+    t = [s.t for s in samples]
+    for i in range(len(t) - 2, -1, -1):
+        t[i] = max(min(samples[i].t, t[i + 1] - period), samples[i].t - SampleClock.MAX_LAG_S)
+    return [replace(s, t=ti) for s, ti in zip(samples, t)]
 
 
 def save_csv(path: str, samples: Sequence[ImuSample]) -> None:
@@ -134,6 +177,14 @@ class Calibration:
     toss_up_fraction: float = C.TOSS_UP_FRACTION
     toss_peak_min_g: Optional[float] = None     # gentlest / strongest calibration flick,
     toss_peak_max_g: Optional[float] = None     # mapped to the lowest / highest toss
+    # Learned classifiers (hardware/swing_model.py), keyed "stroke", "topspin_fh",
+    # "topspin_bh", "sidespin". Each is used only if it beat the single-feature
+    # rule above in leave-one-out testing ("use": true).
+    models: Optional[dict] = None
+    # Signed on-screen yaw of this player's full forehand / backhand backswing
+    # (hardware/stroke.py); learned from the calibration swings.
+    stroke_back_fh_deg: Optional[float] = None
+    stroke_back_bh_deg: Optional[float] = None
     source: str = "default"
 
     @classmethod
@@ -242,9 +293,18 @@ def strength_to_speed(strength: float) -> float:
     return C.RETURN_SPEED_MIN + (C.RETURN_SPEED_MAX - C.RETURN_SPEED_MIN) * s
 
 
-def swing_features(window: Sequence[ImuSample], t_peak: float, cal: Calibration) -> Dict[str, float]:
-    """Candidate spin features for one swing. Angles are in degrees relative
-    to the neutral (zeroed) orientation; gyro values in deg/s and degrees."""
+def swing_features(window: Sequence[ImuSample], t_peak: float, cal: Calibration,
+                   gravity: Optional[Sequence[float]] = None) -> Dict[str, float]:
+    """Features of one swing, measured around the strike -- the moment of peak
+    acceleration -- not over the whole motion, so the backswing and the return
+    to ready don't cancel the stroke out. Angles are in degrees relative to the
+    neutral (zeroed) orientation; gyro values in deg/s and degrees.
+
+    *_pk are the rotation rates and the direction of linear acceleration right
+    at the strike: the most telling inputs for the swing classifier."""
+    before, after = C.SWING_STRIKE_WINDOW_S
+    strike = [s for s in window if t_peak - before <= s.t <= t_peak + after]
+    window = strike if len(strike) >= 3 else window
     if not window:
         return {}
     at_peak = min(window, key=lambda s: abs(s.t - t_peak))
@@ -266,6 +326,15 @@ def swing_features(window: Sequence[ImuSample], t_peak: float, cal: Calibration)
         for a, b in zip(window, window[1:]):
             integral += getattr(a, axis) / k * (b.t - a.t)
         feats[f"{axis}_int"] = integral
+    near = [s for s in window if abs(s.t - t_peak) <= 0.03] or [at_peak]
+    for axis in ("gx", "gy", "gz"):
+        feats[f"{axis}_pk"] = sum(getattr(s, axis) for s in near) / len(near) / k
+    g = gravity if gravity is not None else cal.gravity
+    a = accel_g(at_peak, cal)
+    lin = [a[i] - g[i] for i in range(3)]
+    mag = math.sqrt(sum(x * x for x in lin)) or 1e-9
+    for i, axis in enumerate(("lx", "ly", "lz")):
+        feats[f"{axis}_pk"] = lin[i] / mag
     return feats
 
 
@@ -289,6 +358,7 @@ class SwingDetector:
         self._active = False
         self._window: List[ImuSample] = []
         self._last_event_t = -math.inf
+        self._last_event_g = 0.0
         self._reset_swing()
 
     def set_calibration(self, cal: Calibration) -> None:
@@ -363,22 +433,34 @@ class SwingDetector:
         t_peak = self._peak_lin_t
         if t_peak - self._last_event_t < C.SWING_COOLDOWN_S:
             return None
+        if t_peak - self._last_event_t < C.SWING_RECOVERY_S and \
+                self._peak_lin < C.SWING_RECOVERY_RATIO * self._last_event_g:
+            return None     # the weaker motion back to ready after a swing
         self._last_event_t = t_peak
+        self._last_event_g = self._peak_lin
         cal = self.cal
         span = max(1e-6, cal.strength_max_g - cal.strength_min_g)
         strength = max(0.0, min(1.0, (self._peak_lin - cal.strength_min_g) / span))
-        feats = swing_features(self._window, t_peak, cal)
+        feats = swing_features(self._window, t_peak, cal, self.gravity)
+        models = cal.models or {}
+        use = lambda name: models.get(name) if models.get(name, {}).get("use") else None  # noqa: E731
         stroke = None
-        if cal.stroke_terms:
+        if use("stroke"):
+            stroke = "forehand" if swing_model.probability(use("stroke"), feats) >= 0.5 else "backhand"
+        elif cal.stroke_terms:
             stroke = "forehand" if combine_terms(cal.stroke_terms, feats) >= 0 else "backhand"
         top_terms = cal.topspin_terms_backhand if (stroke == "backhand" and cal.topspin_terms_backhand) \
             else cal.topspin_terms
+        top_model = use("topspin_bh") if stroke == "backhand" else use("topspin_fh")
+        topspin = swing_model.signed(top_model, feats) if top_model else combine_terms(top_terms, feats)
+        side_model = use("sidespin")
+        sidespin = swing_model.signed(side_model, feats) if side_model else combine_terms(cal.sidespin_terms, feats)
         return SwingEvent(
             t_peak=t_peak,
             strength=strength,
             return_speed=strength_to_speed(strength),
-            topspin=combine_terms(top_terms, feats),
-            sidespin=combine_terms(cal.sidespin_terms, feats),
+            topspin=topspin,
+            sidespin=sidespin,
             peak_accel_g=self._peak_lin,
             peak_gyro_dps=self._peak_gyro,
             features=feats,

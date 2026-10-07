@@ -659,9 +659,15 @@ class Game:
                   "visible": ph in (SM.SERVE, SM.RALLY, SM.POINT_OVER)},
             opponent=self.opponent.snapshot(self.sim_t),
             paddle=self.paddle.orientation(),
+            stroke=getattr(self.paddle, "stroke_state", lambda: None)(),
             required_stroke=inc.required if inc else None,
             incoming={"x": inc.pos[0], "t_to_arrival": inc.t - self.sim_t, "required": inc.required}
             if inc else None,
+            # Where/when the player's paddle should meet the ball -- kept until the
+            # ball is actually struck (incoming above disappears once a swing is accepted).
+            contact={"pos": list(self.incoming.pos), "t_to_contact": self.incoming.t - self.sim_t,
+                     "serve": self.incoming.serve, "swung": self.incoming.resolved}
+            if self.incoming else None,
             score=self.match.snapshot(),
             streak=self.streak.snapshot(),
             serve={"server": self.match.server, "state": self.serve_state,

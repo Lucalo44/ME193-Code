@@ -27,8 +27,10 @@ from collections import deque
 from typing import Deque, List, Optional
 
 import config as C
-from hardware.orientation import OrientationFilter, euler_yxz_deg, scene_mapping, to_scene
-from hardware.swing import Calibration, ImuSample, SwingDetector, TossDetector, accel_g, gyro_vec_dps
+from hardware.orientation import OnboardOrientation, OrientationFilter, euler_yxz_deg, scene_mapping, to_scene
+from hardware.stroke import StrokeTracker
+from hardware.swing import (Calibration, ImuSample, SampleClock, SwingDetector, TossDetector, accel_g,
+                            gyro_vec_dps)
 
 try:
     import legoeducation as le
@@ -92,14 +94,23 @@ class PaddleBase:
         self._lock = threading.Lock()
         self.sample_count = 0
         self.raw_listeners: List = []   # callables(sample) -- used by the tools
-        # 3D orientation for the on-screen paddle (gyro + accelerometer fusion).
+        # 3D orientation for the on-screen paddle: the motor's own fused angles
+        # (default) or our gyro + accelerometer filter -- see hardware/orientation.py.
+        self.clock = SampleClock()
+        self.onboard = OnboardOrientation()
         self.orient = OrientationFilter()
+        self.stroke = StrokeTracker()
         self._remap()
 
     def _remap(self) -> None:
         cal = self.calibration
         self.orient.reset(cal.gravity)
+        self.onboard.reset()
         self._mapping = scene_mapping(cal.gravity, cal.close_axis)
+        flip = -1.0 if C.HANDEDNESS == "left" else 1.0
+        fh = cal.stroke_back_fh_deg if cal.stroke_back_fh_deg is not None else C.STROKE_FH_BACK_DEG * flip
+        bh = cal.stroke_back_bh_deg if cal.stroke_back_bh_deg is not None else C.STROKE_BH_BACK_DEG * flip
+        self.stroke.set_backswing(fh, bh)
 
     # -- sample plumbing --------------------------------------------------
     def _ingest(self, s: ImuSample) -> None:
@@ -111,7 +122,14 @@ class PaddleBase:
         for fn in self.raw_listeners:
             fn(s)
         cal = self.calibration
-        self.orient.update(s.t, gyro_vec_dps(s, cal), accel_g(s, cal))
+        if C.ORIENTATION_SOURCE == "fusion":
+            self.orient.update(s.t, gyro_vec_dps(s, cal), accel_g(s, cal))
+        else:
+            k = cal.angle_raw_per_deg
+            self.onboard.update(s.yaw / k, s.pitch / k, s.roll / k)
+        if C.LIVE_STROKE:
+            q = self.orient.q if C.ORIENTATION_SOURCE == "fusion" else self.onboard.q
+            self.stroke.update(s.t, euler_yxz_deg(to_scene(q, self._mapping))["yaw"])
         ev = self.detector.push(s)
         if ev is not None:
             self.swing_events.put(ev)
@@ -130,10 +148,14 @@ class PaddleBase:
     def orientation(self) -> dict:
         """Paddle orientation in the scene frame, relative to the zeroed ready pose:
         quaternion q = [x, y, z, w] (three.js order) plus Euler angles in degrees."""
-        q = to_scene(self.orient.q, self._mapping)
+        q = to_scene(self.orient.q if C.ORIENTATION_SOURCE == "fusion" else self.onboard.q, self._mapping)
         out = {k: round(v, 2) for k, v in euler_yxz_deg(q).items()}
         out["q"] = [round(q[1], 4), round(q[2], 4), round(q[3], 4), round(q[0], 4)]
         return out
+
+    def stroke_state(self) -> Optional[dict]:
+        """Live stroke phase for the on-screen paddle (None = no live tracking)."""
+        return self.stroke.snapshot() if C.LIVE_STROKE and self.sample_count else None
 
     def zero(self) -> bool:
         """Capture the neutral ready orientation from the last 0.5 s.
@@ -200,13 +222,14 @@ class Paddle(PaddleBase):
             self.status = f"error: {exc}"
 
     def _on_notification(self, data) -> None:
-        t = time.monotonic()
+        arrival = time.monotonic()
         try:
             items = le.device_notification_parser(data)
         except Exception:
             return
         for item in items:
             if isinstance(item, le.ImuDeviceNotification):
+                t = self.clock.stamp(arrival)      # even 15 ms clock, not bursty arrival times
                 self._ingest(ImuSample(t, item.yaw, item.pitch, item.roll,
                                        item.accelerometerX, item.accelerometerY, item.accelerometerZ,
                                        item.gyroscopeX, item.gyroscopeY, item.gyroscopeZ))

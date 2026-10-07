@@ -49,6 +49,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Virtual ping pong with a LEGO Double Motor paddle.",
                                 formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
     p.add_argument("--no-motor", action="store_true", help="use the keyboard stand-in instead of the Double Motor")
+    p.add_argument("--replay", metavar="CSV", help="play a recorded IMU log (e.g. imu_logs/calib_hard.csv) as the paddle")
     p.add_argument("--no-camera", action="store_true", help="no pose check (always correct stroke), no tags")
     p.add_argument("--camera", type=int, default=0, help="camera device index (default 0)")
     p.add_argument("--pose-data", default=os.path.join(HERE, C.POSE_DATA_FILE), help="pose training data (.npz)")
@@ -62,12 +63,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-mqtt", action="store_true", help="don't publish the hit record over MQTT")
     p.add_argument("--mqtt-topic", default=C.MQTT_TOPIC, help=f"MQTT topic for the record (default {C.MQTT_TOPIC})")
     p.add_argument("--reset-record", action="store_true", help="start the continuous-hit record over at 0")
+    p.add_argument("--record-file", default=None, help="where the hit record is saved (default streak_record.json)")
     p.add_argument("--http-port", type=int, default=C.HTTP_PORT)
     p.add_argument("--ws-port", type=int, default=C.WS_PORT)
     return p
 
 
 def make_paddle(args):
+    if args.replay:
+        from hardware.replay_paddle import ReplayPaddle
+        return ReplayPaddle(load_calibration(args.calibration), args.replay)
     if args.no_motor:
         from hardware.sim_paddle import SimPaddle
         return SimPaddle(load_calibration(args.calibration))
@@ -157,7 +162,7 @@ def main() -> int:
 
     # Record number of continuous hits -> MQTT (as a float), sent at startup and on every new record.
     scores = ScorePublisher(topic=args.mqtt_topic, enabled=C.MQTT_ENABLED and not args.no_mqtt)
-    streak = StreakTracker(default_path(), on_record=scores.publish_record)
+    streak = StreakTracker(args.record_file or default_path(), on_record=scores.publish_record)
     if args.reset_record:
         streak.reset_record()
     scores.publish_record(streak.record)

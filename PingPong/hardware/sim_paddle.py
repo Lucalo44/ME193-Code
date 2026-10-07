@@ -103,3 +103,6 @@ class SimPaddle(PaddleBase):
     def zero(self) -> bool:
         self.pitch = self.roll = self.yaw = 0.0
         return True
+
+    def stroke_state(self):
+        return None      # keyboard swings use the scripted on-screen stroke
