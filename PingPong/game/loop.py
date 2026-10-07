@@ -126,6 +126,8 @@ class Game:
         self.streak = streak or StreakTracker()
         self.serve_state: Optional[str] = None   # None | "cpu" | "await_toss" | "tossed"
         self.toss_t = -10.0
+        self._toss_diag_t = -1.0                 # last rejected flick already reported
+        self._swing_while_awaiting: Optional[float] = None
         self._mqtt_status = mqtt_status
 
     # ======================================================================
@@ -190,6 +192,11 @@ class Game:
                     self._emit("serve_prompt", by="player")
                 self.paddle.toss_armed = elapsed >= C.SERVE_ARM_DELAY_S
                 self.ball = P.Ball(C.SERVE_POS)
+                self._report_rejected_toss()
+                sw = self._swing_while_awaiting
+                if sw is not None and self.sim_t - sw > 0.4:
+                    self._swing_while_awaiting = None
+                    self._emit("message", text="That was read as a swing -- toss with a sharp flick straight up")
             else:
                 self.serve_state = "cpu"
                 self.paddle.toss_armed = False
@@ -414,6 +421,17 @@ class Game:
                     and self.sm.elapsed(self.sim_t) >= C.SERVE_ARM_DELAY_S:
                 self._toss(ev)
 
+    def _report_rejected_toss(self) -> None:
+        """Tell the player why a flick didn't count as a toss (real paddle)."""
+        last = getattr(getattr(self.paddle, "toss", None), "last", None)
+        if not last or last["t"] <= self._toss_diag_t or last["result"] == "toss":
+            return
+        self._toss_diag_t = last["t"]
+        if last["t"] < self.clock_offset + self.sm.entered_at + C.SERVE_ARM_DELAY_S:
+            return  # from before the serve came up
+        self._swing_while_awaiting = None
+        self._emit("message", text=f"Toss not counted: {last['result']}")
+
     def _toss(self, ev) -> None:
         """Throw the ball straight up; the player must hit it as it comes down."""
         start = C.SERVE_POS
@@ -421,6 +439,7 @@ class Game:
         self.ball = P.Ball(start, vel)
         contact = (start[0], C.SERVE_CONTACT_Y, start[2])
         self.toss_t = self.sim_t
+        self._swing_while_awaiting = None
         self.flight = None                     # nothing to referee until it's struck
         self.incoming = Incoming(self.sim_t + t_contact, contact, "either", serve=True)
         self.serve_state = "tossed"
@@ -434,6 +453,9 @@ class Game:
         self._emit("swing", trace=ev.trace(self.paddle.calibration), **ev.summary())
         if self.sm.phase == SM.LATENCY_CAL:
             self._latency_swing(t)
+            return
+        if self.sm.phase == SM.SERVE and self.serve_state == "await_toss" and self.paddle.kind != "sim":
+            self._swing_while_awaiting = self.sim_t   # reported shortly unless a toss follows
             return
         inc = self.incoming
         if self.sm.phase != SM.RALLY or inc is None or inc.resolved or self.pending:
@@ -627,6 +649,7 @@ class Game:
                 "hit_plane_z": C.PLAYER_HIT_PLANE_Z,
                 "hit_window_s": C.HIT_WINDOW_S,
                 "latency_offset_s": C.LATENCY_OFFSET_S,
+                "toss": getattr(getattr(self.paddle, "toss", None), "last", None),
             }
         return dict(
             t=self.sim_t,

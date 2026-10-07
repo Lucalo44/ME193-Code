@@ -9,7 +9,7 @@ state (~60 Hz):
      "paused": bool,
      "ball": {"pos": [x,y,z], "vel": [vx,vy,vz], "spin": [sx,sy,sz], "visible": bool},
      "opponent": {"x": float, "swing": "forehand"|"backhand"|null, "swing_t": seconds since swing start},
-     "paddle": {"pitch": deg, "roll": deg, "yaw": deg},
+     "paddle": {"q": [x, y, z, w], "pitch": deg, "roll": deg, "yaw": deg},   # scene frame, vs. ready pose
      "required_stroke": "forehand"|"backhand"|"either"|null,
      "incoming": {"x": x_arrival, "t_to_arrival": s, "required": str} | null,
      "score": {"player", "cpu", "games_player", "games_cpu", "server", "games_needed"},

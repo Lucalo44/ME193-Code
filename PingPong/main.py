@@ -82,7 +82,12 @@ def make_paddle(args):
               "    python tools/calibrate_swing.py\n\n"
               "or start anyway with --use-default-calibration (or play with --no-motor).")
         return None
-    from hardware.paddle import Paddle
+    from hardware.paddle import Paddle, describe_card_filter
+    try:
+        print(f"Looking for {describe_card_filter()} (CARD_COLOR / CARD_SERIAL in config.py).")
+    except ValueError as exc:
+        print(f"config.py: {exc}")
+        return None
     return Paddle(cal)
 
 

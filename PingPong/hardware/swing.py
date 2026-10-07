@@ -118,8 +118,22 @@ class Calibration:
     gyro_threshold: float = C.SWING_GYRO_THRESHOLD
     strength_min_g: float = C.DEFAULT_STRENGTH_MIN_G
     strength_max_g: float = C.DEFAULT_STRENGTH_MAX_G
-    topspin_terms: list = field(default_factory=_default_topspin_terms)
+    topspin_terms: list = field(default_factory=_default_topspin_terms)       # forehand (or all strokes)
     sidespin_terms: list = field(default_factory=_default_sidespin_terms)
+    # Backhands flip the paddle face, so they get their own topspin terms, chosen
+    # by stroke_terms (> 0 = forehand) -- both learned by calibrate_swing.py.
+    topspin_terms_backhand: Optional[list] = None
+    stroke_terms: Optional[list] = None
+    gyro_bias: List[float] = field(default_factory=lambda: [0.0, 0.0, 0.0])   # raw, measured at rest
+    # Motor-frame axis the paddle rotates about when its face closes; maps the
+    # motor onto the on-screen paddle (see hardware/orientation.py).
+    close_axis: Optional[List[float]] = None
+    # Serve toss (an upward flick), learned by the calibration tool's toss step.
+    toss_accel_g: float = C.TOSS_ACCEL_G
+    toss_max_gyro_dps: float = C.TOSS_MAX_GYRO_DPS
+    toss_up_fraction: float = C.TOSS_UP_FRACTION
+    toss_peak_min_g: Optional[float] = None     # gentlest / strongest calibration flick,
+    toss_peak_max_g: Optional[float] = None     # mapped to the lowest / highest toss
     source: str = "default"
 
     @classmethod
@@ -156,6 +170,7 @@ class Calibration:
             self.gravity = [m / mag for m in mean]
         angles = [self.angles_deg(s) for s in still]
         self.neutral = {k: sum(a[k] for a in angles) / n for k in ("yaw", "pitch", "roll")}
+        self.gyro_bias = [sum(getattr(s, k) for s in still) / n for k in ("gx", "gy", "gz")]
         lin = [linear_g(s, self, self.gravity) for s in still]
         gyr = [gyro_dps(s, self) for s in still]
         self.noise_g = max(lin) if lin else self.noise_g
@@ -176,9 +191,14 @@ def linear_g(s: ImuSample, cal: Calibration, gravity: Sequence[float]) -> float:
     return math.sqrt(sum((a[i] - gravity[i]) ** 2 for i in range(3)))
 
 
+def gyro_vec_dps(s: ImuSample, cal: Calibration) -> tuple:
+    k, b = cal.gyro_raw_per_dps, cal.gyro_bias
+    return ((s.gx - b[0]) / k, (s.gy - b[1]) / k, (s.gz - b[2]) / k)
+
+
 def gyro_dps(s: ImuSample, cal: Calibration) -> float:
-    k = cal.gyro_raw_per_dps
-    return math.sqrt(s.gx * s.gx + s.gy * s.gy + s.gz * s.gz) / k
+    g = gyro_vec_dps(s, cal)
+    return math.sqrt(g[0] * g[0] + g[1] * g[1] + g[2] * g[2])
 
 
 # --------------------------------------------------------------------------
@@ -197,6 +217,7 @@ class SwingEvent:
     features: Dict[str, float] = field(default_factory=dict)
     raw: List[ImuSample] = field(default_factory=list)
     stroke_hint: Optional[str] = None   # sim paddle only: forced stroke for --no-camera testing
+    imu_stroke: Optional[str] = None    # forehand/backhand as told by the IMU (needs calibration)
 
     def trace(self, cal: Calibration) -> list:
         """Downsampled [t_rel, linear_g, gyro_dps] rows for the HUD swing trace."""
@@ -212,6 +233,7 @@ class SwingEvent:
             "sidespin": round(self.sidespin, 3),
             "peak_accel_g": round(self.peak_accel_g, 2),
             "peak_gyro_dps": round(self.peak_gyro_dps, 1),
+            "imu_stroke": self.imu_stroke,
         }
 
 
@@ -346,16 +368,22 @@ class SwingDetector:
         span = max(1e-6, cal.strength_max_g - cal.strength_min_g)
         strength = max(0.0, min(1.0, (self._peak_lin - cal.strength_min_g) / span))
         feats = swing_features(self._window, t_peak, cal)
+        stroke = None
+        if cal.stroke_terms:
+            stroke = "forehand" if combine_terms(cal.stroke_terms, feats) >= 0 else "backhand"
+        top_terms = cal.topspin_terms_backhand if (stroke == "backhand" and cal.topspin_terms_backhand) \
+            else cal.topspin_terms
         return SwingEvent(
             t_peak=t_peak,
             strength=strength,
             return_speed=strength_to_speed(strength),
-            topspin=combine_terms(cal.topspin_terms, feats),
+            topspin=combine_terms(top_terms, feats),
             sidespin=combine_terms(cal.sidespin_terms, feats),
             peak_accel_g=self._peak_lin,
             peak_gyro_dps=self._peak_gyro,
             features=feats,
             raw=list(self._window),
+            imu_stroke=stroke,
         )
 
 
@@ -373,19 +401,29 @@ def toss_height(strength: float) -> float:
 
 class TossDetector:
     """Detects the serve toss: an upward jolt with little rotation. Shares the
-    swing detector's gravity estimate (and calibration)."""
+    swing detector's gravity estimate and calibration; the thresholds come from
+    the calibration (tools/calibrate_swing.py's toss step) or config.py.
 
-    def __init__(self, swing: "SwingDetector"):
+    Every jolt it sees -- accepted or not -- is kept in `last` (peak upward g,
+    max rotation, how "straight up" it was, and the verdict), so the game can
+    tell the player why a flick didn't count. With record=True all of them are
+    also appended to `candidates` (used by the calibration tool)."""
+
+    def __init__(self, swing: "SwingDetector", record: bool = False):
         self.swing = swing
+        self.record = record
+        self.candidates: List[dict] = []
+        self.last: Optional[dict] = None
         self._active = False
         self._peak = 0.0
         self._peak_t = 0.0
         self._max_gyro = 0.0
-        self._up_ok = False
+        self._up_frac = 0.0
         self._last_t = -math.inf
 
     def push(self, s: ImuSample) -> Optional[TossEvent]:
         cal = self.swing.cal
+        thr = cal.toss_accel_g
         g = self.swing.gravity
         gmag = math.sqrt(sum(x * x for x in g)) or 1.0
         up = [x / gmag for x in g]               # at rest the accelerometer reads +1 g "up"
@@ -395,25 +433,40 @@ class TossDetector:
         lin_mag = math.sqrt(sum(x * x for x in lin)) or 1e-9
         gyr = gyro_dps(s, cal)
         if not self._active:
-            if up_comp > C.TOSS_ACCEL_G * 0.5:
+            if up_comp > thr * 0.5:
                 self._active = True
-                self._peak, self._peak_t, self._max_gyro, self._up_ok = up_comp, s.t, gyr, False
+                self._peak, self._peak_t, self._max_gyro, self._up_frac = up_comp, s.t, gyr, up_comp / lin_mag
             else:
                 return None
         self._max_gyro = max(self._max_gyro, gyr)
         if up_comp > self._peak:
-            self._peak, self._peak_t = up_comp, s.t
-            self._up_ok = up_comp / lin_mag >= C.TOSS_UP_FRACTION
-        if up_comp > C.TOSS_ACCEL_G * 0.3 and s.t - self._peak_t < 0.3:
+            self._peak, self._peak_t, self._up_frac = up_comp, s.t, up_comp / lin_mag
+        if up_comp > thr * 0.3 and s.t - self._peak_t < 0.3:
             return None
         # Jolt over: was it a clean upward toss?
         self._active = False
-        if (self._peak >= C.TOSS_ACCEL_G and self._up_ok and self._max_gyro <= C.TOSS_MAX_GYRO_DPS
-                and self._peak_t - self._last_t >= C.TOSS_COOLDOWN_S):
-            self._last_t = self._peak_t
-            strength = min(1.0, (self._peak - C.TOSS_ACCEL_G) / (2.0 * C.TOSS_ACCEL_G))
-            return TossEvent(self._peak_t, strength, toss_height(strength))
-        return None
+        cand = {"t": self._peak_t, "peak_g": round(self._peak, 2), "gyro_dps": round(self._max_gyro, 1),
+                "up_frac": round(self._up_frac, 2)}
+        if self._peak < thr:
+            cand["result"] = f"too gentle ({self._peak:.1f} g, needs {thr:.1f})"
+        elif self._max_gyro > cal.toss_max_gyro_dps:
+            cand["result"] = f"too much rotation ({self._max_gyro:.0f} deg/s, max {cal.toss_max_gyro_dps:.0f})"
+        elif self._up_frac < cal.toss_up_fraction:
+            cand["result"] = f"not straight up ({self._up_frac:.0%} upward, needs {cal.toss_up_fraction:.0%})"
+        elif self._peak_t - self._last_t < C.TOSS_COOLDOWN_S:
+            cand["result"] = "too soon after the last toss"
+        else:
+            cand["result"] = "toss"
+        self.last = cand
+        if self.record:
+            self.candidates.append(cand)
+        if cand["result"] != "toss":
+            return None
+        self._last_t = self._peak_t
+        lo = cal.toss_peak_min_g if cal.toss_peak_min_g is not None else thr
+        hi = cal.toss_peak_max_g if cal.toss_peak_max_g is not None else 3.0 * thr
+        strength = max(0.0, min(1.0, (self._peak - lo) / max(1e-6, hi - lo)))
+        return TossEvent(self._peak_t, strength, toss_height(strength))
 
 
 def detect_all(samples: Sequence[ImuSample], cal: Optional[Calibration] = None) -> List[SwingEvent]:

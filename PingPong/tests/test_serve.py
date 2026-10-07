@@ -161,3 +161,80 @@ def test_swings_and_twists_are_not_tosses():
     assert tosses(flick(0.4)) == []                                # too gentle
     assert tosses(flick(2.0, gyro=400)) == []                      # rotating = swing
     assert tosses(recording([{"peak_g": 4, "peak_dps": 600}] * 3)[0]) == []
+
+
+# ---- toss calibration ------------------------------------------------------------------
+
+def flick_session(peaks, twist_dps=200.0, sideways=0.35, seed=0):
+    """Realistic flicks: mostly upward jolt, a bit sideways, with some wrist twist."""
+    import random
+    rng = random.Random(seed)
+    out, t = [], 0.0
+    centers = [1.0 + 1.2 * i for i in range(len(peaks))]
+    while t < centers[-1] + 1.0:
+        az, ax, gx = 1000.0, 0.0, 0.0
+        for c, p in zip(centers, peaks):
+            b = math.exp(-((t - c) / 0.05) ** 2)
+            az += 1000 * p * b
+            ax += 1000 * p * sideways * b
+            gx += twist_dps * math.exp(-((t - c) / 0.08) ** 2)
+        out.append(ImuSample(t, 0, 0, 0, ax + rng.gauss(0, 8), rng.gauss(0, 8), az + rng.gauss(0, 8),
+                             gx + rng.gauss(0, 2), rng.gauss(0, 2), rng.gauss(0, 2)))
+        t += 0.015
+    return out
+
+
+def test_default_thresholds_miss_a_twisty_flick_and_say_why():
+    sd = SwingDetector(Calibration())
+    td = TossDetector(sd)
+    for s in flick_session([1.5], twist_dps=250):
+        sd.push(s)
+        assert td.push(s) is None
+    assert td.last["result"].startswith("too much rotation")
+
+
+def test_toss_calibration_accepts_your_flicks_and_rejects_your_swings():
+    from tools.calibrate_swing import calibrate_toss, count_tosses
+    rest, _ = recording([], rest_s=2.0)
+    cal = Calibration()
+    cal.zero_from(rest)
+    flicks = flick_session([1.0, 1.4, 1.8, 1.2, 1.6], twist_dps=220)
+    swings = [recording([{"peak_g": 4, "peak_dps": 600}] * 5, seed=1)[0],
+              recording([{"peak_g": 2, "peak_dps": -400}] * 5, seed=2)[0]]
+    assert count_tosses(flicks, cal) == 0                 # defaults: too much wrist twist
+    warnings = calibrate_toss(cal, flicks, swings)
+    assert warnings == []
+    assert count_tosses(flicks, cal) == 5
+    assert sum(count_tosses(s, cal) for s in swings) == 0
+    # The gentlest calibration flick tosses lowest, the strongest highest.
+    sd = SwingDetector(cal)
+    td = TossDetector(sd)
+    heights = []
+    for smp in flicks:
+        sd.push(smp)
+        ev = td.push(smp)
+        if ev:
+            heights.append(ev.height)
+    assert min(heights) == heights[0] and max(heights) == heights[2]
+
+
+def test_rejected_flick_is_reported_during_your_serve():
+    game, clock, events = player_serving_game()
+    advance(game, clock, C.SERVE_ARM_DELAY_S + 0.1)
+    game.paddle.toss.last = {"t": clock.t, "peak_g": 1.2, "gyro_dps": 300, "up_frac": 0.9,
+                             "result": "too much rotation (300 deg/s, max 120)"}
+    advance(game, clock, 0.05)
+    msgs = [e["text"] for e in events if e["name"] == "message"]
+    assert any("Toss not counted: too much rotation" in m for m in msgs)
+
+
+def test_toss_calibration_uses_every_flick_not_just_five():
+    from tools.calibrate_swing import calibrate_toss, count_tosses
+    rest, _ = recording([], rest_s=2.0)
+    cal = Calibration()
+    cal.zero_from(rest)
+    peaks = [1.0, 1.4, 1.8, 1.2, 1.6, 0.9, 1.5, 1.1, 1.7, 1.3]       # ten flicks, the gentlest is #6
+    flicks = flick_session(peaks, twist_dps=220, seed=3)
+    assert calibrate_toss(cal, flicks, [recording([{"peak_g": 4, "peak_dps": 600}] * 5, seed=1)[0]]) == []
+    assert count_tosses(flicks, cal) == 10
+    assert abs(cal.toss_peak_min_g - 0.9) < 0.15                       # the gentlest flick counted

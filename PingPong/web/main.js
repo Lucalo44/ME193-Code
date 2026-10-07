@@ -8,7 +8,7 @@
 //   {type:"state", t, phase, paused,
 //    ball:{pos:[x,y,z], vel:[...], spin:[...], visible},
 //    opponent:{x, swing:"forehand"|"backhand"|null, swing_t},
-//    paddle:{pitch, roll, yaw},             // degrees, relative to the zeroed ready pose
+//    paddle:{q:[x,y,z,w], pitch, roll, yaw},  // scene-frame orientation vs. the zeroed ready pose
 //    required_stroke, incoming:{x, t_to_arrival, required}|null,
 //    score:{player, cpu, games_player, games_cpu, server, games_needed}, streak:{current, record},
 //    serve:{server, state:null|"cpu"|"await_toss"|"tossed", paddle_kind},
@@ -238,7 +238,8 @@ function sample(renderT) {
     ball: { ...b.ball, pos: jump ? pb : pa.map((v, i) => lerp(v, pb[i])) },
     opponent: { ...b.opponent, x: lerp(a.opponent.x, b.opponent.x),
                 swing_t: b.opponent.swing_t - (b.t - renderT) },
-    paddle: { pitch: lerp(a.paddle.pitch, b.paddle.pitch), roll: lerp(a.paddle.roll, b.paddle.roll),
+    // Paddle orientation: newest quaternion (the view slerps toward it), Euler lerped for the HUD.
+    paddle: { ...b.paddle, pitch: lerp(a.paddle.pitch, b.paddle.pitch), roll: lerp(a.paddle.roll, b.paddle.roll),
               yaw: lerp(a.paddle.yaw, b.paddle.yaw) },
   };
 }
@@ -323,7 +324,8 @@ function frame() {
         `t to arrival ${f(dbg.t_to_arrival)} s   window ${dbg.window_open ? 'OPEN' : 'closed'} (±${dbg.hit_window_s}s)\n` +
         `required     ${latest.required_stroke ?? '--'}\n` +
         `paddle       pitch ${f(s.paddle.pitch, 1)}  roll ${f(s.paddle.roll, 1)}  yaw ${f(s.paddle.yaw, 1)}\n` +
-        `latency off  ${f(dbg.latency_offset_s * 1000, 0)} ms`);
+        `latency off  ${f(dbg.latency_offset_s * 1000, 0)} ms\n` +
+        `last flick   ${dbg.toss ? `${dbg.toss.peak_g} g up, ${dbg.toss.gyro_dps} deg/s, ${Math.round(dbg.toss.up_frac * 100)}% up -> ${dbg.toss.result}` : '--'}`);
     } else {
       hud.debug(null);
     }

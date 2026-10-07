@@ -27,7 +27,8 @@ from collections import deque
 from typing import Deque, List, Optional
 
 import config as C
-from hardware.swing import Calibration, ImuSample, SwingDetector, TossDetector
+from hardware.orientation import OrientationFilter, euler_yxz_deg, scene_mapping, to_scene
+from hardware.swing import Calibration, ImuSample, SwingDetector, TossDetector, accel_g, gyro_vec_dps
 
 try:
     import legoeducation as le
@@ -35,9 +36,45 @@ except ImportError:  # the sim paddle and tests work without it
     le = None
 
 
+COLOR_NAMES = ["nocolor", "red", "yellow", "blue", "teal", "green", "purple",
+               "white", "magenta", "orange", "azure"]          # index = LEGO_COLOR_* value
+
+
+def color_name(value) -> str:
+    return COLOR_NAMES[value] if isinstance(value, int) and 0 <= value < len(COLOR_NAMES) else str(value)
+
+
 def card_filter():
-    color = getattr(le, C.CARD_COLOR, None) if (le is not None and C.CARD_COLOR) else None
-    return color, C.CARD_SERIAL
+    """(card_color, card_serial) for legoeducation's connect(), validated.
+    Raises ValueError with a readable message for settings it can't use --
+    an unknown color must never silently turn the filter off."""
+    color = C.CARD_COLOR
+    if isinstance(color, str):
+        name = color.strip().lower().removeprefix("lego_color_")
+        if name not in COLOR_NAMES[1:]:
+            raise ValueError(f"CARD_COLOR = {C.CARD_COLOR!r} isn't a card color. Use one of: "
+                             + ", ".join(COLOR_NAMES[1:]) + " (or None).")
+        color = COLOR_NAMES.index(name)
+    elif color is not None and not (isinstance(color, int) and 1 <= color < len(COLOR_NAMES)):
+        raise ValueError(f"CARD_COLOR = {C.CARD_COLOR!r} isn't a card color.")
+    serial = C.CARD_SERIAL
+    if serial is not None:
+        try:
+            if not 0 <= int(serial) <= 9999:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise ValueError(f"CARD_SERIAL = {C.CARD_SERIAL!r} must be the card's number, e.g. \"0994\" (or None).")
+        serial = f"{int(serial):04d}"
+    return color, serial
+
+
+def describe_card_filter() -> str:
+    color, serial = card_filter()
+    if color is None and serial is None:
+        return "the first Double Motor found (no Connection Card filter)"
+    parts = ([f"{color_name(color)} card"] if color is not None else []) + \
+            ([f"serial {serial}"] if serial is not None else [])
+    return "a Double Motor with " + ", ".join(parts)
 
 
 class PaddleBase:
@@ -55,6 +92,14 @@ class PaddleBase:
         self._lock = threading.Lock()
         self.sample_count = 0
         self.raw_listeners: List = []   # callables(sample) -- used by the tools
+        # 3D orientation for the on-screen paddle (gyro + accelerometer fusion).
+        self.orient = OrientationFilter()
+        self._remap()
+
+    def _remap(self) -> None:
+        cal = self.calibration
+        self.orient.reset(cal.gravity)
+        self._mapping = scene_mapping(cal.gravity, cal.close_axis)
 
     # -- sample plumbing --------------------------------------------------
     def _ingest(self, s: ImuSample) -> None:
@@ -65,6 +110,8 @@ class PaddleBase:
             self.sample_count += 1
         for fn in self.raw_listeners:
             fn(s)
+        cal = self.calibration
+        self.orient.update(s.t, gyro_vec_dps(s, cal), accel_g(s, cal))
         ev = self.detector.push(s)
         if ev is not None:
             self.swing_events.put(ev)
@@ -81,11 +128,12 @@ class PaddleBase:
             return [s for s in self._buf if t0 <= s.t <= t1]
 
     def orientation(self) -> dict:
-        s = self.latest()
-        if s is None:
-            return {"pitch": 0.0, "roll": 0.0, "yaw": 0.0}
-        rel = self.calibration.relative_angles(s)
-        return {k: round(v, 2) for k, v in rel.items()}
+        """Paddle orientation in the scene frame, relative to the zeroed ready pose:
+        quaternion q = [x, y, z, w] (three.js order) plus Euler angles in degrees."""
+        q = to_scene(self.orient.q, self._mapping)
+        out = {k: round(v, 2) for k, v in euler_yxz_deg(q).items()}
+        out["q"] = [round(q[1], 4), round(q[2], 4), round(q[3], 4), round(q[0], 4)]
+        return out
 
     def zero(self) -> bool:
         """Capture the neutral ready orientation from the last 0.5 s.
@@ -96,11 +144,13 @@ class PaddleBase:
             return False
         self.calibration.zero_from(still)
         self.detector.set_calibration(self.calibration)
+        self._remap()                      # the ready pose becomes "straight ahead"
         return True
 
     def set_calibration(self, cal: Calibration) -> None:
         self.calibration = cal
         self.detector.set_calibration(cal)
+        self._remap()
 
     # -- overridden by subclasses -----------------------------------------
     def start(self) -> None: ...
@@ -134,7 +184,7 @@ class Paddle(PaddleBase):
             self.motor.connect(card_color=color, card_serial=serial,
                                device_notification_delay=C.IMU_NOTIFICATION_MS)
             if not self.motor.connected:
-                self.status = "not found"
+                self.status = "not found -- run tools/find_motor.py"
                 return
             self.motor.set_notification_callback(self._on_notification)
             try:

@@ -1,0 +1,40 @@
+{
+  "accel_raw_per_g": 997.7050099701253,
+  "gyro_raw_per_dps": 1.0,
+  "angle_raw_per_deg": 10.0,
+  "gravity": [
+    0.0048235700451620496,
+    0.01125499677204478,
+    0.9999250262993126
+  ],
+  "neutral": {
+    "yaw": 72.87343750000001,
+    "pitch": -0.28750000000000003,
+    "roll": 0.5510416666666667
+  },
+  "noise_g": 0.02043314952592956,
+  "noise_dps": 2.449489742783178,
+  "accel_threshold": 0.3,
+  "gyro_threshold": 40.0,
+  "strength_min_g": 1.1840737468975266,
+  "strength_max_g": 5.232108479657458,
+  "topspin_terms": [
+    {
+      "feature": "roll_at_peak",
+      "center": 85.21324404761906,
+      "scale": 57.36428571428572,
+      "weight": 1.0,
+      "separation": 13.08
+    }
+  ],
+  "sidespin_terms": [
+    {
+      "feature": "gx_int",
+      "center": 1.7122281756803983,
+      "scale": -5.930797753304692,
+      "weight": 1.0,
+      "separation": 1.22
+    }
+  ],
+  "source": "file"
+}

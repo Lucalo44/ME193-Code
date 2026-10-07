@@ -1,16 +1,29 @@
-// paddle.js -- the player's paddle near the bottom of the screen. Its tilt follows
-// the live IMU pitch/roll so the player sees the face angle they present.
+// paddle.js -- the player's paddle near the bottom of the screen.
+//
+// It mirrors the real paddle's 3D orientation (state.paddle.q, a scene-frame
+// quaternion relative to the zeroed ready pose, from hardware/orientation.py).
+// Orientation alone can't give position, so the paddle sits at the end of an
+// invisible forearm that pivots at the elbow: turning the paddle back for a
+// backswing swings it back and out, the follow-through carries it across.
 import * as THREE from 'three';
 import { THEME, TABLE_H } from './theme.js';
+
+// Elbow -> paddle-center offset in the ready pose (scene meters): up and toward the table.
+const FOREARM = new THREE.Vector3(0, 0.2, -0.36);
+const READY_X = 0.3;
 
 export class PlayerPaddleView {
   constructor(scene, hitPlaneZ) {
     const p = THEME.playerPaddle;
-    this.group = new THREE.Group();
-    this.group.position.set(0.3, TABLE_H + 0.2, hitPlaneZ + 0.1);
-    scene.add(this.group);
-    this.tilt = new THREE.Group();
-    this.group.add(this.tilt);
+    // Elbow position: below and behind where the paddle rests.
+    this.elbow = new THREE.Group();
+    this.elbow.position.set(READY_X, TABLE_H + 0.0, hitPlaneZ + 0.1 - FOREARM.z);
+    scene.add(this.elbow);
+    this.arm = new THREE.Group();               // rotates with the real paddle
+    this.elbow.add(this.arm);
+    this.tilt = new THREE.Group();              // the paddle model, at the end of the forearm
+    this.tilt.position.copy(FOREARM);
+    this.arm.add(this.tilt);
 
     const disc = (r, h) => new THREE.CylinderGeometry(r, r, h, 40);
     this.rubberMat = new THREE.MeshStandardMaterial({ color: p.rubber, transparent: true, opacity: p.opacity,
@@ -34,25 +47,31 @@ export class PlayerPaddleView {
     handle.position.y = -0.03;
     this.tilt.add(handle);
     this.tilt.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+
     this.flash = 0;
+    this._target = new THREE.Quaternion();
+    this._euler = new THREE.Euler(0, 0, 0, 'YXZ');
   }
 
   swing() { this.flash = 1; }
 
-  // orientation: {pitch, roll, yaw} degrees relative to the zeroed ready pose;
-  // targetX: scene x the paddle drifts toward (incoming ball), or null.
+  // orientation: {q: [x, y, z, w]} scene-frame quaternion (preferred), or Euler
+  // {pitch, roll, yaw} degrees; targetX: scene x to drift toward (incoming ball), or null.
   update(orientation, targetX, dt) {
-    const d2r = Math.PI / 180;
-    const o = orientation || { pitch: 0, roll: 0, yaw: 0 };
-    const k = Math.min(1, dt * 20);
-    this.tilt.rotation.x += (o.pitch * d2r - this.tilt.rotation.x) * k;
-    this.tilt.rotation.z += (-o.roll * d2r - this.tilt.rotation.z) * k;
-    this.tilt.rotation.y += (o.yaw * d2r * 0.5 - this.tilt.rotation.y) * k;
-    const tx = targetX === null || targetX === undefined ? 0.3 : Math.max(-0.75, Math.min(0.75, targetX));
-    this.group.position.x += (tx - this.group.position.x) * Math.min(1, dt * 6);
+    const o = orientation || {};
+    if (o.q && o.q.length === 4) {
+      this._target.set(o.q[0], o.q[1], o.q[2], o.q[3]).normalize();
+    } else {
+      const d2r = Math.PI / 180;
+      this._euler.set((o.pitch || 0) * d2r, (o.yaw || 0) * d2r, -(o.roll || 0) * d2r, 'YXZ');
+      this._target.setFromEuler(this._euler);
+    }
+    // Light smoothing on top of the 60 Hz stream; fast enough to follow a swing.
+    this.arm.quaternion.slerp(this._target, Math.min(1, dt * 30));
+
+    const tx = targetX === null || targetX === undefined ? READY_X : Math.max(-0.75, Math.min(0.75, targetX));
+    this.elbow.position.x += (tx - this.elbow.position.x) * Math.min(1, dt * 4);
     this.flash = Math.max(0, this.flash - dt * 5);
     this.rubberMat.emissiveIntensity = this.flash * 0.6;
-    // Small punch forward on a swing.
-    this.tilt.position.z = -this.flash * 0.06;
   }
 }

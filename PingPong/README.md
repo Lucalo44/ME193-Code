@@ -191,21 +191,58 @@ Put those numbers in `config.py` (`DEFAULT_GYRO_RAW_PER_DPS`, `ANGLE_RAW_PER_DEG
 the "Measured on our hardware" block of the `hardware/swing.py` docstring.
 
 ```bash
-python tools/calibrate_swing.py          # guided: still, soft/hard, closed/open face, brush left/right
+python tools/calibrate_swing.py              # guided, about 9 minutes (steps below)
+python tools/calibrate_swing.py --swings 10  # 10 of each instead of 5: more reliable spin/stroke detection
 python -m pytest -q tests/test_swing.py
 ```
 
-**Check the calibration.** The tool prints which IMU features it picked for topspin and
-sidespin, with a separation score (aim for 1.0 or more). It then re-scores your
-closed/open and left/right swings, and their signs should come out right.
+The steps, all holding the paddle exactly as you'll play:
+
+1. Hold still at your ready position.
+2. Slowly **tilt the face down** about 45° and hold. This measures the gyro scale and how
+   the motor's axes map onto the on-screen paddle.
+3. 5 serve **tosses**: sharp flicks straight up, as if tossing the ball. This learns how
+   hard, how straight and how twist-free your flick is, then checks that none of your
+   recorded swings would count as a toss.
+4. 5 soft + 5 hard **forehands**, then 5 soft + 5 hard **backhands**.
+5. 5 closed-face + 5 open-face forehands, then the same for **backhands**. A backhand
+   flips the face, so each stroke gets its own topspin/backspin reading.
+6. 5 swings brushing left, 5 brushing right.
+
+Each swing and toss step asks for 5 repetitions by default. `--swings 10` (any number
+from 3 to 30) asks for more. That makes the spin and forehand/backhand detection more
+reliable, with little extra gain past about 10–15, when fatigue starts to change your
+swing. Every detected swing and flick is used, even if you do more or fewer than asked.
+
+**Check the calibration.** The tool prints:
+- which IMU features it picked for topspin (forehand and backhand separately), sidespin,
+  and telling forehands from backhands, each with a separation score (aim for 1.0 or
+  more);
+- the spin your closed/open and left/right swings score, whose signs should come out
+  right;
+- how many soft forehands and backhands it reads as the right stroke.
+- how many of your 5 flicks count as tosses, and how many swings do (should be 0).
+
+**If a toss still isn't recognized in the game**, the game says why while you're due to
+serve (e.g. "Toss not counted: too much rotation (310 deg/s, max 180)"). The debug
+overlay (**D**) shows the numbers for your last flick.
+
+**Run it again** if you calibrated before backhands and the tilt step were added; older
+files still work but lack them.
 
 **Turn recordings into tests.** Recordings with exactly 5 detected swings are saved as
 `imu_logs/calib_*_5swings.csv`. Copy them into `tests/data/` and the swing tests assert
 5 events per file. To recompute without the hardware, run
 `python tools/calibrate_swing.py --from-logs`.
 
-**Check the ghost paddle.** Run `python main.py --no-camera`: the ghost paddle at the
-bottom of the screen should tilt with the real paddle.
+**Check the on-screen paddle.** Run `python main.py --no-camera`. The paddle at the
+bottom of the screen should:
+- follow the real paddle's 3D orientation (closing the face tips it toward the table);
+- swing back and through with your stroke, since it pivots on a virtual forearm at the
+  elbow.
+
+Heading (turning left/right) slowly re-centers whenever you hold still, because the motor
+has no compass. Press **Z** at your ready position to re-zero.
 
 ### 3. Real paddle in the game
 
@@ -276,10 +313,15 @@ key-repeat. Swing-sync mode arms a class with 0/1/2, and then each real swing la
 - **Units.** The IMU's raw units aren't documented in `legoeducation` 1.1.1, so nothing
   depends on guessing them:
   - Accel scale is measured every time the paddle is zeroed (1 g at rest).
-  - Gyro and angle scales are checked with `imu_logger.py`.
+  - Gyro scale is measured by the tilt step of `calibrate_swing.py`. Angle units can be
+    checked with `imu_logger.py`.
 - **How you hold it matters.** Holding the motor bare in your hand versus mounted on a
-  LEGO handle changes which axes mean "face angle" and "brushing direction". The
-  calibration tool picks them from your swings. Recalibrate whenever the mounting changes.
+  LEGO handle changes which axes mean "face angle", "brushing direction" and
+  "forehand vs. backhand", and how the motor maps onto the screen. The calibration tool
+  measures all of them from your swings. Recalibrate whenever the mounting changes.
+- **On-screen orientation** comes from fusing the gyro and accelerometer into a 3D
+  rotation (`hardware/orientation.py`), not from the motor's built-in yaw/pitch/roll
+  angles, which depend on how the motor is held.
 - **Notification rate.** Swings need 15 ms IMU notifications. `paddle.py` connects with
   `device_notification_delay=15` and records every sample through the notification
   callback (it doesn't poll `motor.imu_device`).
@@ -304,7 +346,7 @@ Every tunable is in `config.py`, with a comment for each.
 | `SERVES_PER_TURN` | Points per serve turn (5) |
 | `DEUCE_SERVE_EVERY_POINT` | `True` = the standard rule of alternating every point at 10–10 |
 | `PLAYER_SERVE` | `False` = the CPU serves every point |
-| `TOSS_ACCEL_G`, `TOSS_MAX_GYRO_DPS` | How sharp an upward flick must be, and how little it may rotate, to count as a toss. Tune these with the real paddle if tosses are missed or swings toss by accident. |
+| `TOSS_ACCEL_G`, `TOSS_MAX_GYRO_DPS`, `TOSS_UP_FRACTION` | Defaults for how sharp, how twist-free and how straight up a flick must be to count as a toss. `calibrate_swing.py` learns your own values and saves them in `swing_calibration.json`, which overrides these. |
 | `TOSS_HEIGHT_*`, `SERVE_SPEED_*`, `SERVE_CONTACT_Y` | Toss height range, serve speed range, and the height the serve is struck at |
 
 ### Look and feel

@@ -45,8 +45,8 @@ CHANNELS = ["ax", "ay", "az", "gx", "gy", "gz"]
 
 def connect(paddle: Paddle, timeout: float = 30.0) -> bool:
     paddle.start()
-    print("Connecting to the Double Motor (turn it on; Connection Card filter: "
-          f"{C.CARD_COLOR} / {C.CARD_SERIAL})...")
+    from hardware.paddle import describe_card_filter
+    print(f"Connecting to {describe_card_filter()} (turn it on)...")
     t0 = time.time()
     while time.time() - t0 < timeout:
         if paddle.status == "connected":

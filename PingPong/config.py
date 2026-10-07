@@ -21,10 +21,14 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # Hardware: LEGO Education Double Motor used as the paddle
 # --------------------------------------------------------------------------
 # Connection Card filter, same idea as Pose Racecar/gesture_car_control.py.
-# CARD_COLOR is the *name* of an le.LEGO_COLOR_* constant (resolved lazily so
-# this file imports without legoeducation installed). None = no filter.
-CARD_COLOR = "LEGO_COLOR_ORANGE"
-CARD_SERIAL = "0994"
+# Run `python tools/find_motor.py` to see the color and serial of every motor nearby.
+#   CARD_COLOR:  a color name -- "red", "yellow", "blue", "teal", "green", "purple",
+#                "white", "magenta", "orange", "azure" (or "LEGO_COLOR_RED" etc.)
+#   CARD_SERIAL: the number printed on the card, e.g. "0994"
+# BOTH must match when both are set. Set either one to None to not filter on it
+# (both None = connect to the first Double Motor found).
+CARD_COLOR = "purple"
+CARD_SERIAL = "0998"
 IMU_NOTIFICATION_MS = 15          # 15 ms (~66 Hz) is the fastest the motor allows; default 100 is too slow
 IMU_BUFFER_S = 2.0                # how much IMU history the paddle keeps in its ring buffer
 HAPTICS_ENABLED = False           # short motor buzz on a successful hit
