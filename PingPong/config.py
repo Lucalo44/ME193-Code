@@ -59,13 +59,17 @@ TAG_HISTORY_FRAMES = 10           # ... of the last this-many frames
 # --------------------------------------------------------------------------
 # Speeds (m/s)
 # --------------------------------------------------------------------------
-BALL_SPEED_SLOW = 5.5             # opponent's base shot speed per setting
-BALL_SPEED_MEDIUM = 7.0
-BALL_SPEED_FAST = 9.0
-OPPONENT_SPEED_JITTER = 0.5       # +/- random variation around the base speed
-OPPONENT_HARD_RETURN_BONUS = 0.8  # max extra speed when returning the player's hardest shots
-RETURN_SPEED_MIN = 5.5            # player's return speed at strength 0
-RETURN_SPEED_MAX = 10.0           # player's return speed at strength 1
+# Slowed down (Oct 2026) so there's time for a full swing. Opponent shots now take
+# about 0.78 / 0.63 / 0.51 s to reach you at slow / medium / fast (was 0.65 / 0.50 / 0.39),
+# and a full exchange (your shot + theirs) at medium is ~1.2 s (was ~0.95 s).
+# Don't go below ~4.6 m/s: slower than that, a shot can't reach the far half.
+BALL_SPEED_SLOW = 5.0             # opponent's base shot speed per setting (was 5.5)
+BALL_SPEED_MEDIUM = 5.7           # (was 7.0)
+BALL_SPEED_FAST = 7.0             # (was 9.0)
+OPPONENT_SPEED_JITTER = 0.4       # +/- random variation around the base speed
+OPPONENT_HARD_RETURN_BONUS = 0.6  # max extra speed when returning the player's hardest shots
+RETURN_SPEED_MIN = 5.0            # player's return speed at strength 0 (was 5.5)
+RETURN_SPEED_MAX = 8.0            # player's return speed at strength 1 (was 10.0)
 RETURN_STRENGTH_CURVE = 0.8       # speed = lerp(min, max, strength ** curve)
 
 SPEED_BY_SETTING = {"slow": BALL_SPEED_SLOW, "medium": BALL_SPEED_MEDIUM, "fast": BALL_SPEED_FAST}
@@ -188,7 +192,7 @@ OPPONENT_REACH = 0.55             # m; further than this from the ball = can't r
 OPPONENT_REACTION_S = {"slow": 0.25, "medium": 0.18, "fast": 0.12}
 OPPONENT_MISS_BASE = 0.08
 OPPONENT_MISS_PER_SPEED = 0.04    # added per m/s of incoming speed above OPPONENT_MISS_SPEED_REF
-OPPONENT_MISS_SPEED_REF = 7.0
+OPPONENT_MISS_SPEED_REF = 5.6       # scaled with the slower return speeds (was 7.0)
 OPPONENT_MISS_PER_SPIN = 0.25     # added at full spin (|spin| = SPIN_MAX_RADS)
 OPPONENT_MISS_MAX = 0.8
 OPPONENT_WIDE_SHOT_CHANCE = 0.15  # occasional shots aimed close to the sideline
