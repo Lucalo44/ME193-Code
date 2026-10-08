@@ -13,6 +13,8 @@ state (~60 Hz):
      "stroke": {"phase": -1.3..1.3, "side": "forehand"|"backhand", "mode": "ready"|"forward"|"settle"} | null,
                                                # live stroke (real paddle): +1 drawn back, 0 contact, -1 follow-through
      "hold": bool,                             # hit-stop: the ball is waiting at the paddle for the swing to register
+     "arm": {"ok": bool, "hand": [dx, dy], "elbow": [x, y], "wrist": [x, y], "zeroed": bool, "chosen_by": str} | null,
+                                               # pose arm tracking, in torso lengths (hand = offset from ready)
      "required_stroke": "forehand"|"backhand"|"either"|null,
      "incoming": {"x": x_arrival, "t_to_arrival": s, "required": str, "window": [early_s, late_s]} | null,
      "contact": {"pos": [x,y,z], "t_to_contact": s, "serve": bool, "swung": bool} | null,

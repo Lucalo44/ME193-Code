@@ -20,6 +20,7 @@ import numpy as np
 
 import config as C
 from vision.apriltags import TagDebouncer, TagDetector
+from vision.arm import ArmTracker, arm_points
 from vision.camera import Camera
 from vision.pose import PoseClassifier, StrokeJudge, create_landmarker, extract_features
 
@@ -29,11 +30,15 @@ SKELETON = [(11, 12), (11, 13), (13, 15), (12, 14), (14, 16), (11, 23), (12, 24)
 
 class VisionWorker:
     def __init__(self, camera: Camera, classifier: Optional[PoseClassifier],
-                 on_preview: Optional[Callable[[str], None]] = None):
+                 on_preview: Optional[Callable[[str], None]] = None,
+                 on_frame: Optional[Callable[[dict], None]] = None):
         self.camera = camera
         self.classifier = classifier
         self.judge = StrokeJudge()
         self.on_preview = on_preview
+        self.on_frame = on_frame          # per-frame results (used by vision/process.py)
+        self.arms: Optional[dict] = None
+        self.arm = ArmTracker(C.HANDEDNESS)
         self.tags_active = False
         self.tag_lead: Optional[int] = None
         self.tag_progress = 0.0
@@ -111,7 +116,14 @@ class VisionWorker:
                 if feat is not None:
                     label, conf = self.classifier.predict(feat)
             self.prediction, self.confidence = label, conf
-            self.judge.add(t_frame - C.POSE_FRAME_LATENCY_S, label, conf)
+            t_pose = t_frame - C.POSE_FRAME_LATENCY_S
+            self.judge.add(t_pose, label, conf)
+            self.arms = arm_points(landmarks) if landmarks is not None else None
+            self.arm.update(t_pose, self.arms)
+            if self.on_frame:
+                self.on_frame({"type": "frame", "t": t_pose, "label": label, "conf": conf,
+                               "pose": landmarks is not None, "arms": self.arms,
+                               "tag_lead": self.tag_lead, "tag_progress": self.tag_progress, "fps": self.fps})
 
             now = time.monotonic()
             dt, last = now - last, now

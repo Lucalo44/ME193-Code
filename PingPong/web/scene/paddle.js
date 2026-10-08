@@ -98,6 +98,17 @@ export class PlayerPaddleView {
     this.face.add(handle);
     this.face.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
+    // Pose arm tracking (state.arm): hand offset moves the paddle; a forearm follows.
+    this.armCfg = { weight: 0, scale: 0.45, max: 0.4 };
+    this.armOffset = new THREE.Vector3();
+    this.handFilterX = new OneEuro(1.5, 0.8, 1.0);
+    this.handFilterY = new OneEuro(1.5, 0.8, 1.0);
+    this.forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.036, 1, 16, 1, true),
+      new THREE.MeshStandardMaterial({ color: '#d9a77c', transparent: true, opacity: 0.4, roughness: 0.7,
+        side: THREE.DoubleSide, depthWrite: false }));
+    this.forearm.visible = false;
+    scene.add(this.forearm);
+    this._up = new THREE.Vector3(0, 1, 0);
     this.flash = 0;
     this.punch = 0;              // brief impact pulse on contact
     this.phaseFilter = new OneEuro(PHASE_MIN_CUTOFF, PHASE_BETA, PHASE_D_CUTOFF);
@@ -152,6 +163,7 @@ export class PlayerPaddleView {
     this.handed = s && s.settings && s.settings.handedness === 'left' ? -1 : 1;
     this.live = !!(s && s.stroke);
     this._updateFace(s ? s.paddle : null, dt);
+    this._updateArm(s ? s.arm : null, dt);
     if (this.live) {
       this._updateLive(s, dt);
       this.flash = Math.max(0, this.flash - dt * 5);
@@ -183,6 +195,7 @@ export class PlayerPaddleView {
       } else {
         this._target.copy(this.ready);
       }
+      this._target.add(this.armOffset);
       const k = 1 - Math.exp(-TRACK_RATE * dt);
       this.root.position.lerp(this._target, k);
       this._lastYaw = (this._lastYaw ?? 0) + (strokeYaw - (this._lastYaw ?? 0)) * k;
@@ -218,7 +231,7 @@ export class PlayerPaddleView {
     const sideV = new THREE.Vector3(side, 1, 1);
     const offset = p >= 0 ? LIVE_BACK.clone().multiply(sideV).multiplyScalar(p)
                           : LIVE_FOLLOW.clone().multiply(sideV).multiplyScalar(-p);
-    this._target.copy(this.anchor).add(offset);
+    this._target.copy(this.anchor).add(offset).add(this.armOffset);
     const k = 1 - Math.exp(-LIVE_RATE * dt);
     this.root.position.lerp(this._target, k);
     // No scripted turn here: the face shows the real paddle's full orientation,
@@ -257,6 +270,33 @@ export class PlayerPaddleView {
     }
     this._lastYaw = yaw;
     return yaw;
+  }
+
+  // Pose arm tracking: the hand's offset from its ready position shifts the paddle
+  // (smoothed -- the camera is ~30 fps and noisier than the paddle's IMU), and a
+  // translucent forearm is drawn from the tracked elbow to the paddle's grip.
+  _updateArm(arm, dt) {
+    const cfg = this.armCfg;
+    if (!arm || !arm.ok || cfg.weight <= 0) {
+      this.armOffset.multiplyScalar(Math.exp(-6 * dt));      // ease back if tracking drops out
+      this.forearm.visible = false;
+      return;
+    }
+    if (arm.zeroed) {
+      const hx = this.handFilterX.filter(arm.hand[0], dt), hy = this.handFilterY.filter(arm.hand[1], dt);
+      this.armOffset.set(hx * cfg.scale * cfg.weight, hy * cfg.scale * cfg.weight, 0);
+      if (this.armOffset.length() > cfg.max) this.armOffset.setLength(cfg.max);
+    }
+    // Forearm: elbow placed relative to the grip using the real elbow->wrist direction.
+    const grip = this._tmp.copy(this.root.position).add(new THREE.Vector3(0, -0.1, 0.02));
+    const ew = [arm.elbow[0] - arm.wrist[0], arm.elbow[1] - arm.wrist[1]];
+    const len = Math.hypot(ew[0], ew[1]) || 1;
+    const elbow = grip.clone().add(new THREE.Vector3(ew[0] / len * 0.24, ew[1] / len * 0.24, 0.14));
+    const dir = elbow.clone().sub(grip);
+    this.forearm.position.copy(grip).addScaledVector(dir, 0.5);
+    this.forearm.scale.set(1, dir.length(), 1);
+    this.forearm.quaternion.setFromUnitVectors(this._up, dir.normalize());
+    this.forearm.visible = true;
   }
 
   _updateFace(paddle, dt) {

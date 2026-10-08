@@ -198,7 +198,18 @@ class Game:
     # ======================================================================
     # Phases
     # ======================================================================
+    def _auto_zero_arm(self) -> None:
+        """If the arm's ready position was never captured (no Z press), take it the
+        first time the player holds the paddle still at ready while a point is served."""
+        arm = getattr(self.vision, "arm", None)
+        if arm is None or any(n is not None for n in arm.neutral) or self.sm.phase != SM.SERVE:
+            return
+        st = getattr(self.paddle, "stroke_state", lambda: None)()
+        if st is None or (st["mode"] == "ready" and abs(st["phase"]) < 0.15):
+            arm.zero()
+
     def _phase_logic(self) -> None:
+        self._auto_zero_arm()
         ph, now = self.sm.phase, self.sim_t
         elapsed = self.sm.elapsed(now)
         if ph == SM.SERVE:
@@ -523,6 +534,9 @@ class Game:
     def _on_swing(self, ev) -> None:
         t = ev.t_peak - self.clock_offset          # sim time of the swing peak
         t_corr = t - C.LATENCY_OFFSET_S
+        arm = getattr(self.vision, "arm", None)
+        if arm is not None and self.paddle.kind != "sim":
+            arm.on_swing(ev.t_peak)                 # teaches it which arm holds the paddle
         self._emit("swing", trace=ev.trace(self.paddle.calibration), **ev.summary())
         if self.sm.phase == SM.LATENCY_CAL:
             self._latency_swing(t)
@@ -676,6 +690,9 @@ class Game:
         elif k == "r":
             self.reset()
         elif k == "z":
+            arm = getattr(self.vision, "arm", None)
+            if arm is not None:
+                arm.zero()                          # the arm's ready position too
             ok = self.paddle.zero()
             self._emit("message", text="Paddle zeroed" if ok else "Zero failed - is the paddle connected?")
         elif k == "g" or (k == "d" and not sim):   # in sim mode D is sidespin
@@ -739,6 +756,8 @@ class Game:
             paddle=self.paddle.orientation(),
             stroke=getattr(self.paddle, "stroke_state", lambda: None)(),
             hold=self.hold is not None,           # hit-stop: the ball is waiting at the paddle
+            arm=v.arm.state(time.monotonic()) if (v is not None and C.POSE_ARM and getattr(v, "arm", None))
+            else None,
             required_stroke=inc.required if inc else None,
             incoming={"x": inc.pos[0], "t_to_arrival": inc.t - self.sim_t, "required": inc.required,
                       "window": [inc.early_s, inc.late_s]}

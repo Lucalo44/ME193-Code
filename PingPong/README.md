@@ -352,6 +352,35 @@ Burst mode is a toggle (press 0/1/2 to start, press again or Space to stop). The
 asked for hold-to-record, but OpenCV windows can't reliably tell a held key from macOS
 key-repeat. Swing-sync mode arms a class with 0/1/2, and then each real swing labels it.
 
+### 5b. Arm tracking (wrist/elbow drive the on-screen paddle)
+
+The camera, AprilTags and MediaPipe now run in their own process (`vision/process.py`,
+`VISION_PROCESS = True`), so pose work never stalls the game loop or Bluetooth. Every frame
+also sends your shoulder/elbow/wrist positions. The game moves the on-screen paddle with
+your hand and draws a faint forearm. The IMU still sets the paddle angle and the swing.
+
+Arm tracking needs **no training**. Its only setup is your ready position:
+
+```bash
+python tools/arm_check.py                  # camera only: skeleton, paddle arm, screen-paddle dot
+python tools/arm_check.py --with-paddle    # real swings confirm which arm holds the paddle
+```
+
+Stand where you'll play, hold the paddle at your ready position and press **z**.
+- The **orange** arm should be the one holding the paddle. If it's the other arm, set
+  `HANDEDNESS` in config.py or press **h**. With `--with-paddle`, after 3 swings
+  `[swings]` shows that the swings picked the arm.
+- Move your hand. The red dot in the "screen paddle" panel should follow it smoothly.
+
+In the game, press **Z** at your ready position. It zeroes the paddle and the arm
+together. The game also re-zeroes the arm on its own when you're idle at serve time. The
+**ARM** chip in the HUD shows the tracking state.
+
+Settings in config.py: `POSE_ARM` (on/off), `POSE_ARM_WEIGHT` (how much of the hand's
+motion reaches the paddle), `POSE_ARM_SCALE_M` (metres per torso length) and
+`POSE_ARM_MAX_M` (clamp). If the camera process gives you trouble, set
+`VISION_PROCESS = False` to go back to the in-game thread.
+
 ### 6. Latency calibration and polish
 
 **Check:**
@@ -474,7 +503,7 @@ vision/    camera.py     capture thread
 server/    protocol.py   all message schemas (mirrored in web/main.js)
            ws_server.py  HTTP static server + WebSocket
 web/                     three.js scene (scene/*.js), HUD, vendored three.js r169
-tools/                   train_pose, imu_logger, calibrate_swing, make_tags
+tools/                   train_pose, arm_check, imu_logger, calibrate_swing, make_tags
 tests/                   pytest suite (synthetic IMU recordings in tests/synth.py)
 ```
 

@@ -99,14 +99,8 @@ def make_paddle(args):
 def make_vision(args, server: GameServer):
     if args.no_camera:
         return None
-    from vision.camera import Camera
     from vision.pose import PoseClassifier
-    from vision.worker import VisionWorker
 
-    camera = Camera(args.camera)
-    if not camera.ok:
-        print(f"{camera.status} -- continuing as if --no-camera was passed (use keys 1/2/3 to start).")
-        return None
     classifier = PoseClassifier()
     if classifier.load(args.pose_data):
         counts = classifier.counts()
@@ -117,6 +111,18 @@ def make_vision(args, server: GameServer):
     if not classifier.trained:
         print("No forehand/backhand training data -- stroke check is OFF (every stroke counts as correct).\n"
               "Train it with:  python tools/train_pose.py")
+    if C.VISION_PROCESS:
+        # Camera + pose in their own process: they can't stall the game loop or the paddle.
+        from vision.process import VisionProcess
+        print("Starting the vision process (camera + pose tracking)...")
+        return VisionProcess(args.camera, args.pose_data if classifier.trained else None,
+                             on_preview=server.publish_frame)
+    from vision.camera import Camera
+    from vision.worker import VisionWorker
+    camera = Camera(args.camera)
+    if not camera.ok:
+        print(f"{camera.status} -- continuing as if --no-camera was passed (use keys 1/2/3 to start).")
+        return None
     return VisionWorker(camera, classifier, on_preview=server.publish_frame)
 
 
@@ -148,7 +154,9 @@ def main() -> int:
     game_ref = {}
     server = GameServer(os.path.join(HERE, "web"), on_message=lambda m: game_ref["game"].command(m),
                         http_port=args.http_port, ws_port=args.ws_port,
-                        runtime={"player_hit_plane_z": C.PLAYER_HIT_PLANE_Z,
+                        runtime={"pose_arm_weight": C.POSE_ARM_WEIGHT if C.POSE_ARM else 0.0,
+                                 "pose_arm_scale_m": C.POSE_ARM_SCALE_M, "pose_arm_max_m": C.POSE_ARM_MAX_M,
+                                 "player_hit_plane_z": C.PLAYER_HIT_PLANE_Z,
                                  "opponent_hit_plane_z": C.OPPONENT_HIT_PLANE_Z,
                                  "spin_max_rads": C.SPIN_MAX_RADS})
     vision = make_vision(args, server)

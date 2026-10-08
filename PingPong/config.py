@@ -111,6 +111,14 @@ POSE_DATA_FILE = "pose_data.npz"
 POSE_MODEL_PATH = os.path.join(HERE, "models", "pose_landmarker_lite.task")
 POSE_HISTORY_S = 1.0              # ring buffer of per-frame predictions
 POSE_FRAME_LATENCY_S = 0.05       # camera exposure -> frame arrival; subtracted from frame timestamps
+VISION_PROCESS = True             # run camera + pose in their own process (False = a thread in the game)
+# Arm tracking: the paddle wrist's movement (from pose) shifts the on-screen paddle, adding
+# what the IMU can't sense (moving the arm without turning the paddle), and a translucent
+# forearm follows the player's arm.
+POSE_ARM = True
+POSE_ARM_WEIGHT = 0.6             # how much of the hand's movement moves the paddle (0 = off)
+POSE_ARM_SCALE_M = 0.45           # on-screen meters per torso-length of hand movement
+POSE_ARM_MAX_M = 0.4              # the hand can shift the paddle at most this far
 STROKE_WINDOW_S = 0.15            # look at predictions within +/- this of the swing peak
 CENTER_DEADBAND = 0.05            # m; either stroke is accepted this close to the centerline
 SHOW_STROKE_HINT = True
