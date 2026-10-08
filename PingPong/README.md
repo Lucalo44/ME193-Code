@@ -262,11 +262,24 @@ game moves the paddle to the ball and you control the stroke:
   - Forehand or backhand is told by which way you draw back. A quick turn back through
     ready is a swing, a slow one is a new backswing.
   - How far *you* draw back is learned from your calibration swings (`hardware/stroke.py`).
+  - The screen paddle mirrors your paddle's **full orientation**: any tilt, and a full
+    360° turn. Turning past your full backswing eases the paddle back round through
+    center at 180°, so a complete spin moves it smoothly with no jump between sides.
 - With the keyboard paddle the stroke is scripted: an automatic wind-up, then Space swings
   through the ball.
-- Your paddle's orientation only shapes the **face**: closing it tips the face toward the
-  table, and a little of your turning shows. This is smoothed and limited, so it can't
-  throw the paddle around.
+- **Hit-stop.** A real swing only registers about 0.1 s after the strike, more with
+  Bluetooth delay. So when the ball reaches your paddle mid-swing, the ball **and the
+  screen paddle** stop together at the contact point. When the swing registers, the ball
+  leaves from the paddle face. Before this it flew past you and reappeared up to ~0.7 m
+  down the table.
+- **Backswings aren't swings.** A burst of motion while you're drawing the paddle back
+  is ignored; only the forward stroke counts.
+- **Smoothing.** The live stroke uses an adaptive (one-euro) filter: steady when you
+  move slowly, so Bluetooth bursts don't make the paddle jitter, and almost no lag during
+  a fast swing.
+  - It waits at most `HIT_HOLD_MAX_S` (0.35 s), or `HIT_HOLD_WAIT_S` (0.12 s) if no swing
+    has started. A miss just carries on.
+- With the keyboard paddle, W/S/A/D tilt the face a little.
 
 Press **Z** at your ready position to re-zero.
 

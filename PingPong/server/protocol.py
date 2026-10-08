@@ -12,6 +12,7 @@ state (~60 Hz):
      "paddle": {"q": [x, y, z, w], "pitch": deg, "roll": deg, "yaw": deg},   # scene frame, vs. ready pose
      "stroke": {"phase": -1.3..1.3, "side": "forehand"|"backhand", "mode": "ready"|"forward"|"settle"} | null,
                                                # live stroke (real paddle): +1 drawn back, 0 contact, -1 follow-through
+     "hold": bool,                             # hit-stop: the ball is waiting at the paddle for the swing to register
      "required_stroke": "forehand"|"backhand"|"either"|null,
      "incoming": {"x": x_arrival, "t_to_arrival": s, "required": str} | null,
      "contact": {"pos": [x,y,z], "t_to_contact": s, "serve": bool, "swung": bool} | null,

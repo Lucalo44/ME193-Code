@@ -11,21 +11,41 @@
 //  * Keyboard paddle: SCRIPTED. The paddle winds up automatically before the ball
 //    arrives, and Space plays a stroke through the ball (or in the air on a miss).
 //
-// The real paddle's orientation (state.paddle.q) only shapes the paddle FACE --
-// open/closed tilt plus a little turn -- smoothed and limited, so it reads clearly
-// without throwing the paddle around.
+// Orientation: with the real paddle the on-screen paddle mirrors its FULL
+// orientation (state.paddle.q) -- tilt, turn, a full 360 -- lightly smoothed. With
+// the keyboard paddle the face only tilts a little with W/S/A/D.
 import * as THREE from 'three';
 import { THEME, TABLE_H } from './theme.js';
 
 const READY = { x: 0.3, y: 0.22, dz: 0.05 };     // ready pose: right of center, above table height
 const TRACK_RATE = 11;                            // 1/s: how fast the paddle glides to its target
 const WINDUP_LEAD = 0.38;                         // s before contact the backswing starts
-const FACE_SMOOTH = 9;                            // 1/s: orientation smoothing
+const FACE_SMOOTH = 9;                            // 1/s: orientation smoothing (keyboard paddle)
+const LIVE_FACE_SMOOTH = 25;                      // 1/s: orientation smoothing (real paddle: full, unlimited)
 const MAX_TILT = THREE.MathUtils.degToRad(55);    // limit on face tilt from the ready pose
 const YAW_SHARE = 0.3;                            // fraction of the real paddle's turn shown
 const STROKE = { toContact: 0.06, follow: 0.24, settle: 0.22 };   // stroke timing (s)
 const AIR_SWING_AFTER = 0.75;                     // s to wait for a hit before showing an air swing
-const LIVE_RATE = 30;                             // 1/s: smoothing of the live stroke (Bluetooth jitter)
+const LIVE_RATE = 40;                             // 1/s: light position smoothing on top of the filtered phase
+// One-euro filter on the live stroke phase: heavy smoothing when the paddle moves
+// slowly (hides Bluetooth burst jitter), almost none during a fast swing (no lag).
+const PHASE_MIN_CUTOFF = 2.0;                     // Hz at rest
+const PHASE_BETA = 1.2;                           // extra Hz per phase-unit/s of motion
+const PHASE_D_CUTOFF = 1.0;                       // Hz, for the speed estimate
+
+class OneEuro {
+  constructor(minCutoff, beta, dCutoff) { Object.assign(this, { minCutoff, beta, dCutoff, x: null, dx: 0 }); }
+  static alpha(cutoff, dt) { const tau = 1 / (2 * Math.PI * cutoff); return 1 / (1 + tau / dt); }
+  filter(value, dt) {
+    if (this.x === null || dt <= 0) { this.x = value; return value; }
+    const d = (value - this.x) / dt;
+    this.dx += OneEuro.alpha(this.dCutoff, dt) * (d - this.dx);
+    const cutoff = this.minCutoff + this.beta * Math.abs(this.dx);
+    this.x += OneEuro.alpha(cutoff, dt) * (value - this.x);
+    return this.x;
+  }
+  reset(value) { this.x = value; this.dx = 0; }
+}
 
 // Stroke geometry relative to the contact point (scene meters; +x screen-right,
 // +z toward the camera). Right-handed forehand; backhands and left-handers mirror x.
@@ -79,6 +99,9 @@ export class PlayerPaddleView {
     this.face.traverse((o) => { if (o.isMesh) o.castShadow = true; });
 
     this.flash = 0;
+    this.punch = 0;              // brief impact pulse on contact
+    this.phaseFilter = new OneEuro(PHASE_MIN_CUTOFF, PHASE_BETA, PHASE_D_CUTOFF);
+    this._side = 1;
     this.anim = null;            // active stroke animation
     this.swingWait = null;       // a swing registered; waiting to see if it becomes a hit
     this.handed = 1;             // +1 right-handed, -1 left-handed
@@ -101,7 +124,7 @@ export class PlayerPaddleView {
   // The swing struck the ball at physics position `pos`; play the stroke through it.
   hit(pos, stroke) {
     this.swingWait = null;
-    if (this.live) { this.flash = 1; return; }     // the live stroke already shows the swing
+    if (this.live) { this.flash = 1; this.punch = 1; return; }   // the live stroke already shows the swing
     const C = this.toScene(pos);
     const side = this._side(stroke, C.x);
     this.anim = { t: 0, from: this.root.position.clone(), C, side, contact: true };
@@ -127,8 +150,8 @@ export class PlayerPaddleView {
   // s: interpolated game state (paddle, contact, required_stroke, settings, phase)
   update(s, dt) {
     this.handed = s && s.settings && s.settings.handedness === 'left' ? -1 : 1;
-    this._updateFace(s ? s.paddle : null, dt);
     this.live = !!(s && s.stroke);
+    this._updateFace(s ? s.paddle : null, dt);
     if (this.live) {
       this._updateLive(s, dt);
       this.flash = Math.max(0, this.flash - dt * 5);
@@ -184,17 +207,25 @@ export class PlayerPaddleView {
 
     const st = s.stroke;
     const side = (st.side === 'backhand' ? -1 : 1) * this.handed;
-    const p = Math.max(-1.3, Math.min(1.3, st.phase || 0));
+    if (side !== this._side) { this._side = side; this.phaseFilter.reset(st.phase || 0); }
+    let p = this.phaseFilter.filter(Math.max(-1.3, Math.min(1.3, st.phase || 0)), dt);
+    // Hit-stop: while the ball waits at the paddle for the swing to register, the
+    // paddle stops AT the ball instead of passing through it; on the hit both leave
+    // together (the filter and smoothing carry the paddle on into the follow-through).
+    if (s.hold && p < 0.02) p = 0.02;
     const sideV = new THREE.Vector3(side, 1, 1);
     const offset = p >= 0 ? LIVE_BACK.clone().multiply(sideV).multiplyScalar(p)
                           : LIVE_FOLLOW.clone().multiply(sideV).multiplyScalar(-p);
     this._target.copy(this.anchor).add(offset);
     const k = 1 - Math.exp(-LIVE_RATE * dt);
     this.root.position.lerp(this._target, k);
-    const yaw = p >= 0 ? YAW_BACK * side * p : YAW_FOLLOW * side * -p;
-    this._lastYaw = (this._lastYaw ?? 0) + (yaw - (this._lastYaw ?? 0)) * k;
-    this._yawQ.setFromAxisAngle(this._yAxis, this._lastYaw);
-    this.stroke.quaternion.copy(this._yawQ);
+    // No scripted turn here: the face shows the real paddle's full orientation,
+    // which already includes the stroke's turn.
+    this._lastYaw = 0;
+    this.stroke.quaternion.identity();
+    // Impact: a quick swell of the paddle as it strikes, easing back over ~0.15 s.
+    this.punch = Math.max(0, this.punch - dt * 7);
+    this.stroke.scale.setScalar(1 + 0.12 * Math.sin(Math.PI * Math.min(1, 1 - this.punch)) * (this.punch > 0 ? 1 : 0));
   }
 
   _animate(dt) {
@@ -230,6 +261,12 @@ export class PlayerPaddleView {
     const o = paddle || {};
     if (o.q && o.q.length === 4) this._qTarget.set(o.q[0], o.q[1], o.q[2], o.q[3]).normalize();
     else this._qTarget.identity();
+    if (this.live) {
+      // Real paddle: mirror its full orientation -- any tilt, a full 360 turn, anything.
+      this._qFace.slerp(this._qTarget, 1 - Math.exp(-LIVE_FACE_SMOOTH * dt));
+      this.face.quaternion.copy(this._qFace);
+      return;
+    }
     // Keep only part of the turn about vertical (the stroke animation shows the swing).
     const t = this._twist.set(0, this._qTarget.y, 0, this._qTarget.w);
     if (t.lengthSq() < 1e-9) t.identity(); else t.normalize();

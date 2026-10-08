@@ -100,6 +100,7 @@ class PaddleBase:
         self.onboard = OnboardOrientation()
         self.orient = OrientationFilter()
         self.stroke = StrokeTracker()
+        self.detector.stroke = self.stroke if C.LIVE_STROKE else None   # don't report backswings
         self._remap()
 
     def _remap(self) -> None:
@@ -152,6 +153,10 @@ class PaddleBase:
         out = {k: round(v, 2) for k, v in euler_yxz_deg(q).items()}
         out["q"] = [round(q[1], 4), round(q[2], 4), round(q[3], 4), round(q[0], 4)]
         return out
+
+    def swing_in_progress(self) -> bool:
+        """A swing is under way that may not have been reported yet."""
+        return self.detector._active or self.stroke.mode == "forward"
 
     def stroke_state(self) -> Optional[dict]:
         """Live stroke phase for the on-screen paddle (None = no live tracking)."""

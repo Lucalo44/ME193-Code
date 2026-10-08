@@ -106,3 +106,6 @@ class SimPaddle(PaddleBase):
 
     def stroke_state(self):
         return None      # keyboard swings use the scripted on-screen stroke
+
+    def swing_in_progress(self) -> bool:
+        return False     # keyboard swings register instantly -- nothing to wait for

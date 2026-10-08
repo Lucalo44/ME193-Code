@@ -231,12 +231,31 @@ def fit_decisions(cal: Calibration, sets: Dict[str, List[SwingEvent]]) -> None:
         cal.sidespin_terms = spin_terms(sets["right"], sets["left"], [SIDESPIN_FEATURES]) or cal.sidespin_terms
 
 
-def refit_with_game_detector(cal: Calibration, recordings: Dict[str, List[ImuSample]]) -> Dict[str, List[SwingEvent]]:
+def detect_like_game(samples: Sequence[ImuSample], cal: Calibration, rest: Sequence[ImuSample]) -> List[SwingEvent]:
+    """Swings exactly as the game finds them -- including the live stroke tracker
+    that keeps backswings from being reported."""
+    from hardware.stroke import StrokeTracker
+    times, yaws = scene_yaw_trace(cal, rest, samples)
+    tr = StrokeTracker(cal.stroke_back_fh_deg if cal.stroke_back_fh_deg is not None else C.STROKE_FH_BACK_DEG,
+                       cal.stroke_back_bh_deg if cal.stroke_back_bh_deg is not None else C.STROKE_BH_BACK_DEG)
+    det = SwingDetector(cal)
+    det.stroke = tr if C.LIVE_STROKE else None
+    out = []
+    for smp, t, y in zip(samples, times, yaws):
+        tr.update(t, y)
+        ev = det.push(smp)
+        if ev:
+            out.append(ev)
+    return out
+
+
+def refit_with_game_detector(cal: Calibration, recordings: Dict[str, List[ImuSample]],
+                             rest: Sequence[ImuSample] = ()) -> Dict[str, List[SwingEvent]]:
     """Second pass: now that the game's thresholds are set, find the swings again
     with exactly the detector the game uses and re-fit the spin/stroke decisions
     on those -- so the classifiers learn from what they'll see in play (the
     loose first-pass detector catches each swing at a slightly different moment)."""
-    sets = {k: clean_set(detect_all(v, cal)) for k, v in recordings.items()}
+    sets = {k: clean_set(detect_like_game(v, cal, rest)) for k, v in recordings.items()}
     fit_decisions(cal, sets)
     return sets
 
@@ -499,7 +518,7 @@ def main() -> int:
     if rec:
         rec.paddle.shutdown()
     cal = build_calibration(rest, sets, base)
-    game_sets = refit_with_game_detector(cal, swing_samples)
+    game_sets = refit_with_game_detector(cal, swing_samples, rest)
     print("   re-detected with the game's thresholds: "
           + ", ".join(f"{k} {len(v)}" for k, v in game_sets.items()))
     toss_warnings = calibrate_toss(cal, toss, list(swing_samples.values())) if toss else \
@@ -543,13 +562,13 @@ def main() -> int:
     # Sanity: re-score the spin swings with the new calibration.
     for step, expect in (("closed", "+"), ("open", "-"), ("bh_closed", "+"), ("bh_open", "-"),
                          ("right", "+"), ("left", "-")):
-        events = detect_all(load_csv(log_path(step)), cal) if os.path.exists(log_path(step)) else []
+        events = detect_like_game(load_csv(log_path(step)), cal, rest) if os.path.exists(log_path(step)) else []
         key = "topspin" if "closed" in step or "open" in step else "sidespin"
         vals = [getattr(e, key) for e in events]
         if vals:
             print(f"check {step:9s} -> {key} " + ", ".join(f"{v:+.2f}" for v in vals) + f"   (expect {expect})")
     for step, expect in (("soft", "forehand"), ("bh_soft", "backhand")):
-        events = detect_all(load_csv(log_path(step)), cal) if os.path.exists(log_path(step)) else []
+        events = detect_like_game(load_csv(log_path(step)), cal, rest) if os.path.exists(log_path(step)) else []
         if events and cal.stroke_terms:
             ok = sum(e.imu_stroke == expect for e in events)
             print(f"check {step:9s} -> read as {expect} {ok}/{len(events)}")

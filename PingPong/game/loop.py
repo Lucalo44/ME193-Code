@@ -128,6 +128,7 @@ class Game:
         self.toss_t = -10.0
         self._toss_diag_t = -1.0                 # last rejected flick already reported
         self._swing_while_awaiting: Optional[float] = None
+        self.hold: Optional[dict] = None         # hit-stop: ball waiting at the paddle (see _hold_ball)
         self._mqtt_status = mqtt_status
 
     # ======================================================================
@@ -259,6 +260,7 @@ class Game:
         self.pending = None
         self.serve_state = None
         self.paddle.toss_armed = False
+        self.hold = None
 
     # ======================================================================
     # Physics sub-step + referee
@@ -269,6 +271,8 @@ class Game:
             return
         if ph == SM.RALLY and self.pending and self.sim_t >= self.pending.t:
             self._execute_player_hit()
+        if ph == SM.RALLY and self._hold_ball():
+            return                            # ball waiting at the paddle
         if self.ball.dead:
             if ph == SM.RALLY:
                 self._check_player_expiry()   # a dead ball may still be waiting on the hit window
@@ -344,7 +348,35 @@ class Game:
             self._begin_flight("cpu")
             self._emit("hit", who="cpu", pos=b.pos, speed=P.v_norm(shot.vel))
 
+    def _hold_ball(self) -> bool:
+        """Hit-stop. A real swing registers ~0.1-0.25 s after the strike (plus
+        Bluetooth delay), by which time the ball would be well past the paddle,
+        and the return would appear out of nowhere further down the table. So
+        when the ball reaches the contact point while a swing is under way, hold
+        it there until the swing registers (_execute_player_hit then launches it
+        from right here) or it's clear there's no hit, and let it carry on.
+        Returns True while the ball is held."""
+        inc = self.incoming
+        if self.hold is not None:
+            if inc is None or inc.resolved:
+                self.hold = None              # hit executed, or a miss was called
+                return False
+            waited = self.sim_t - self.hold["t0"]
+            busy = self.paddle.swing_in_progress()
+            if waited > C.HIT_HOLD_MAX_S or (not busy and waited > C.HIT_HOLD_WAIT_S):
+                self.hold = None              # no hit coming: release the ball
+                return False
+            return True
+        if inc is None or inc.resolved or self.pending is not None or self.sim_t < inc.t \
+                or self.paddle.kind not in ("real", "replay") or self.sim_t - inc.t > 0.05:
+            return False
+        self.hold = {"t0": self.sim_t, "pos": inc.pos}
+        self.ball.pos = inc.pos
+        return True
+
     def _check_player_expiry(self) -> None:
+        if self.hold is not None:
+            return                            # still waiting at the paddle
         inc = self.incoming
         if inc and not inc.resolved and self.pending is None \
                 and self.sim_t > inc.t + C.HIT_WINDOW_S + C.LATE_ZONE_S:
@@ -503,7 +535,9 @@ class Game:
 
     def _execute_player_hit(self) -> None:
         h = self.pending
-        pos = self._ball_pos_at(h.t)
+        held = self.hold
+        self.hold = None
+        pos = held["pos"] if held else self._ball_pos_at(h.t)
         pos = (pos[0], max(pos[1], 0.06), pos[2])
         sw = h.swing
         if h.serve:
@@ -518,8 +552,10 @@ class Game:
         self.player_strength = sw.strength
         self.ball = P.Ball(pos, shot.vel, shot.spin)
         self.flight = Flight("player", "cpu", self.sim_t, serve=h.serve)
-        # Contact happened at h.t; catch the ball up to the present.
-        for _ in range(int((self.sim_t - h.t) / P.DT)):
+        # Contact happened at h.t; catch the ball up to the present -- unless it was
+        # held at the paddle, in which case it leaves from the paddle right now.
+        lag = 0.0 if held else self.sim_t - h.t
+        for _ in range(int(lag / P.DT)):
             for ev in P.step(self.ball, P.DT, self.rng):
                 self._referee(ev)
             if self.sm.phase != SM.RALLY:
@@ -660,6 +696,7 @@ class Game:
             opponent=self.opponent.snapshot(self.sim_t),
             paddle=self.paddle.orientation(),
             stroke=getattr(self.paddle, "stroke_state", lambda: None)(),
+            hold=self.hold is not None,           # hit-stop: the ball is waiting at the paddle
             required_stroke=inc.required if inc else None,
             incoming={"x": inc.pos[0], "t_to_arrival": inc.t - self.sim_t, "required": inc.required}
             if inc else None,

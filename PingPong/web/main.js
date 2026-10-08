@@ -12,6 +12,7 @@
 //    required_stroke, incoming:{x, t_to_arrival, required}|null,
 //    contact:{pos, t_to_contact, serve, swung}|null,     // where the paddle should meet the ball
 //    stroke:{phase, side, mode}|null,   // live stroke from the real paddle: +1 drawn back, 0 at the ball, -1 follow-through
+//    hold:bool,                         // hit-stop: the ball is waiting at the paddle
 //    score:{player, cpu, games_player, games_cpu, server, games_needed}, streak:{current, record},
 //    serve:{server, state:null|"cpu"|"await_toss"|"tossed", paddle_kind},
 //    speed_setting, status:{paddle, paddle_kind, camera, pose, stroke_check, calibration, pose_label},
@@ -81,6 +82,7 @@ const ballView = new BallView(scene);
 const opponentView = new OpponentView(scene, OPP_PLANE_Z);
 const paddleView = new PlayerPaddleView(scene, -PLAYER_PLANE_Z, toScene);
 window.__paddle = paddleView;   // debug hook: inspect the paddle from the browser console
+window.__ball = ballView;       // debug hook
 const effects = new Effects(scene, arena.net);
 const sounds = new Sounds();
 const hud = new Hud();

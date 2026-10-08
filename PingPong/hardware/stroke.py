@@ -23,6 +23,7 @@ start straight out of the previous follow-through.
 
 from __future__ import annotations
 
+from collections import deque
 from typing import Optional
 
 import config as C
@@ -48,10 +49,30 @@ class StrokeTracker:
         self.rate = 0.0
         self._mode_t = 0.0
         self._slow_since: Optional[float] = None
+        self._history: deque = deque(maxlen=120)     # (t, yaw, rate, mode), ~1.8 s
 
     def set_backswing(self, fh_back_deg: float, bh_back_deg: float) -> None:
         """Signed yaw (deg) of a full forehand / backhand backswing (opposite signs)."""
         self.back = {"forehand": fh_back_deg, "backhand": bh_back_deg}
+
+    @staticmethod
+    def _shape(abs_yaw: float, amp: float) -> float:
+        """|yaw| -> phase. Linear up to a little past the full backswing (1.0 at
+        `amp`, 1.2 at 1.2*amp); beyond that it eases back to 0 at 180 deg, so
+        turning the paddle all the way round moves the on-screen paddle
+        continuously (back, round to center at 180, back on the other side,
+        home at 360) instead of jumping from one side to the other."""
+        amp = max(1.0, amp)
+        knee = min(1.2 * amp, 170.0)
+        if abs_yaw <= knee:
+            return abs_yaw / amp
+        return (knee / amp) * max(0.0, (180.0 - abs_yaw) / (180.0 - knee))
+
+    def _signed_phase(self, yaw: float) -> float:
+        """Phase against the current stroke's side: + still coming through, - past ready."""
+        back = self.back[self.side]
+        sign = 1.0 if (yaw >= 0) == (back >= 0) else -1.0
+        return sign * self._shape(abs(yaw), abs(back))
 
     def _side_of(self, yaw: float) -> str:
         return "forehand" if (yaw >= 0) == (self.back["forehand"] >= 0) else "backhand"
@@ -66,7 +87,7 @@ class StrokeTracker:
         if self.mode == "forward":
             # Keep mapping against the stroke's own side: positive while still
             # coming through, negative once past ready (the follow-through).
-            self.phase = yaw_deg / self.back[self.side]
+            self.phase = self._signed_phase(yaw_deg)
             slow = abs(self.rate) < self.SLOW_DPS
             self._slow_since = (self._slow_since if self._slow_since is not None else t) if slow else None
             # The stroke is over when the paddle stops, or turns back the other way
@@ -77,7 +98,7 @@ class StrokeTracker:
                     or t - self._mode_t > self.FORWARD_MAX_S:
                 self.mode, self._mode_t = "settle", t
         elif self.mode == "settle":
-            self.phase = yaw_deg / self.back[self.side]
+            self.phase = self._signed_phase(yaw_deg)
             toward_ready = self.rate * self.back[self.side] < 0
             if self.phase > self.MIN_FORWARD_PHASE and toward_ready and abs(self.rate) > self.FAST_DPS:
                 # Rally rhythm: follow-through -> straight back -> next swing, never pausing at ready.
@@ -86,13 +107,25 @@ class StrokeTracker:
                 self.mode, self._mode_t = "ready", t
         if self.mode == "ready":
             self.side = self._side_of(yaw_deg)
-            self.phase = abs(yaw_deg) / abs(self.back[self.side])
+            self.phase = self._shape(abs(yaw_deg), abs(self.back[self.side]))
             # Turning back toward ready fast, from a real backswing = a forward swing.
             toward_ready = self.rate * self.back[self.side] < 0
             if toward_ready and abs(self.rate) > self.FAST_DPS and self.phase > self.MIN_FORWARD_PHASE:
                 self.mode, self._mode_t, self._slow_since = "forward", t, None
         self.phase = max(-1.3, min(1.3, self.phase))
+        self._history.append((t, yaw_deg, self.rate, self.mode))
         return self.snapshot()
+
+    def drawing_back(self, t: float) -> bool:
+        """Was the paddle being drawn back (turning away from ready, not in a
+        stroke) at time t? Used to keep backswings from being reported as swings."""
+        if not self._history:
+            return False
+        _, yaw, rate, mode = min(self._history, key=lambda h: abs(h[0] - t))
+        if mode != "ready" or abs(yaw) < 5.0:
+            return False
+        away = rate if yaw > 0 else -rate        # deg/s away from the ready pose
+        return away > self.SLOW_DPS
 
     def snapshot(self) -> dict:
         return {"phase": round(self.phase, 3), "side": self.side, "mode": self.mode}

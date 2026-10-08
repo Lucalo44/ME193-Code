@@ -83,6 +83,12 @@ SWING_COOLDOWN_S = 0.4            # refractory period: one swing -> one event
 SWING_RECOVERY_S = 0.65           # a detection this soon after a swing ...
 SWING_RECOVERY_RATIO = 0.8        # ... and weaker than this fraction of it is the return to ready, not a swing
 SWING_STRIKE_WINDOW_S = (0.15, 0.08)  # swing features are measured this long before / after peak acceleration
+SWING_PAST_PEAK_RATIO = 0.6       # a swing is reported once acceleration falls below this fraction of its peak
+# Hit-stop: a real swing is only reported ~0.1-0.25 s after the strike (plus Bluetooth
+# delay). So when the ball reaches the paddle while a swing is under way, it's held there
+# until the swing registers and then launched FROM THE PADDLE -- no rewind, no jump.
+HIT_HOLD_MAX_S = 0.35             # longest the ball waits at the paddle for a swing to register
+HIT_HOLD_WAIT_S = 0.12            # ... and how long it waits when no swing has started (yet)
 DEFAULT_STRENGTH_MIN_G = 1.5      # peak linear accel mapped to strength 0 (overridden by calibration)
 DEFAULT_STRENGTH_MAX_G = 6.0      # ... and to strength 1
 SWING_CALIBRATION_FILE = "swing_calibration.json"

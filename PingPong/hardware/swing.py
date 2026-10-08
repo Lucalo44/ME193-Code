@@ -29,7 +29,11 @@ at zero() and slowly re-learned whenever the paddle is still. A swing event
 fires when gyro magnitude exceeds the gyro threshold and linear acceleration
 exceeds the accel threshold within SWING_COINCIDENCE_S of each other. The
 swing ends after both signals drop below threshold * SWING_HYSTERESIS for
-SWING_END_QUIET_S; one event is emitted per swing, and a SWING_COOLDOWN_S
+SWING_END_QUIET_S. The event is reported as soon as the strike is over --
+acceleration back below SWING_PAST_PEAK_RATIO of its peak, at least the strike
+window after it -- rather than when the follow-through settles. On our
+recordings that cut the median reporting delay from ~260 ms to ~110 ms.
+One event is emitted per swing, and a SWING_COOLDOWN_S
 refractory period suppresses double triggers. t_peak is the time of peak
 linear acceleration.
 
@@ -359,6 +363,9 @@ class SwingDetector:
         self._window: List[ImuSample] = []
         self._last_event_t = -math.inf
         self._last_event_g = 0.0
+        # Optional live stroke tracker (hardware/stroke.py): when set, a burst of
+        # motion while the paddle is being drawn back is not reported as a swing.
+        self.stroke = None
         self._reset_swing()
 
     def set_calibration(self, cal: Calibration) -> None:
@@ -373,6 +380,7 @@ class SwingDetector:
         self._last_gyro_trip = -math.inf
         self._last_accel_trip = -math.inf
         self._coincided = False
+        self._spent = False           # this swing has already been reported
         self._quiet_since: Optional[float] = None
 
     def push(self, s: ImuSample) -> Optional[SwingEvent]:
@@ -415,6 +423,21 @@ class SwingDetector:
             if s.t - self._last_gyro_trip <= C.SWING_COINCIDENCE_S:
                 self._coincided = True
 
+        # Report the swing at the strike, not when the follow-through finally
+        # settles: once acceleration is clearly past its peak and the strike
+        # window is complete, everything the event needs is known.
+        if not self._spent and self._coincided and s.t - self._peak_lin_t >= C.SWING_STRIKE_WINDOW_S[1] \
+                and lin < C.SWING_PAST_PEAK_RATIO * self._peak_lin:
+            if self.stroke is not None and self.stroke.drawing_back(self._peak_lin_t):
+                # That burst was the backswing: forget it and wait for the forward stroke.
+                self._peak_lin, self._peak_lin_t, self._peak_gyro = 0.0, s.t, 0.0
+                self._coincided = False
+                return None
+            self._spent = True
+            ev = self._event()
+            if ev is not None:
+                return ev
+
         quiet = gyr < g_thr * C.SWING_HYSTERESIS and lin < a_thr * C.SWING_HYSTERESIS
         if quiet:
             self._quiet_since = self._quiet_since if self._quiet_since is not None else s.t
@@ -427,9 +450,15 @@ class SwingDetector:
         return self._finish()
 
     def _finish(self) -> Optional[SwingEvent]:
+        """The swing has settled. Usually it was already reported at the strike."""
         self._active = False
-        if not self._coincided:
+        if self._spent or not self._coincided:
             return None
+        if self.stroke is not None and self.stroke.drawing_back(self._peak_lin_t):
+            return None
+        return self._event()
+
+    def _event(self) -> Optional[SwingEvent]:
         t_peak = self._peak_lin_t
         if t_peak - self._last_event_t < C.SWING_COOLDOWN_S:
             return None
