@@ -363,6 +363,27 @@ python main.py
 Record at least 20 samples per class (wind-up and follow-through under the same label).
 Record plenty of "ready" too: standing, walking, holding the paddle.
 
+**Several players, both hands.** Everyone records into the same `pose_data.npz`. Each
+sample is tagged with the player and the hand they play with:
+
+```bash
+python tools/train_pose.py --with-paddle --player sam --hand right
+```
+
+`h` switches the hand being recorded, and `c` clears only that player's samples. Samples
+without a tag (recorded before this existed) are listed as player `original` with the
+hand picked in the game's lobby. `POSE_HAND_MODE` in config.py decides how the hands are
+combined:
+- `"mirror"` (default): left-handed samples and left-handed players' live poses are
+  mirrored. A left-hander's forehand then looks like a right-hander's forehand, so
+  everyone trains one shared model.
+- `"separate"`: only samples recorded with the current player's hand are used.
+
+The game uses the hand picked in the lobby (LEFT-HANDED / RIGHT-HANDED), so switch it
+when a different player steps up. Record new players in the room you'll play in. The
+model only sees joint positions, not the image, so the lighting matters only for how
+reliably MediaPipe finds the joints. Light from the front works best.
+
 **How the call is made:** WRONG STROKE is only given when the evidence is sure. The
 camera's vote around the swing (it needs ≥ `STROKE_CAMERA_SURE` = 75% of the votes) is
 combined with the paddle's own forehand/backhand guess from the swing calibration (≥

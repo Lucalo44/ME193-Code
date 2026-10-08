@@ -63,6 +63,12 @@ class VisionWorker:
     def stroke_check_enabled(self) -> bool:
         return self._landmarker is not None and self.classifier is not None and self.classifier.trained
 
+    def set_hand(self, hand: str) -> None:
+        """The player's hand changed (lobby / pause switch)."""
+        if self.classifier is not None:
+            self.classifier.set_hand(hand)
+        self.arm.handedness = hand
+
     def start(self) -> None:
         self.camera.start()
         self._thread = threading.Thread(target=self._run, daemon=True, name="vision")

@@ -238,3 +238,13 @@ def test_wrong_stroke_only_when_sure():
     assert _stroke_outcome(lambda req, wrong: (wrong, 0.95), imu=lambda req, wrong: (req, 0.9)) is None
     m = _stroke_outcome(lambda req, wrong: (None, 0.0), imu=lambda req, wrong: (wrong, 0.9))
     assert m and m["source"] == "paddle"
+
+
+def test_handedness_switch_reaches_the_stroke_classifier():
+    vision = FakeVision((None, 0.0))
+    hands = []
+    vision.set_hand = hands.append
+    game = Game(SimPaddle(Calibration()), vision, seed=1, clock=FakeClock())
+    game.set_handedness("left")
+    game.set_handedness("right")
+    assert hands[-2:] == ["left", "right"]

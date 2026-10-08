@@ -163,6 +163,8 @@ class Game:
         if arm is not None:
             arm.handedness = handedness
             arm.votes = [0, 0]                      # let swings re-confirm the paddle arm
+        if hasattr(self.vision, "set_hand"):
+            self.vision.set_hand(handedness)        # stroke classifier: mirror / pick that hand's data
         if save and self._settings_file:
             data = self._load_settings()
             data["handedness"] = handedness

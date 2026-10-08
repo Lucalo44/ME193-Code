@@ -111,6 +111,10 @@ HANDEDNESS = "right"              # "right" or "left" -- default; switch it in t
 PLAYER_SETTINGS_FILE = "player_settings.json"   # remembers the in-game handedness choice
 POSE_CLASSES = ["ready", "forehand", "backhand"]
 POSE_K = 5
+# Training data from left- and right-handed players (each sample remembers its hand):
+#   "mirror"   -- left-handed samples are mirrored, so everyone shares one model (recommended)
+#   "separate" -- only samples recorded with the current player's hand are used
+POSE_HAND_MODE = "mirror"
 MIN_SAMPLES_PER_CLASS = 20
 POSE_DATA_FILE = "pose_data.npz"
 POSE_MODEL_PATH = os.path.join(HERE, "models", "pose_landmarker_lite.task")

@@ -83,6 +83,9 @@ def vision_child(camera_index: int, pose_data: Optional[str], results, previews,
                 break
             if cmd in ("tags:1", "tags:0"):
                 worker.tags_active = cmd == "tags:1"
+            if isinstance(cmd, str) and cmd.startswith("hand:"):
+                worker.set_hand(cmd[5:])
+                results.put({"type": "stroke_check", "on": worker.stroke_check_enabled})
             while not worker.confirmed_tags.empty():
                 results.put({"type": "tag", "id": worker.confirmed_tags.get_nowait()})
     finally:
@@ -167,6 +170,11 @@ class VisionProcess:
             self._tags_active = on
             self._control.put("tags:1" if on else "tags:0")
 
+    def set_hand(self, hand: str) -> None:
+        """The player's hand changed: the stroke classifier in the child follows it
+        (the arm tracker here is updated by the game)."""
+        self._control.put(f"hand:{hand}")
+
     def start(self) -> None:
         self._t_start = time.monotonic()
         self._proc.start()
@@ -203,6 +211,8 @@ class VisionProcess:
                 self._stroke_check = bool(msg["stroke_check"])
             elif kind == "tag":
                 self.confirmed_tags.put(msg["id"])
+            elif kind == "stroke_check":
+                self._stroke_check = bool(msg["on"])
             elif kind == "frame":
                 self.pose_detected = msg["pose"]
                 self.prediction, self.confidence = msg["label"], msg["conf"]
