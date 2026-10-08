@@ -151,6 +151,13 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #050507; col
 #pause-btn.hidden { opacity: 0; pointer-events: none; }
 #paused { z-index: 2; }
 
+/* ---- Handedness switch (lobby + pause) ---- */
+.hand-switch { margin-top: 26px; display: flex; align-items: center; gap: 0; }
+.hand-switch .hand-title { font-size: 12px; font-weight: 600; letter-spacing: 0.3em; color: var(--dim); margin-right: 14px; }
+.hand-switch .hud-btn { border-bottom-color: transparent; color: var(--dim); }
+.hand-switch .hud-btn.on { color: var(--fg); border-bottom-color: var(--fg); }
+.hand-switch .hud-btn.on:hover { color: #0b0b0d; }
+
 #debug-panel {
   position: absolute; top: 150px; right: 24px; margin: 0; font: 11px/1.45 ui-monospace, Menlo, monospace;
   text-transform: none; background: var(--panel); border-left: 3px solid var(--back); padding: 8px 10px; display: none;

@@ -99,7 +99,8 @@ class Game:
                  publish_event: Optional[Callable[[str], None]] = None,
                  debug: bool = False, seed: Optional[int] = None,
                  clock: Callable[[], float] = time.monotonic,
-                 streak: Optional[StreakTracker] = None, mqtt_status: Callable[[], str] = lambda: "off"):
+                 streak: Optional[StreakTracker] = None, mqtt_status: Callable[[], str] = lambda: "off",
+                 settings_file: Optional[str] = None):
         self.paddle = paddle
         self.vision = vision
         self._publish_state = publish_state or (lambda m: None)
@@ -134,7 +135,42 @@ class Game:
         self.hold: Optional[dict] = None         # hit-stop: ball waiting at the paddle (see _hold_ball)
         self._planned_serve = None               # CPU serve worked out while the ball is in hand
         self._mqtt_status = mqtt_status
+        self._settings_file = settings_file
+        self.handedness = C.HANDEDNESS
+        self.set_handedness(self._load_settings().get("handedness", C.HANDEDNESS), save=False)
         self._warm_up_serves()
+
+    # -- player settings (remembered between runs) --------------------------
+    def _load_settings(self) -> dict:
+        if not self._settings_file or not os.path.exists(self._settings_file):
+            return {}
+        try:
+            with open(self._settings_file) as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            return {}
+
+    def set_handedness(self, handedness: str, save: bool = True) -> None:
+        """Left- or right-handed: flips the forehand/backhand side rule, the paddle's
+        default backswing direction, the paddle arm the camera follows and the
+        on-screen paddle."""
+        if handedness not in ("left", "right"):
+            return
+        self.handedness = handedness
+        if hasattr(self.paddle, "set_handedness"):
+            self.paddle.set_handedness(handedness)
+        arm = getattr(self.vision, "arm", None)
+        if arm is not None:
+            arm.handedness = handedness
+            arm.votes = [0, 0]                      # let swings re-confirm the paddle arm
+        if save and self._settings_file:
+            data = self._load_settings()
+            data["handedness"] = handedness
+            try:
+                with open(self._settings_file, "w") as f:
+                    json.dump(data, f, indent=2)
+            except OSError as exc:
+                print(f"Could not save settings: {exc}")
 
     def _warm_up_serves(self) -> None:
         """Find a legal CPU serve once per speed at startup, so the serve search
@@ -442,7 +478,7 @@ class Game:
             self.incoming = None
             return
         early, late = self.hit_window(P.v_norm(arr.vel))
-        self.incoming = Incoming(self.sim_t + arr.t, arr.pos, required_stroke(arr.pos[0]),
+        self.incoming = Incoming(self.sim_t + arr.t, arr.pos, required_stroke(arr.pos[0], self.handedness),
                                  early_s=early, late_s=late)
 
     def _count_hit(self) -> None:
@@ -678,6 +714,9 @@ class Game:
                 return
             if msg.get("type") == "key":
                 self._on_key(str(msg.get("key", "")), bool(msg.get("down", True)), bool(msg.get("shift", False)))
+            elif msg.get("type") == "set" and "handedness" in msg:
+                self.set_handedness(str(msg["handedness"]))
+                self._emit("message", text=f"{self.handedness.upper()}-HANDED")
 
     def _on_key(self, key: str, down: bool, shift: bool) -> None:
         sim = self.paddle.kind == "sim"
@@ -776,7 +815,7 @@ class Game:
             tag=tag,
             latency=latency,
             debug=debug,
-            settings={"hint": self.show_hint, "handedness": C.HANDEDNESS, "debug": self.debug,
+            settings={"hint": self.show_hint, "handedness": self.handedness, "debug": self.debug,
                       },
         )
 

@@ -165,3 +165,28 @@ def test_dead_ball_still_resolves_hit_window():
     advance(game, clock, 1.0, until=lambda: game.sm.phase == SM.POINT_OVER)
     assert game.sm.phase == SM.POINT_OVER
     assert [e for e in events if e["name"] == "miss"][0]["reason"] == "NO SWING"
+
+
+def test_handedness_switch_flips_stroke_side_and_is_remembered(tmp_path):
+    settings = tmp_path / "player_settings.json"
+    clock = FakeClock()
+    game = Game(SimPaddle(Calibration()), None, seed=1, clock=clock, settings_file=str(settings))
+    assert game.handedness == C.HANDEDNESS and not settings.exists()   # nothing written until changed
+    game.command({"type": "set", "handedness": "left"})
+    advance(game, clock, 0.05)
+    assert game.handedness == "left" and game.paddle.handedness == "left"
+    assert game.snapshot()["settings"]["handedness"] == "left"
+    assert json.loads(settings.read_text())["handedness"] == "left"
+
+    game.start_game("medium")
+    inc = wait_incoming(game, clock)
+    from game.rules import required_stroke
+    assert inc.required == required_stroke(inc.pos[0], "left")
+    if inc.required != "either":
+        assert inc.required != required_stroke(inc.pos[0], "right")
+
+    again = Game(SimPaddle(Calibration()), None, seed=1, clock=FakeClock(), settings_file=str(settings))
+    assert again.handedness == "left"
+    game.command({"type": "set", "handedness": "sideways"})             # ignored
+    advance(game, clock, 0.05)
+    assert game.handedness == "left"

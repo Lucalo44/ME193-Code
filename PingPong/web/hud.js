@@ -35,6 +35,14 @@ export class Hud {
     }
   }
 
+  // Handedness buttons call onPick('left' | 'right').
+  bindHandedness(onPick) {
+    document.querySelectorAll('[data-hand]').forEach((b) => {
+      b.addEventListener('mousedown', (e) => e.preventDefault());
+      b.addEventListener('click', () => onPick(b.dataset.hand));
+    });
+  }
+
   // ---------- per-state updates ----------
   update(s) {
     if (!s) return;
@@ -105,6 +113,11 @@ export class Hud {
     pb.classList.toggle('hidden', !playing && !s.paused);
     pb.classList.toggle('paused', s.paused);
     $('pause-label').textContent = s.paused ? 'RESUME' : 'PAUSE';
+    const hand = s.settings.handedness;
+    if (hand !== this.lastHand) {
+      this.lastHand = hand;
+      document.querySelectorAll('[data-hand]').forEach((b) => b.classList.toggle('on', b.dataset.hand === hand));
+    }
     if (s.phase === 'GAME_OVER' && this.lastPhase !== 'GAME_OVER') {
       const won = sc.games_player > sc.games_cpu;
       $('go-title').textContent = won ? 'MATCH WON' : 'MATCH LOST';

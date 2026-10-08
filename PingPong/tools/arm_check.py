@@ -35,6 +35,17 @@ import mediapipe as mp  # noqa: E402
 import config as C  # noqa: E402
 from vision.arm import ARMS, ArmTracker, arm_points  # noqa: E402
 from vision.pose import create_landmarker  # noqa: E402
+from tools.train_pose import draw_text_panel  # noqa: E402
+
+def _saved_handedness() -> str:
+    """The hand picked in the game's lobby, if any."""
+    import json
+    try:
+        with open(os.path.join(HERE, C.PLAYER_SETTINGS_FILE)) as f:
+            return json.load(f).get("handedness", C.HANDEDNESS)
+    except (OSError, ValueError):
+        return C.HANDEDNESS
+
 
 SKELETON = [(11, 12), (11, 13), (13, 15), (12, 14), (14, 16), (11, 23), (12, 24), (23, 24)]
 
@@ -50,7 +61,7 @@ def main() -> int:
         print(f"Could not open camera {args.camera}.")
         return 1
     landmarker = create_landmarker()
-    tracker = ArmTracker(C.HANDEDNESS)
+    tracker = ArmTracker(_saved_handedness())
     paddle = None
     if args.with_paddle:
         from hardware.paddle import Paddle
@@ -112,9 +123,7 @@ def main() -> int:
             ]
             if paddle is not None:
                 lines.append(f"paddle: {paddle.status}")
-            for i, text in enumerate(lines):
-                cv2.putText(view, text, (12, 28 + 26 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 4, cv2.LINE_AA)
-                cv2.putText(view, text, (12, 28 + 26 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
+            draw_text_panel(view, [(text, (255, 255, 255), 0.6) for text in lines])
             cv2.imshow("Arm tracking check", view)
             key = cv2.waitKey(1) & 0xFF
             if key in (27, ord("q")):

@@ -117,7 +117,9 @@ The broker, port, topic and file name are `MQTT_*` / `RECORD_FILE` in `config.py
      Swinging too late is a fault, and so is letting the ball drop without swinging
      (**MISSED SERVE**).
 4. When the opponent hits, watch where the ball is heading:
-   - **Right of the centerline → forehand. Left → backhand.** (Inverted if `HANDEDNESS = "left"`.)
+   - **Right of the centerline → forehand. Left → backhand.** (Inverted for left-handers: pick **LEFT-HANDED** under the speed cards in the lobby, or on the
+     pause screen. The choice is saved in `player_settings.json`. For left-handers it also flips
+     the paddle arm the camera follows, the on-screen paddle and the default backswing direction.)
      Close to the line, either stroke works.
    - The hint arrow and the colored half of the table show which stroke is needed
      (**H** toggles the hint).
@@ -368,7 +370,7 @@ python tools/arm_check.py --with-paddle    # real swings confirm which arm holds
 
 Stand where you'll play, hold the paddle at your ready position and press **z**.
 - The **orange** arm should be the one holding the paddle. If it's the other arm, set
-  `HANDEDNESS` in config.py or press **h**. With `--with-paddle`, after 3 swings
+  your hand in the game's lobby (arm_check: press **h**). With `--with-paddle`, after 3 swings
   `[swings]` shows that the swings picked the arm.
 - Move your hand. The red dot in the "screen paddle" panel should follow it smoothly.
 
@@ -429,7 +431,7 @@ Every tunable is in `config.py`, with a comment for each.
 
 | Setting | Values |
 |---|---|
-| `HANDEDNESS` | `"right"` or `"left"` |
+| `HANDEDNESS` | `"right"` or `"left"`: only the default. The lobby/pause switch overrides it (saved in `player_settings.json`) |
 | `WRONG_STROKE_PENALTY` | `"point"` (default) or `"game"`, which ends the current game as a loss |
 | `GAMES_PER_MATCH` | Number of games in a match |
 | `ASSIST_LEVEL` | 0–1; how much returns get nudged back onto the table |

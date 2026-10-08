@@ -24,6 +24,7 @@
 //   {type:"camera_frame", jpeg_b64}
 // Browser -> Python
 //   {type:"key", key, down, shift}
+//   {type:"set", handedness}            (lobby / pause switch)
 //
 // Physics frame: meters, table top y=0, player at -z. Scene frame: table top at
 // y=TABLE_H and the player at +z (so three.js's default camera looks down the
@@ -224,6 +225,7 @@ window.addEventListener('keyup', (e) => {
   if (!LOCAL_KEYS.has(key)) send({ type: 'key', key, down: false, shift: e.shiftKey });
 });
 window.addEventListener('pointerdown', () => sounds.unlock());
+hud.bindHandedness((hand) => send({ type: 'set', handedness: hand }));
 hud.bindPause(() => {
   send({ type: 'key', key: 'p', down: true, shift: false });
   send({ type: 'key', key: 'p', down: false, shift: false });

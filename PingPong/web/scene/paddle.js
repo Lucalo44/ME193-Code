@@ -112,7 +112,7 @@ export class PlayerPaddleView {
     this.flash = 0;
     this.punch = 0;              // brief impact pulse on contact
     this.phaseFilter = new OneEuro(PHASE_MIN_CUTOFF, PHASE_BETA, PHASE_D_CUTOFF);
-    this._side = 1;
+    this._liveSide = 1;
     this.anim = null;            // active stroke animation
     this.swingWait = null;       // a swing registered; waiting to see if it becomes a hit
     this.handed = 1;             // +1 right-handed, -1 left-handed
@@ -222,7 +222,7 @@ export class PlayerPaddleView {
 
     const st = s.stroke;
     const side = (st.side === 'backhand' ? -1 : 1) * this.handed;
-    if (side !== this._side) { this._side = side; this.phaseFilter.reset(st.phase || 0); }
+    if (side !== this._liveSide) { this._liveSide = side; this.phaseFilter.reset(st.phase || 0); }
     let p = this.phaseFilter.filter(Math.max(-1.3, Math.min(1.3, st.phase || 0)), dt);
     // Hit-stop: while the ball waits at the paddle for the swing to register, the
     // paddle stops AT the ball instead of passing through it; on the hit both leave

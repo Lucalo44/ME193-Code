@@ -64,6 +64,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--mqtt-topic", default=C.MQTT_TOPIC, help=f"MQTT topic for the record (default {C.MQTT_TOPIC})")
     p.add_argument("--reset-record", action="store_true", help="start the continuous-hit record over at 0")
     p.add_argument("--record-file", default=None, help="where the hit record is saved (default streak_record.json)")
+    p.add_argument("--settings-file", default=None, help="where the handedness choice is saved (default player_settings.json)")
     p.add_argument("--http-port", type=int, default=C.HTTP_PORT)
     p.add_argument("--ws-port", type=int, default=C.WS_PORT)
     return p
@@ -178,7 +179,8 @@ def main() -> int:
         print(f"Publishing the hit record ({float(streak.record)}) to {args.mqtt_topic} on {C.MQTT_BROKER}")
 
     game = Game(paddle, vision, server.publish_state, publish_event, debug=args.debug, seed=args.seed,
-                streak=streak, mqtt_status=lambda: scores.status)
+                streak=streak, mqtt_status=lambda: scores.status,
+                settings_file=args.settings_file or os.path.join(HERE, C.PLAYER_SETTINGS_FILE))
     game_ref["game"] = game
 
     stop = threading.Event()

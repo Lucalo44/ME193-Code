@@ -103,7 +103,8 @@ SIDESPIN_MAX_RADS = 80.0
 # --------------------------------------------------------------------------
 # Pose / stroke check
 # --------------------------------------------------------------------------
-HANDEDNESS = "right"              # "right" or "left"
+HANDEDNESS = "right"              # "right" or "left" -- default; switch it in the game (lobby / pause)
+PLAYER_SETTINGS_FILE = "player_settings.json"   # remembers the in-game handedness choice
 POSE_CLASSES = ["ready", "forehand", "backhand"]
 POSE_K = 5
 MIN_SAMPLES_PER_CLASS = 20

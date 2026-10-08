@@ -50,14 +50,33 @@ from vision.pose import PoseClassifier, create_landmarker, extract_features  # n
 KEY_TO_CLASS = {ord("0"): "ready", ord("1"): "forehand", ord("2"): "backhand"}
 
 
+def draw_text_panel(frame, lines, x=8, y=8):
+    """Readable text: one solid stroke per line on a translucent dark panel
+    (an outline under thin text smears into a double image when the window is scaled)."""
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    rows = []
+    width, height = 0, 10
+    for text, color, scale in lines:
+        thick = 2 if scale >= 0.6 else 1
+        (tw, th), base = cv2.getTextSize(text, font, scale, thick)
+        rows.append((text, color, scale, thick, th, base))
+        width = max(width, tw)
+        height += th + base + 8
+    x2, y2 = min(frame.shape[1] - 1, x + width + 20), min(frame.shape[0] - 1, y + height)
+    roi = frame[y:y2, x:x2]
+    roi[:] = (roi * 0.35).astype(roi.dtype)
+    ty = y + 8
+    for text, color, scale, thick, th, base in rows:
+        ty += th
+        cv2.putText(frame, text, (x + 10, ty), font, scale, color, thick, cv2.LINE_AA)
+        ty += base + 8
+
+
 def draw_overlay(frame, *, classifier, label, conf, burst, burst_label, sync, armed, paddle_status, last_msg):
-    y = 26
+    lines = []
 
     def put(text, color=(255, 255, 255), scale=0.6):
-        nonlocal y
-        cv2.putText(frame, text, (12, y), cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), 4, cv2.LINE_AA)
-        cv2.putText(frame, text, (12, y), cv2.FONT_HERSHEY_SIMPLEX, scale, color, 1, cv2.LINE_AA)
-        y += int(26 * scale / 0.6)
+        lines.append((text, color, scale))
 
     counts = classifier.counts()
     parts = []
@@ -79,6 +98,7 @@ def draw_overlay(frame, *, classifier, label, conf, burst, burst_label, sync, ar
     put("s save   l load   c clear   [ ] k   q quit", (200, 200, 200), 0.5)
     if last_msg and time.time() - last_msg[1] < 2.5:
         put(last_msg[0], (0, 255, 255))
+    draw_text_panel(frame, lines)
 
 
 def main() -> int:

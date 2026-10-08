@@ -84,6 +84,7 @@ class PaddleBase:
 
     def __init__(self, calibration: Calibration):
         self.calibration = calibration
+        self.handedness = C.HANDEDNESS     # set by the game (lobby / pause toggle)
         self.detector = SwingDetector(calibration)
         self.toss = TossDetector(self.detector)
         self.swing_events: "queue.Queue" = queue.Queue()
@@ -108,7 +109,7 @@ class PaddleBase:
         self.orient.reset(cal.gravity)
         self.onboard.reset()
         self._mapping = scene_mapping(cal.gravity, cal.close_axis)
-        flip = -1.0 if C.HANDEDNESS == "left" else 1.0
+        flip = -1.0 if self.handedness == "left" else 1.0
         fh = cal.stroke_back_fh_deg if cal.stroke_back_fh_deg is not None else C.STROKE_FH_BACK_DEG * flip
         bh = cal.stroke_back_bh_deg if cal.stroke_back_bh_deg is not None else C.STROKE_BH_BACK_DEG * flip
         self.stroke.set_backswing(fh, bh)
@@ -173,6 +174,10 @@ class PaddleBase:
         self.detector.set_calibration(self.calibration)
         self._remap()                      # the ready pose becomes "straight ahead"
         return True
+
+    def set_handedness(self, handedness: str) -> None:
+        self.handedness = handedness
+        self._remap()
 
     def set_calibration(self, cal: Calibration) -> None:
         self.calibration = cal

@@ -53,6 +53,7 @@ camera_frame (~12 fps):
 Browser -> Python
 -----------------
     {"type": "key", "key": "p", "down": true, "shift": false}
+    {"type": "set", "handedness": "left" | "right"}     (lobby / pause toggle; remembered)
 """
 
 from __future__ import annotations

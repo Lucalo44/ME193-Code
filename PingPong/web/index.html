@@ -99,6 +99,7 @@
     <div class="legend">
       <span class="sw top"></span>TOPSPIN <span class="sw back"></span>BACKSPIN <span class="sw left"></span>LEFT <span class="sw right"></span>RIGHT
     </div>
+    <div class="hand-switch"><span class="hand-title">PLAYING</span><button class="hud-btn" data-hand="left" tabindex="-1">LEFT-HANDED</button><button class="hud-btn" data-hand="right" tabindex="-1">RIGHT-HANDED</button></div>
     <p class="howto" id="howto"></p>
   </div>
 
@@ -117,7 +118,7 @@
     <p id="beat-count"></p>
   </div>
 
-  <div id="paused" class="overlay hidden"><h1>PAUSED</h1><div class="rule"></div><p class="sub">PRESS P OR</p><button id="resume-btn" class="hud-btn big" tabindex="-1"><span class="icon play"></span>RESUME</button></div>
+  <div id="paused" class="overlay hidden"><h1>PAUSED</h1><div class="rule"></div><p class="sub">PRESS P OR</p><button id="resume-btn" class="hud-btn big" tabindex="-1"><span class="icon play"></span>RESUME</button><div class="hand-switch"><span class="hand-title">PLAYING</span><button class="hud-btn" data-hand="left" tabindex="-1">LEFT-HANDED</button><button class="hud-btn" data-hand="right" tabindex="-1">RIGHT-HANDED</button></div></div>
   <div id="disconnected" class="overlay"><h2>CONNECTING TO THE GAME&hellip;</h2><p class="sub">Is <code>python main.py</code> running?</p></div>
 
   <script type="module" src="main.js"></script>
