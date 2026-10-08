@@ -464,7 +464,11 @@ class SwingDetector:
             return None
         if t_peak - self._last_event_t < C.SWING_RECOVERY_S and \
                 self._peak_lin < C.SWING_RECOVERY_RATIO * self._last_event_g:
-            return None     # the weaker motion back to ready after a swing
+            # Weaker motion right after a swing: usually the return to ready -- but a
+            # quick retry after a too-early whiff can be weaker too. With the live
+            # stroke tracker we can tell them apart: a retry is a forward stroke.
+            if self.stroke is None or self.stroke.mode_at(t_peak) != "forward":
+                return None
         self._last_event_t = t_peak
         self._last_event_g = self._peak_lin
         cal = self.cal

@@ -14,7 +14,7 @@ state (~60 Hz):
                                                # live stroke (real paddle): +1 drawn back, 0 contact, -1 follow-through
      "hold": bool,                             # hit-stop: the ball is waiting at the paddle for the swing to register
      "required_stroke": "forehand"|"backhand"|"either"|null,
-     "incoming": {"x": x_arrival, "t_to_arrival": s, "required": str} | null,
+     "incoming": {"x": x_arrival, "t_to_arrival": s, "required": str, "window": [early_s, late_s]} | null,
      "contact": {"pos": [x,y,z], "t_to_contact": s, "serve": bool, "swung": bool} | null,
                                                # where the paddle meets the ball; drives auto-positioning
      "score": {"player", "cpu", "games_player", "games_cpu", "server", "games_needed"},
@@ -31,7 +31,7 @@ state (~60 Hz):
 event (discrete, triggers sounds/effects):
     {"type": "event", "name": "hit"|"bounce"|"net"|"miss"|"point"|"game_over"|"tag_progress"
                               |"tag_confirmed"|"swing"|"serve"|"message"|"record"
-                              |"serve_prompt"|"toss"|"let", ...fields}
+                              |"serve_prompt"|"toss"|"let"|"early_swing", ...fields}
     hit:        who, pos, speed, topspin, sidespin, stroke, confidence, required
     bounce:     pos, side
     net:        pos
@@ -42,7 +42,8 @@ event (discrete, triggers sounds/effects):
     record:     record (new best number of continuous hits)
     serve:      pos, by ("cpu")         serve_prompt: by ("player")
     toss:       height, pos             let: (a serve clipped the net -- replay it)
-    miss reasons also include "SERVE FAULT" and "MISSED SERVE"
+    miss reasons also include "SERVE FAULT" and "MISSED SERVE" (never "EARLY": a too-early
+    swing is just a whiff -- event early_swing, by_s -- and the player can swing again)
 
 camera_frame (~12 fps):
     {"type": "camera_frame", "jpeg_b64": "..."}

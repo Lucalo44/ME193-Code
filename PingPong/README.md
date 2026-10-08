@@ -113,22 +113,34 @@ The broker, port, topic and file name are `MQTT_*` / `RECORD_FILE` in `config.py
    - Like a real serve, it must bounce on your half first, then the opponent's. The game
      aims it for you, and swing strength and face angle still set speed and spin. A
      serve that clips the net and lands is a **LET** and is replayed.
-   - Swinging too early or too late is a fault, and so is letting the ball drop without
-     swinging (**MISSED SERVE**).
+   - A swing while the ball is still rising is just a whiff, so swing again as it falls.
+     Swinging too late is a fault, and so is letting the ball drop without swinging
+     (**MISSED SERVE**).
 4. When the opponent hits, watch where the ball is heading:
    - **Right of the centerline → forehand. Left → backhand.** (Inverted if `HANDEDNESS = "left"`.)
      Close to the line, either stroke works.
    - The hint arrow and the colored half of the table show which stroke is needed
      (**H** toggles the hint).
-5. **Swing when the ball reaches the ring.** The ring turns green during the hit window
-   (±0.2 s).
+5. **Swing when the ball reaches the ring.** The ring turns green while the ball can be
+   struck.
+   - **Too early is just a whiff**, like Wii games: "TOO EARLY — SWING AGAIN" shows, and
+     you can swing again if you're quick. Only late or missing swings lose the point.
+   - **The window depends on the ball and the difficulty.** You can strike the ball from
+     when it's a set reach in front of you until a little past you, so faster balls give a
+     tighter window. Typical windows:
+
+     | Difficulty | Window around the ball's arrival |
+     |---|---|
+     | Slow | −270 / +215 ms |
+     | Medium | −175 / +135 ms |
+     | Fast | −120 / +90 ms |
    - Swing harder for a faster return.
    - A closed face (tilted down) gives topspin: the ball dips, and on the bounce it kicks
      forward. Use it to keep hard shots on the table.
    - An open face gives backspin: the ball floats and checks up. Hard flat or backspin
      shots can sail long.
    - Fast, spinny shots make the opponent miss more often.
-6. **You lose the point** for **NO SWING**, **EARLY**, **LATE**, **WRONG STROKE**, a return
+6. **You lose the point** for **NO SWING**, **LATE**, **WRONG STROKE**, a return
    that goes **OUT** or into the **NET**, or a **SERVE FAULT** / **MISSED SERVE** on your serve.
 7. Games go to 11 (win by 2) and a match is best of 3. On the game-over screen, show a
    tag to play again.
@@ -274,6 +286,12 @@ game moves the paddle to the ball and you control the stroke:
   down the table.
 - **Backswings aren't swings.** A burst of motion while you're drawing the paddle back
   is ignored; only the forward stroke counts.
+- **Soft catch.** During the hit-stop the ball eases into the paddle over ~10 ms
+  (`HIT_HOLD_EASE_S`) instead of freezing dead, and the screen paddle stays with it.
+- **No mid-play computation hitches.** The computer's serve is planned while it's still
+  holding the ball, and a legal serve per speed is found once at startup. The serve used
+  to freeze the game for 60–90 ms on fast; the worst game-loop step is now ~17 ms, which
+  the browser's 50 ms interpolation hides.
 - **Smoothing.** The live stroke uses an adaptive (one-euro) filter: steady when you
   move slowly, so Bluetooth bursts don't make the paddle jitter, and almost no lag during
   a fast swing.
@@ -387,7 +405,7 @@ Every tunable is in `config.py`, with a comment for each.
 | `GAMES_PER_MATCH` | Number of games in a match |
 | `ASSIST_LEVEL` | 0–1; how much returns get nudged back onto the table |
 | `BALL_SPEED_*` | the opponent's shot speed for each tag |
-| `HIT_WINDOW_S` | How far before or after the ball arrives a swing still counts |
+| `HIT_REACH_EARLY_M`, `HIT_REACH_LATE_M` | Per difficulty: how far in front of / past you the ball can still be struck (the time window is reach ÷ ball speed). Early swings are whiffs; only late swings miss. |
 | `OPPONENT_MISS_*` | Base miss chance, plus extra per unit of incoming speed and spin |
 | `SERVES_PER_TURN` | Points per serve turn (5) |
 | `DEUCE_SERVE_EVERY_POINT` | `True` = the standard rule of alternating every point at 10–10 |

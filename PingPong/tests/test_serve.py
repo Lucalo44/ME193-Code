@@ -71,16 +71,19 @@ def test_toss_without_a_swing_is_a_missed_serve():
     assert game.match.points["cpu"] == 1
 
 
-def test_swinging_too_early_on_the_serve():
+def test_early_serve_swing_is_a_whiff_and_you_can_swing_again():
     game, clock, events = player_serving_game()
     inc = toss(game, clock)
-    early = inc.t - C.HIT_WINDOW_S - 0.08
+    early = inc.t - inc.early_s - 0.05
     assert early > game.toss_t + C.TOSS_IGNORE_S
     advance(game, clock, early - game.sim_t + 0.01)
     swing_at(game, early)
+    advance(game, clock, 0.03)
+    assert not any(e["name"] == "miss" for e in events)
+    advance(game, clock, inc.t - game.sim_t - 0.02)
+    swing_at(game, inc.t)
     advance(game, clock, 0.05)
-    assert [e for e in events if e["name"] == "miss"][0]["reason"] == "EARLY"
-
+    assert any(e["name"] == "hit" and e["who"] == "player" and e["serve"] for e in events)
 
 def test_serve_that_skips_own_half_is_a_fault():
     game, clock, events = player_serving_game()

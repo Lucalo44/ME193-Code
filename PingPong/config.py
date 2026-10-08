@@ -79,7 +79,8 @@ SWING_COINCIDENCE_S = 0.10        # gyro and accel thresholds must both trip wit
 SWING_HYSTERESIS = 0.6            # swing ends once both signals fall below threshold * this
 SWING_END_QUIET_S = 0.05          # ... and stay there this long
 SWING_MAX_DURATION_S = 0.6
-SWING_COOLDOWN_S = 0.4            # refractory period: one swing -> one event
+SWING_COOLDOWN_S = 0.25           # refractory period: one swing -> one event (short, so a too-early
+                                  # swing can be followed by a second, real one)
 SWING_RECOVERY_S = 0.65           # a detection this soon after a swing ...
 SWING_RECOVERY_RATIO = 0.8        # ... and weaker than this fraction of it is the return to ready, not a swing
 SWING_STRIKE_WINDOW_S = (0.15, 0.08)  # swing features are measured this long before / after peak acceleration
@@ -89,6 +90,8 @@ SWING_PAST_PEAK_RATIO = 0.6       # a swing is reported once acceleration falls 
 # until the swing registers and then launched FROM THE PADDLE -- no rewind, no jump.
 HIT_HOLD_MAX_S = 0.35             # longest the ball waits at the paddle for a swing to register
 HIT_HOLD_WAIT_S = 0.12            # ... and how long it waits when no swing has started (yet)
+HIT_HOLD_EASE_S = 0.01            # the ball eases to a stop at the paddle over ~this time constant
+                                  # (a soft catch, not a dead freeze; it travels at most speed x this)
 DEFAULT_STRENGTH_MIN_G = 1.5      # peak linear accel mapped to strength 0 (overridden by calibration)
 DEFAULT_STRENGTH_MAX_G = 6.0      # ... and to strength 1
 SWING_CALIBRATION_FILE = "swing_calibration.json"
@@ -117,8 +120,14 @@ BURST_RECORD_INTERVAL_S = 0.1     # train_pose.py burst mode sample interval
 # --------------------------------------------------------------------------
 # Timing
 # --------------------------------------------------------------------------
-HIT_WINDOW_S = 0.20               # swing peak must be within +/- this of the ball reaching the hit plane
-EARLY_ZONE_S = 0.6                # swings earlier than this before arrival are ignored (not "EARLY")
+# Hit window, Wii-style: a swing that comes too EARLY is just a whiff -- swing again. Only
+# LATE (or no swing) misses. The window is a reach: the ball can be struck from when it's
+# HIT_REACH_EARLY_M before the paddle until HIT_REACH_LATE_M past it, so the time window is
+# reach / ball speed -- a faster incoming ball gives a tighter window. Per difficulty.
+HIT_REACH_EARLY_M = {"slow": 1.0, "medium": 0.9, "fast": 0.8}
+HIT_REACH_LATE_M = {"slow": 0.8, "medium": 0.7, "fast": 0.6}
+HIT_WINDOW_MIN_S = 0.07           # never tighter than this (either side)
+HIT_WINDOW_MAX_S = 0.35           # never looser than this (either side)
 LATE_ZONE_S = 0.3                 # swings up to this long after the window closes count as "LATE"
 LATENCY_OFFSET_S = 0.0            # IMU/BLE/display latency; overridden by latency_calibration.json
 LATENCY_CALIBRATION_FILE = "latency_calibration.json"

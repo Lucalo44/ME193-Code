@@ -102,9 +102,21 @@ class Opponent:
             return self._error_shot(ball.pos, speed)
         return self._good_shot(ball.pos, speed)
 
-    def serve(self, now: float) -> tuple:
+    def plan_serve(self) -> tuple:
+        """Work out the next serve -- the expensive part -- ahead of time, while
+        the opponent is still holding the ball. Returns (start_pos, Shot)."""
+        start = (self.target_x, C.SERVE_CONTACT_Y, C.OPPONENT_HIT_PLANE_Z)
+        top, side = self._spin()
+        shot = P.serve_shot(start, self.base_speed * C.CPU_SERVE_SPEED_FACTOR, top / C.SPIN_MAX_RADS,
+                            side / C.SIDESPIN_MAX_RADS, "cpu", self.rng, assist=1.0)
+        return start, shot
+
+    def serve(self, now: float, planned: tuple = None) -> tuple:
         """Serve from the CPU's end: first bounce on its own half, then the
         player's, like a real serve. Returns (start_pos, Shot)."""
+        if planned is not None:
+            self.start_swing(planned[0][0] - 0.1, now)
+            return planned
         start = (self.x, C.SERVE_CONTACT_Y, C.OPPONENT_HIT_PLANE_Z)
         self.start_swing(self.x - 0.1, now)
         top, side = self._spin()

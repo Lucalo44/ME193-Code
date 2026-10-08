@@ -248,7 +248,7 @@ def launch_velocity(speed: float, theta: float, heading: Tuple[float, float]) ->
     return (speed * c * heading[0], speed * math.sin(theta), speed * c * heading[1])
 
 
-def _bisect(fn: Callable[[float], float], lo: float, hi: float, iters: int = 18) -> float:
+def _bisect(fn: Callable[[float], float], lo: float, hi: float, iters: int = 13) -> float:
     """Root of an increasing function on [lo, hi]; clamps to the ends."""
     flo, fhi = fn(lo), fn(hi)
     if flo >= 0:
@@ -370,6 +370,9 @@ def serve_result(ball: Ball, server: str, max_t: float = 3.0) -> str:
     return "fault"
 
 
+_SERVE_CACHE: dict = {}      # (server, speed) -> (speed factor, own-bounce depth) that last worked
+
+
 def serve_shot(start: Vec, speed: float, topspin: float, sidespin: float, server: str,
                rng: random.Random, assist: float = C.ASSIST_LEVEL) -> Shot:
     """A serve: aimed to bounce first on the server's own half (spin-blind, like
@@ -382,14 +385,19 @@ def serve_shot(start: Vec, speed: float, topspin: float, sidespin: float, server
     if assist <= 0 or serve_result(Ball(start, nominal.vel, nominal.spin), server) == "good":
         return nominal
     # Search own-side bounce depths (nearest the nominal first), then slightly
-    # different speeds, for a legal serve.
+    # different speeds, for a legal serve -- starting from whatever worked last
+    # time at this speed, which almost always works again (keeps serves cheap).
     depths = sorted([0.25 + 0.05 * i for i in range(20)], key=lambda z: abs(z - C.SERVE_OWN_BOUNCE_Z))
-    for factor in (1.0, 0.9, 1.1, 0.8, 1.2, 0.7, 1.3, 0.6):
-        for z in depths:
-            fix = aim(start, (tx, sgn * z), speed * factor, top_rads, side_rads, spin_aware=True)
-            if serve_result(Ball(start, fix.vel, fix.spin), server) == "good":
-                vel = tuple(n + assist * (f - n) for n, f in zip(nominal.vel, fix.vel))
-                return Shot(vel, spin_vector(vel, top_rads, side_rads), fix.theta, (tx, sgn * z))
+    key = (server, round(speed, 1))
+    tries = [(f, z) for f in (1.0, 0.9, 1.1, 0.8, 1.2, 0.7, 1.3, 0.6) for z in depths]
+    if key in _SERVE_CACHE:
+        tries.insert(0, _SERVE_CACHE[key])
+    for factor, z in tries:
+        fix = aim(start, (tx, sgn * z), speed * factor, top_rads, side_rads, spin_aware=True)
+        if serve_result(Ball(start, fix.vel, fix.spin), server) == "good":
+            _SERVE_CACHE[key] = (factor, z)
+            vel = tuple(n + assist * (f - n) for n, f in zip(nominal.vel, fix.vel))
+            return Shot(vel, spin_vector(vel, top_rads, side_rads), fix.theta, (tx, sgn * z))
     return nominal
 
 

@@ -54,3 +54,19 @@ def test_clean_set_merges_doubles_and_drops_startup_jolts():
               mk(2.0, 2.9, 430), mk(3.0, 3.1, 440), mk(4.0, 3.0, 420)]
     cleaned = clean_set(events)
     assert [e.t_peak for e in cleaned] == [1.3, 2.0, 3.0, 4.0]
+
+
+def test_quick_weaker_retry_counts_when_it_is_a_forward_stroke():
+    """After a too-early whiff, a hurried second swing may be weaker than the first.
+    It must not be thrown away as a 'return to ready' if it's a real forward stroke."""
+    class Tracker:                       # stand-in for hardware.stroke.StrokeTracker
+        def __init__(self, mode): self.mode = mode
+        def mode_at(self, t): return self.mode
+        def drawing_back(self, t): return False
+    samples, _ = recording([{"peak_g": 4.0, "peak_dps": 600}, {"peak_g": 2.8, "peak_dps": 500}], gap_s=0.5)
+    from hardware.swing import SwingDetector
+    for mode, expected in (("forward", 2), ("settle", 1)):
+        det = SwingDetector(Calibration())
+        det.stroke = Tracker(mode)
+        evs = [e for e in (det.push(s) for s in samples) if e]
+        assert len(evs) == expected, (mode, [e.peak_accel_g for e in evs])

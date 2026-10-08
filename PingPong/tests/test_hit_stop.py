@@ -47,11 +47,12 @@ def test_ball_waits_at_the_paddle_and_leaves_from_it():
     game.paddle.busy = True                                   # player is mid-swing as the ball arrives
     advance(game, clock, inc.t - game.sim_t + 0.15)           # 0.15 s past arrival
     assert game.hold is not None
-    assert dist(game.ball.pos, inc.pos) < 1e-9                # held exactly at the contact point
+    speed = math.dist((0, 0, 0), game.hold["vel"])
+    assert dist(game.ball.pos, inc.pos) <= speed * C.HIT_HOLD_EASE_S + 1e-9   # caught softly at the contact point
     report_swing(game, inc.t + 0.05)                          # swing peaked 50 ms after arrival, reported now
     advance(game, clock, 0.02)
     hit = [e for e in events if e["name"] == "hit" and e["who"] == "player"]
-    assert hit and dist(hit[0]["pos"], inc.pos) < 1e-3        # contact at the paddle (events are rounded)
+    assert hit and dist(hit[0]["pos"], inc.pos) < 0.1         # contact right where the paddle caught it
     assert dist(game.ball.pos, inc.pos) < 0.25                # leaves from the paddle -- no jump down the table
     assert game.ball.vel[2] > 0                               # heading back toward the CPU
 

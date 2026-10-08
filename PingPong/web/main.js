@@ -9,7 +9,7 @@
 //    ball:{pos:[x,y,z], vel:[...], spin:[...], visible},
 //    opponent:{x, swing:"forehand"|"backhand"|null, swing_t},
 //    paddle:{q:[x,y,z,w], pitch, roll, yaw},  // scene-frame orientation vs. the zeroed ready pose
-//    required_stroke, incoming:{x, t_to_arrival, required}|null,
+//    required_stroke, incoming:{x, t_to_arrival, required, window:[early_s, late_s]}|null,
 //    contact:{pos, t_to_contact, serve, swung}|null,     // where the paddle should meet the ball
 //    stroke:{phase, side, mode}|null,   // live stroke from the real paddle: +1 drawn back, 0 at the ball, -1 follow-through
 //    hold:bool,                         // hit-stop: the ball is waiting at the paddle
@@ -17,8 +17,8 @@
 //    serve:{server, state:null|"cpu"|"await_toss"|"tossed", paddle_kind},
 //    speed_setting, status:{paddle, paddle_kind, camera, pose, stroke_check, calibration, pose_label},
 //    tag:{id, label, progress}|null, latency:{beats, count}|null, debug:{...}|null,
-//    settings:{hint, handedness, debug, hit_window_s}}
-//   {type:"event", name:"hit"|"bounce"|"net"|"miss"|"point"|"game_over"|"tag_progress"|"toss"|"let"
+//    settings:{hint, handedness, debug}}
+//   {type:"event", name:"hit"|"bounce"|"net"|"miss"|"point"|"game_over"|"tag_progress"|"toss"|"let"|"early_swing"
 //                       |"tag_confirmed"|"swing"|"serve"|"message", ...}
 //   {type:"camera_frame", jpeg_b64}
 // Browser -> Python
@@ -181,6 +181,7 @@ function onEvent(ev) {
     case 'message': hud.toast(ev.text); break;
     case 'toss': sounds.toss(); break;
     case 'let': hud.centerMessage('LET', 'replay the serve', 'good', 1200); sounds.net(); break;
+    case 'early_swing': hud.toast('TOO EARLY \u2014 SWING AGAIN', 900); paddleView.miss(); break;
     case 'record': hud.toast(`NEW RECORD \u00b7 ${ev.record} CONTINUOUS HITS`); break;
   }
 }
@@ -289,8 +290,7 @@ function frame() {
     const tToArr = inc ? inc.t_to_arrival - (latest.t - s.t) : null;
     // The ring marks the real contact point -- the same spot the paddle goes to.
     const ringAt = s.contact ? toScene(s.contact.pos) : inc ? new THREE.Vector3(inc.x, TABLE_H + 0.25, -PLAYER_PLANE_Z) : null;
-    effects.target(inc ? ringAt : null, tToArr,
-      s.settings.hit_window_s, hintOn);
+    effects.target(inc ? ringAt : null, tToArr, inc ? inc.window : null, hintOn);
     const req = s.required_stroke;
     if (hintOn && inc && req && req !== 'either') {
       sideHint.position.x = inc.x > 0 ? 1.525 / 4 : -1.525 / 4;
@@ -337,7 +337,7 @@ function frame() {
         `phase        ${latest.phase}\n` +
         `ball speed   ${f(dbg.speed)} m/s   topspin ${f(dbg.topspin, 0)} rad/s\n` +
         `arrival      ${dbg.arrival ? `x ${f(dbg.arrival[0])}  y ${f(dbg.arrival[1])}` : '--'}\n` +
-        `t to arrival ${f(dbg.t_to_arrival)} s   window ${dbg.window_open ? 'OPEN' : 'closed'} (±${dbg.hit_window_s}s)\n` +
+        `t to arrival ${f(dbg.t_to_arrival)} s   window ${dbg.window_open ? 'OPEN' : 'closed'} (${dbg.window ? `-${f(dbg.window[0])} / +${f(dbg.window[1])}` : '--'} s)\n` +
         `required     ${latest.required_stroke ?? '--'}\n` +
         `paddle       pitch ${f(s.paddle.pitch, 1)}  roll ${f(s.paddle.roll, 1)}  yaw ${f(s.paddle.yaw, 1)}\n` +
         `latency off  ${f(dbg.latency_offset_s * 1000, 0)} ms\n` +

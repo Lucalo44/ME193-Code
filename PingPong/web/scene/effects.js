@@ -54,13 +54,15 @@ export class Effects {
 
   netHit() { this.netShake = 1; }
 
-  // arrival: scene Vector3 or null; tToArrival seconds; windowS half-width of the hit window.
-  target(arrival, tToArrival, windowS, visible) {
-    if (!arrival || !visible || tToArrival === null || tToArrival < -windowS) { this.ring.visible = false; return; }
+  // arrival: scene Vector3 or null; tToArrival seconds until the ball reaches it;
+  // win = [early, late]: the hit window (seconds before / after arrival).
+  target(arrival, tToArrival, win, visible) {
+    const [early, late] = win || [0.2, 0.2];
+    if (!arrival || !visible || tToArrival === null || tToArrival < -late) { this.ring.visible = false; return; }
     this.ring.visible = true;
     this.ring.position.copy(arrival);
     this.ring.scale.setScalar(0.5 + Math.max(0, tToArrival) * 1.2);
-    const open = Math.abs(tToArrival) <= windowS;
+    const open = tToArrival <= early && tToArrival >= -late;
     this.ring.material.color.set(open ? THEME.effects.targetRingOpen : THEME.effects.targetRing);
     this.ring.material.opacity = open ? 0.9 : 0.3;
   }

@@ -33,6 +33,7 @@ NO SWING), see _on_swing and _check_player_expiry.
 from __future__ import annotations
 
 import json
+import math
 import os
 import queue
 import random
@@ -78,6 +79,8 @@ class Incoming:
     required: str                 # "forehand" | "backhand" | "either"
     resolved: bool = False
     serve: bool = False           # the player's own serve toss (any stroke is fine)
+    early_s: float = 0.2          # hit window: this long before arrival ...
+    late_s: float = 0.2           # ... to this long after (see hit_window)
 
 
 @dataclass
@@ -129,7 +132,20 @@ class Game:
         self._toss_diag_t = -1.0                 # last rejected flick already reported
         self._swing_while_awaiting: Optional[float] = None
         self.hold: Optional[dict] = None         # hit-stop: ball waiting at the paddle (see _hold_ball)
+        self._planned_serve = None               # CPU serve worked out while the ball is in hand
         self._mqtt_status = mqtt_status
+        self._warm_up_serves()
+
+    def _warm_up_serves(self) -> None:
+        """Find a legal CPU serve once per speed at startup, so the serve search
+        (tens of ms the first time) never runs during play."""
+        speed0 = self.opponent.speed_setting
+        state = self.rng.getstate()
+        for setting in C.SPEED_BY_SETTING:
+            self.opponent.speed_setting = setting
+            self.opponent.plan_serve()
+        self.opponent.speed_setting = speed0
+        self.rng.setstate(state)
 
     # ======================================================================
     # Running
@@ -199,11 +215,16 @@ class Game:
                     self._swing_while_awaiting = None
                     self._emit("message", text="That was read as a swing -- toss with a sharp flick straight up")
             else:
-                self.serve_state = "cpu"
+                if self.serve_state != "cpu":
+                    # Plan the serve now, while the ball is still in hand and nothing
+                    # is moving, so the computation never freezes play mid-motion.
+                    self.serve_state = "cpu"
+                    self._planned_serve = self.opponent.plan_serve()
                 self.paddle.toss_armed = False
                 self.ball = P.Ball((self.opponent.x, SERVE_HEIGHT, C.OPPONENT_HIT_PLANE_Z))
                 if elapsed >= C.SERVE_DELAY_S:
-                    start, shot = self.opponent.serve(now)
+                    start, shot = self.opponent.serve(now, self._planned_serve)
+                    self._planned_serve = None
                     self.ball = P.Ball(start, shot.vel, shot.spin)
                     self.sm.to(SM.RALLY, now)
                     self._begin_flight("cpu", serve=True)
@@ -366,11 +387,15 @@ class Game:
             if waited > C.HIT_HOLD_MAX_S or (not busy and waited > C.HIT_HOLD_WAIT_S):
                 self.hold = None              # no hit coming: release the ball
                 return False
+            # Soft catch: ease to a stop instead of freezing dead.
+            ease = C.HIT_HOLD_EASE_S * (1.0 - math.exp(-waited / C.HIT_HOLD_EASE_S)) if C.HIT_HOLD_EASE_S > 0 else 0.0
+            p0, v = self.hold["pos"], self.hold["vel"]
+            self.ball.pos = (p0[0] + v[0] * ease, p0[1] + v[1] * ease, p0[2] + v[2] * ease)
             return True
         if inc is None or inc.resolved or self.pending is not None or self.sim_t < inc.t \
                 or self.paddle.kind not in ("real", "replay") or self.sim_t - inc.t > 0.05:
             return False
-        self.hold = {"t0": self.sim_t, "pos": inc.pos}
+        self.hold = {"t0": self.sim_t, "pos": inc.pos, "vel": self.ball.vel}
         self.ball.pos = inc.pos
         return True
 
@@ -379,7 +404,7 @@ class Game:
             return                            # still waiting at the paddle
         inc = self.incoming
         if inc and not inc.resolved and self.pending is None \
-                and self.sim_t > inc.t + C.HIT_WINDOW_S + C.LATE_ZONE_S:
+                and self.sim_t > inc.t + inc.late_s + C.LATE_ZONE_S:
             inc.resolved = True
             self._player_miss("MISSED SERVE" if inc.serve else "NO SWING")
 
@@ -391,12 +416,23 @@ class Game:
             self.incoming = None
             self.opponent.on_incoming(self.ball, self.sim_t, serve=serve)
 
+    def hit_window(self, ball_speed: float) -> tuple:
+        """(early, late) seconds around the ball's arrival during which a swing
+        strikes it: the difficulty's reach divided by the ball's speed, so faster
+        balls give tighter windows."""
+        v = max(0.5, ball_speed)
+        clamp = lambda x: max(C.HIT_WINDOW_MIN_S, min(C.HIT_WINDOW_MAX_S, x))  # noqa: E731
+        s = self.speed_setting
+        return clamp(C.HIT_REACH_EARLY_M[s] / v), clamp(C.HIT_REACH_LATE_M[s] / v)
+
     def _predict_incoming(self, bounced: bool = False, serve: bool = False) -> None:
         arr = P.predict_receive(self.ball, "player", C.PLAYER_HIT_PLANE_Z, bounced=bounced, serve=serve)
         if arr is None:
             self.incoming = None
             return
-        self.incoming = Incoming(self.sim_t + arr.t, arr.pos, required_stroke(arr.pos[0]))
+        early, late = self.hit_window(P.v_norm(arr.vel))
+        self.incoming = Incoming(self.sim_t + arr.t, arr.pos, required_stroke(arr.pos[0]),
+                                 early_s=early, late_s=late)
 
     def _count_hit(self) -> None:
         """One continuous hit: the player's return landed in. Tracks the record."""
@@ -473,7 +509,12 @@ class Game:
         self.toss_t = self.sim_t
         self._swing_while_awaiting = None
         self.flight = None                     # nothing to referee until it's struck
-        self.incoming = Incoming(self.sim_t + t_contact, contact, "either", serve=True)
+        # The window opens once the ball is falling (a swing while it's still rising is a
+        # whiff), and its width follows the ball's falling speed at contact.
+        t_apex = vel[1] / C.GRAVITY
+        early, late = self.hit_window(C.GRAVITY * max(0.0, t_contact - t_apex))
+        early = min(early, max(C.HIT_WINDOW_MIN_S, t_contact - t_apex))
+        self.incoming = Incoming(self.sim_t + t_contact, contact, "either", serve=True, early_s=early, late_s=late)
         self.serve_state = "tossed"
         self.paddle.toss_armed = False
         self.sm.to(SM.RALLY, self.sim_t)
@@ -495,13 +536,13 @@ class Game:
         if inc.serve and t < self.toss_t + C.TOSS_IGNORE_S:
             return  # the tossing motion itself, not the serve stroke
         dt = t_corr - inc.t
-        if dt < -C.EARLY_ZONE_S or dt > C.HIT_WINDOW_S + C.LATE_ZONE_S:
-            return  # stray swing, nowhere near the ball
-        if dt < -C.HIT_WINDOW_S:
-            inc.resolved = True
-            self._player_miss("EARLY", by_s=-dt)
+        if dt > inc.late_s + C.LATE_ZONE_S:
+            return  # stray swing, long after the ball
+        if dt < -inc.early_s:
+            # Too early: a whiff, not a miss -- the player can swing again (Wii-style).
+            self._emit("early_swing", by_s=-dt)
             return
-        if dt > C.HIT_WINDOW_S:
+        if dt > inc.late_s:
             inc.resolved = True
             self._player_miss("LATE", by_s=dt)
             return
@@ -537,7 +578,7 @@ class Game:
         h = self.pending
         held = self.hold
         self.hold = None
-        pos = held["pos"] if held else self._ball_pos_at(h.t)
+        pos = self.ball.pos if held else self._ball_pos_at(h.t)     # held: right where the paddle caught it
         pos = (pos[0], max(pos[1], 0.06), pos[2])
         sw = h.swing
         if h.serve:
@@ -678,12 +719,13 @@ class Game:
             debug = {
                 "arrival": list(inc.pos) if inc else None,
                 "t_to_arrival": (inc.t - self.sim_t) if inc else None,
-                "window_open": bool(inc and abs(self.sim_t - inc.t) <= C.HIT_WINDOW_S),
+                "window_open": bool(inc and -inc.early_s <= self.sim_t - inc.t <= inc.late_s),
+                "window": [inc.early_s, inc.late_s] if inc else None,
                 "cpu_plan": list(plan.pos) if plan else None,
                 "speed": P.v_norm(self.ball.vel),
                 "topspin": P.topspin_component(self.ball.vel, self.ball.spin),
                 "hit_plane_z": C.PLAYER_HIT_PLANE_Z,
-                "hit_window_s": C.HIT_WINDOW_S,
+
                 "latency_offset_s": C.LATENCY_OFFSET_S,
                 "toss": getattr(getattr(self.paddle, "toss", None), "last", None),
             }
@@ -698,7 +740,8 @@ class Game:
             stroke=getattr(self.paddle, "stroke_state", lambda: None)(),
             hold=self.hold is not None,           # hit-stop: the ball is waiting at the paddle
             required_stroke=inc.required if inc else None,
-            incoming={"x": inc.pos[0], "t_to_arrival": inc.t - self.sim_t, "required": inc.required}
+            incoming={"x": inc.pos[0], "t_to_arrival": inc.t - self.sim_t, "required": inc.required,
+                      "window": [inc.early_s, inc.late_s]}
             if inc else None,
             # Where/when the player's paddle should meet the ball -- kept until the
             # ball is actually struck (incoming above disappears once a swing is accepted).
@@ -715,7 +758,7 @@ class Game:
             latency=latency,
             debug=debug,
             settings={"hint": self.show_hint, "handedness": C.HANDEDNESS, "debug": self.debug,
-                      "hit_window_s": C.HIT_WINDOW_S},
+                      },
         )
 
     def publish(self) -> None:

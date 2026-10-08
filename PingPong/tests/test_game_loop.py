@@ -75,18 +75,48 @@ def test_no_swing_is_a_miss():
     assert game.match.points["cpu"] == 1
 
 
-def test_early_and_late():
-    for offset, reason in ((-0.4, "EARLY"), (0.35, "LATE")):
-        game, clock, events = make_game()
-        game.start_game("slow")
-        inc = wait_incoming(game, clock)
-        target = inc.t + offset
-        advance(game, clock, max(0.0, target - game.sim_t + 0.02))
-        swing_at(game, target)
-        advance(game, clock, 0.05)
-        misses = [e for e in events if e["name"] == "miss"]
-        assert misses and misses[0]["reason"] == reason, (reason, names(events))
+def test_too_early_is_a_whiff_then_swing_again():
+    """Wii-style: an early swing doesn't lose the point; a second, on-time swing hits."""
+    game, clock, events = make_game()
+    game.start_game("slow")
+    inc = wait_incoming(game, clock)
+    early = inc.t - inc.early_s - 0.2
+    advance(game, clock, max(0.0, early - game.sim_t + 0.02))
+    swing_at(game, early)
+    advance(game, clock, 0.05)
+    assert not any(e["name"] == "miss" for e in events)
+    assert any(e["name"] == "early_swing" for e in events)
+    assert not game.incoming.resolved                     # still live: swing again
+    advance(game, clock, inc.t - game.sim_t - 0.02)
+    swing_at(game, inc.t)
+    advance(game, clock, 0.1)
+    assert any(e["name"] == "hit" and e["who"] == "player" for e in events)
 
+
+def test_late_still_misses():
+    game, clock, events = make_game()
+    game.start_game("slow")
+    inc = wait_incoming(game, clock)
+    late = inc.t + inc.late_s + 0.1
+    advance(game, clock, late - game.sim_t + 0.02)
+    swing_at(game, late)
+    advance(game, clock, 0.05)
+    misses = [e for e in events if e["name"] == "miss"]
+    assert misses and misses[0]["reason"] == "LATE"
+
+
+def test_window_tightens_with_ball_speed_and_difficulty():
+    game, clock, events = make_game()
+    game.speed_setting = "medium"
+    e_slow_ball, l_slow_ball = game.hit_window(4.0)
+    e_fast_ball, l_fast_ball = game.hit_window(8.0)
+    assert e_fast_ball < e_slow_ball and l_fast_ball < l_slow_ball
+    game.speed_setting = "slow"
+    e_easy, l_easy = game.hit_window(6.0)
+    game.speed_setting = "fast"
+    e_hard, l_hard = game.hit_window(6.0)
+    assert e_hard < e_easy and l_hard < l_easy
+    assert all(C.HIT_WINDOW_MIN_S <= w <= C.HIT_WINDOW_MAX_S for w in (e_fast_ball, l_hard, e_slow_ball))
 
 def test_wrong_stroke():
     game, clock, events = make_game()

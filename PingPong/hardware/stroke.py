@@ -116,6 +116,12 @@ class StrokeTracker:
         self._history.append((t, yaw_deg, self.rate, self.mode))
         return self.snapshot()
 
+    def mode_at(self, t: float) -> Optional[str]:
+        """The tracker's mode ("ready" / "forward" / "settle") nearest time t."""
+        if not self._history:
+            return None
+        return min(self._history, key=lambda h: abs(h[0] - t))[3]
+
     def drawing_back(self, t: float) -> bool:
         """Was the paddle being drawn back (turning away from ready, not in a
         stroke) at time t? Used to keep backswings from being reported as swings."""

@@ -200,8 +200,10 @@ export class PlayerPaddleView {
     this.anim = null;
     this.swingWait = null;
     const c = s.contact;
-    const anchorTarget = (c && c.t_to_contact > -0.25 && c.t_to_contact < 1.6 && s.phase === 'RALLY')
-      ? this.toScene(c.pos) : this.ready;
+    // While the ball is held at the paddle (hit-stop), stay with the ball itself.
+    const anchorTarget = s.hold ? this.toScene(s.ball.pos)
+      : (c && c.t_to_contact > -0.25 && c.t_to_contact < 1.6 && s.phase === 'RALLY')
+        ? this.toScene(c.pos) : this.ready;
     if (!this.anchor) this.anchor = this.root.position.clone();
     this.anchor.lerp(anchorTarget, 1 - Math.exp(-TRACK_RATE * dt));
 
