@@ -48,7 +48,7 @@ import config as C
 from game import physics as P
 from game import state_machine as SM
 from game.opponent import Opponent
-from game.rules import Match, other, required_stroke, stroke_ok
+from game.rules import Match, decide_stroke, other, required_stroke, stroke_ok
 from game.streak import StreakTracker
 from server import protocol
 
@@ -601,20 +601,22 @@ class Game:
             inc.resolved = True
             self.pending = PendingHit(max(t_corr, inc.t), ev, "serve", 1.0, "either", serve=True)
             return
-        stroke, conf = self._judge(ev, inc.required)
+        stroke, conf, why = self._judge(ev, inc.required)
         inc.resolved = True
         if not stroke_ok(inc.required, stroke):
-            self._player_miss("WRONG STROKE", needed=inc.required, judged=stroke, confidence=conf)
+            self._player_miss("WRONG STROKE", needed=inc.required, judged=stroke, confidence=conf, source=why)
             return
         self.pending = PendingHit(max(t_corr, inc.t), ev, stroke, conf, inc.required)
 
     def _judge(self, ev, required: str):
+        """(stroke, confidence, which source decided)."""
         if self.vision is None or not self.vision.stroke_check_enabled:
             if ev.stroke_hint:
-                return ev.stroke_hint, 1.0
+                return ev.stroke_hint, 1.0, "keyboard"
             # No pose check: always the right stroke.
-            return ("backhand" if required == "backhand" else "forehand"), 1.0
-        return self.vision.judge.judge(ev.t_peak)
+            return ("backhand" if required == "backhand" else "forehand"), 1.0, "no camera"
+        imu = (ev.imu_stroke, ev.imu_stroke_conf) if C.STROKE_USE_IMU and ev.imu_stroke else None
+        return decide_stroke(required, self.vision.judge.judge(ev.t_peak), imu)
 
     def _ball_pos_at(self, t: float) -> P.Vec:
         inc = self.incoming

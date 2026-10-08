@@ -12,7 +12,7 @@ A match is best of GAMES_PER_MATCH.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple
 
 import config as C
 
@@ -129,3 +129,35 @@ def stroke_ok(required: str, judged: Optional[str]) -> bool:
     if judged not in ("forehand", "backhand"):
         return False
     return required == "either" or required == judged
+
+
+def decide_stroke(required: str, camera: Tuple[Optional[str], float],
+                  imu: Optional[Tuple[Optional[str], float]] = None,
+                  camera_sure: float = C.STROKE_CAMERA_SURE,
+                  imu_sure: float = C.STROKE_IMU_SURE) -> Tuple[str, float, str]:
+    """Combine the camera's vote and the paddle's own guess into one call.
+
+    WRONG STROKE only when the evidence is sure: one source is confident the
+    stroke is wrong and no source is confident it's right. Anything unsure,
+    missing ("ready"/no pose) or contradictory gives the player the benefit of
+    the doubt. Returns (stroke, confidence, reason) -- reason says which source
+    decided, for the debug overlay."""
+    other_side = {"forehand": "backhand", "backhand": "forehand"}
+    if required not in other_side:            # "either": any stroke is fine
+        stroke = camera[0] or (imu[0] if imu else None) or "forehand"
+        return stroke, 1.0, "either side"
+    wrong = other_side[required]
+
+    def sure(src, threshold):
+        return src is not None and src[0] in other_side and src[1] >= threshold
+
+    cam_sure, imu_ok = sure(camera, camera_sure), sure(imu, imu_sure)
+    if (cam_sure and camera[0] == required) or (imu_ok and imu[0] == required):
+        conf = max(camera[1] if camera[0] == required else 0.0, imu[1] if imu and imu[0] == required else 0.0)
+        return required, conf, "confirmed"
+    if cam_sure and camera[0] == wrong:
+        return wrong, camera[1], "camera"
+    if imu_ok and imu[0] == wrong:
+        return wrong, imu[1], "paddle"
+    return required, 0.0, "unsure: benefit of the doubt"
+

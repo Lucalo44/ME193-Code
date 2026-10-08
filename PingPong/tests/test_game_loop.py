@@ -190,3 +190,51 @@ def test_handedness_switch_flips_stroke_side_and_is_remembered(tmp_path):
     game.command({"type": "set", "handedness": "sideways"})             # ignored
     advance(game, clock, 0.05)
     assert game.handedness == "left"
+
+
+class FakeVision:
+    """Camera stand-in: the judge always returns `vote`."""
+    def __init__(self, vote):
+        from types import SimpleNamespace
+        self.stroke_check_enabled = True
+        self.judge = SimpleNamespace(judge=lambda t, window=None: vote)
+        self.camera = SimpleNamespace(status="ok")
+        self.tags_active, self.tag_lead, self.tag_progress = False, None, 0.0
+        self.pose_detected, self.prediction, self.confidence, self.fps = True, None, 0.0, 30.0
+        import queue
+        self.confirmed_tags = queue.Queue()
+
+
+def _stroke_outcome(vote, imu=None):
+    """Swing on time at a ball needing a non-'either' stroke; returns the miss event or None."""
+    for seed in range(1, 30):
+        clock = FakeClock()
+        events = []
+        game = Game(SimPaddle(Calibration()), FakeVision(vote), publish_event=lambda m: events.append(json.loads(m)),
+                    seed=seed, clock=clock)
+        game.start_game("medium")
+        inc = wait_incoming(game, clock)
+        if inc.required == "either":
+            continue
+        wrong = {"forehand": "backhand", "backhand": "forehand"}[inc.required]
+        v = vote(inc.required, wrong) if callable(vote) else vote
+        game.vision.judge.judge = lambda t, window=None: v
+        advance(game, clock, inc.t - game.sim_t - 0.05)
+        swing_at(game, inc.t)
+        if imu:
+            ev = game.paddle.swing_events.queue[-1]
+            ev.imu_stroke, ev.imu_stroke_conf = imu(inc.required, wrong)
+        advance(game, clock, 0.05)
+        misses = [e for e in events if e["name"] == "miss"]
+        return misses[0] if misses else None
+    raise AssertionError("no ball needing a specific stroke")
+
+
+def test_wrong_stroke_only_when_sure():
+    assert _stroke_outcome(lambda req, wrong: (None, 0.0)) is None                 # camera saw only "ready"
+    assert _stroke_outcome(lambda req, wrong: (wrong, 0.6)) is None                # camera unsure
+    m = _stroke_outcome(lambda req, wrong: (wrong, 0.95))                          # camera sure
+    assert m and m["reason"] == "WRONG STROKE" and m["source"] == "camera"
+    assert _stroke_outcome(lambda req, wrong: (wrong, 0.95), imu=lambda req, wrong: (req, 0.9)) is None
+    m = _stroke_outcome(lambda req, wrong: (None, 0.0), imu=lambda req, wrong: (wrong, 0.9))
+    assert m and m["source"] == "paddle"

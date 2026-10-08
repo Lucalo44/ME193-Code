@@ -37,7 +37,8 @@ event (discrete, triggers sounds/effects):
     hit:        who, pos, speed, topspin, sidespin, stroke, confidence, required
     bounce:     pos, side
     net:        pos
-    miss:       reason ("EARLY"|"LATE"|"WRONG STROKE"|"NO SWING"|"OUT"|"NET"), needed, judged
+    miss:       reason ("EARLY"|"LATE"|"WRONG STROKE"|"NO SWING"|"OUT"|"NET"), needed, judged,
+                confidence, source ("camera"|"paddle" -- which one was sure it was wrong)
     point:      winner, reason, score
     game_over:  match_over, winner, score
     swing:      summary of the SwingEvent + trace [[t_rel, lin_g, gyro_dps], ...]

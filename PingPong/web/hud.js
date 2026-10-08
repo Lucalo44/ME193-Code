@@ -183,7 +183,8 @@ export class Hud {
   miss(ev) {
     let sub = '';
     if (ev.reason === 'WRONG STROKE') {
-      sub = `needed ${ev.needed}` + (ev.judged ? ` · saw ${ev.judged}` : ' · no stroke seen');
+      const by = ev.source === 'paddle' ? 'paddle' : ev.source === 'camera' ? 'camera' : '';
+      sub = `needed ${ev.needed}` + (ev.judged ? ` · ${by ? by + ' saw' : 'saw'} ${ev.judged}` : ' · no stroke seen');
     } else if (ev.reason === 'SERVE FAULT') {
       sub = 'a serve must bounce on your side first';
     } else if (ev.reason === 'MISSED SERVE') {

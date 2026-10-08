@@ -273,6 +273,7 @@ class SwingEvent:
     raw: List[ImuSample] = field(default_factory=list)
     stroke_hint: Optional[str] = None   # sim paddle only: forced stroke for --no-camera testing
     imu_stroke: Optional[str] = None    # forehand/backhand as told by the IMU (needs calibration)
+    imu_stroke_conf: float = 0.0        # 0.5 = a coin toss, 1.0 = certain
 
     def trace(self, cal: Calibration) -> list:
         """Downsampled [t_rel, linear_g, gyro_dps] rows for the HUD swing trace."""
@@ -289,6 +290,7 @@ class SwingEvent:
             "peak_accel_g": round(self.peak_accel_g, 2),
             "peak_gyro_dps": round(self.peak_gyro_dps, 1),
             "imu_stroke": self.imu_stroke,
+            "imu_stroke_conf": round(self.imu_stroke_conf, 2),
         }
 
 
@@ -477,11 +479,15 @@ class SwingDetector:
         feats = swing_features(self._window, t_peak, cal, self.gravity)
         models = cal.models or {}
         use = lambda name: models.get(name) if models.get(name, {}).get("use") else None  # noqa: E731
-        stroke = None
+        stroke, stroke_conf = None, 0.0
         if use("stroke"):
-            stroke = "forehand" if swing_model.probability(use("stroke"), feats) >= 0.5 else "backhand"
+            p_fh = swing_model.probability(use("stroke"), feats)
+            stroke, stroke_conf = ("forehand" if p_fh >= 0.5 else "backhand"), max(p_fh, 1.0 - p_fh)
         elif cal.stroke_terms:
-            stroke = "forehand" if combine_terms(cal.stroke_terms, feats) >= 0 else "backhand"
+            # The rule's value is +-1 at the average calibration forehand / backhand,
+            # 0 halfway between them: map that to a confidence of 0.5 .. 1.
+            v = combine_terms(cal.stroke_terms, feats)
+            stroke, stroke_conf = ("forehand" if v >= 0 else "backhand"), 0.5 + 0.5 * abs(v)
         top_terms = cal.topspin_terms_backhand if (stroke == "backhand" and cal.topspin_terms_backhand) \
             else cal.topspin_terms
         top_model = use("topspin_bh") if stroke == "backhand" else use("topspin_fh")
@@ -499,6 +505,7 @@ class SwingDetector:
             features=feats,
             raw=list(self._window),
             imu_stroke=stroke,
+            imu_stroke_conf=stroke_conf,
         )
 
 

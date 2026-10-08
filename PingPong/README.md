@@ -363,6 +363,13 @@ python main.py
 Record at least 20 samples per class (wind-up and follow-through under the same label).
 Record plenty of "ready" too: standing, walking, holding the paddle.
 
+**How the call is made:** WRONG STROKE is only given when the evidence is sure. The
+camera's vote around the swing (it needs ≥ `STROKE_CAMERA_SURE` = 75% of the votes) is
+combined with the paddle's own forehand/backhand guess from the swing calibration (≥
+`STROKE_IMU_SURE`). If neither is sure, the camera saw only "ready" or no pose, or the two
+confidently disagree, the swing counts as the right stroke. The message says which one
+called it ("camera saw forehand" or "paddle saw forehand").
+
 **Check:**
 - The pose chip shows the live prediction.
 - The wrong stroke shows **WRONG STROKE — needed BACKHAND** (or FOREHAND).

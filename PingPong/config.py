@@ -125,6 +125,12 @@ POSE_ARM_WEIGHT = 0.6             # how much of the hand's movement moves the pa
 POSE_ARM_SCALE_M = 0.45           # on-screen meters per torso-length of hand movement
 POSE_ARM_MAX_M = 0.4              # the hand can shift the paddle at most this far
 STROKE_WINDOW_S = 0.15            # look at predictions within +/- this of the swing peak
+# WRONG STROKE is only called when the evidence is sure (see game/rules.py: decide_stroke).
+# The camera's vote and the paddle's own forehand/backhand guess are combined; anything
+# unsure, missing or contradictory gives the player the benefit of the doubt.
+STROKE_CAMERA_SURE = 0.75         # camera vote share needed to call a stroke wrong
+STROKE_IMU_SURE = 0.75            # paddle confidence needed (0.5 = coin toss, 1 = certain)
+STROKE_USE_IMU = True             # use the paddle's guess at all (needs swing calibration)
 CENTER_DEADBAND = 0.05            # m; either stroke is accepted this close to the centerline
 SHOW_STROKE_HINT = True
 WRONG_STROKE_PENALTY = "point"    # "point" or "game"
