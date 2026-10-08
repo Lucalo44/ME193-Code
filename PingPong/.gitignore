@@ -8,3 +8,5 @@ __pycache__/
 .DS_Store
 streak_record.json
 player_settings.json
+venv
+venv.icloud-old/

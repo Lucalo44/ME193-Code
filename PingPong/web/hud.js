@@ -67,7 +67,8 @@ export class Hud {
     const st = s.status;
     this._stat('chip-paddle', 'PADDLE', st.paddle_kind === 'sim' ? 'keyboard (sim)' : st.paddle,
       st.paddle_kind === 'sim' ? 'warn' : st.paddle === 'connected' ? 'ok' : st.paddle === 'connecting' ? 'warn' : 'bad');
-    this._stat('chip-camera', 'CAMERA', st.camera, st.camera === 'ok' ? 'ok' : st.camera === 'off' ? '' : 'bad');
+    const camLoading = st.camera === 'starting' || st.camera.startsWith('loading');
+    this._stat('chip-camera', 'CAMERA', st.camera, st.camera === 'ok' ? 'ok' : st.camera === 'off' ? '' : camLoading ? 'warn' : 'bad');
     const poseText = st.camera === 'off' ? 'off (stroke check skipped)'
       : !st.stroke_check ? 'untrained (stroke check off)'
       : (st.pose ? (st.pose_label || 'detected') : 'not detected');

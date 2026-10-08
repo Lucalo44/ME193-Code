@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import math
 import multiprocessing as mp
+import os
 import queue
 import threading
 import time
@@ -46,10 +47,16 @@ def _put_latest(q, item) -> None:
 # Child process
 # --------------------------------------------------------------------------
 
+def _orphaned(parent_pid: Optional[int]) -> bool:
+    """True once the game process is gone (killed without a clean stop), so the
+    child never lingers in the background holding the camera."""
+    return parent_pid is not None and os.getppid() != parent_pid
+
+
 def vision_child(camera_index: int, pose_data: Optional[str], results, previews, control,
-                 source: str = "camera") -> None:
+                 source: str = "camera", parent_pid: Optional[int] = None) -> None:
     if source == "synthetic":
-        return _synthetic_child(results, previews, control)
+        return _synthetic_child(results, previews, control, parent_pid)
     from vision.camera import Camera
     from vision.pose import PoseClassifier
     from vision.worker import VisionWorker
@@ -72,7 +79,7 @@ def vision_child(camera_index: int, pose_data: Optional[str], results, previews,
                 cmd = control.get(timeout=0.05)
             except queue.Empty:
                 cmd = None
-            if cmd == "stop":
+            if cmd == "stop" or _orphaned(parent_pid):
                 break
             if cmd in ("tags:1", "tags:0"):
                 worker.tags_active = cmd == "tags:1"
@@ -82,7 +89,7 @@ def vision_child(camera_index: int, pose_data: Optional[str], results, previews,
         worker.stop()
 
 
-def _synthetic_child(results, previews, control) -> None:
+def _synthetic_child(results, previews, control, parent_pid: Optional[int] = None) -> None:
     """Test source: a scripted 'player' at 30 fps -- no camera, no MediaPipe.
     The right-hand side arm (on screen) swings its wrist out and back."""
     results.put({"type": "hello", "camera": "ok", "stroke_check": True})
@@ -94,7 +101,7 @@ def _synthetic_child(results, previews, control) -> None:
             cmd = control.get(timeout=1 / 30)
         except queue.Empty:
             cmd = None
-        if cmd == "stop":
+        if cmd == "stop" or _orphaned(parent_pid):
             return
         if cmd in ("tags:1", "tags:0"):
             tags_on = cmd == "tags:1"
@@ -125,10 +132,13 @@ class VisionProcess:
         self._previews = ctx.Queue(maxsize=2)
         self._control = ctx.Queue()
         self._proc = ctx.Process(target=vision_child, name="vision",
-                                 args=(camera_index, pose_data, self._results, self._previews, self._control, source),
+                                 args=(camera_index, pose_data, self._results, self._previews, self._control, source,
+                                       os.getpid()),
                                  daemon=True)
         self.on_preview = on_preview
         self.camera = SimpleNamespace(status="starting")
+        self._t_start = 0.0
+        self._ready = False
         self.judge = StrokeJudge()
         self.arm = ArmTracker(C.HANDEDNESS)
         self.confirmed_tags: "queue.Queue[int]" = queue.Queue()
@@ -158,6 +168,7 @@ class VisionProcess:
             self._control.put("tags:1" if on else "tags:0")
 
     def start(self) -> None:
+        self._t_start = time.monotonic()
         self._proc.start()
         threading.Thread(target=self._read_results, daemon=True, name="vision-results").start()
         threading.Thread(target=self._read_previews, daemon=True, name="vision-previews").start()
@@ -178,12 +189,17 @@ class VisionProcess:
             try:
                 msg = self._results.get(timeout=0.2)
             except queue.Empty:
-                if not self._proc.is_alive() and self.camera.status in ("starting", "ok"):
+                if not self._proc.is_alive() and (self.camera.status == "ok" or not self._ready):
                     self.camera.status = "error: vision process stopped"
+                elif not self._ready:
+                    self._loading_progress()
                 continue
             kind = msg.get("type")
             if kind == "hello":
+                self._ready = True
                 self.camera.status = msg["camera"]
+                print(f"Camera {'ready' if msg['camera'] == 'ok' else msg['camera']} "
+                      f"after {time.monotonic() - self._t_start:.0f} s.", flush=True)
                 self._stroke_check = bool(msg["stroke_check"])
             elif kind == "tag":
                 self.confirmed_tags.put(msg["id"])
@@ -194,6 +210,18 @@ class VisionProcess:
                 self.fps = msg["fps"]
                 self.judge.add(msg["t"], msg["label"], msg["conf"])
                 self.arm.update(msg["t"], msg["arms"])
+
+    def _loading_progress(self) -> None:
+        """Show that the vision process is still loading (MediaPipe + OpenCV). Usually
+        a few seconds; much longer when macOS has to fetch the library files first,
+        e.g. from iCloud Drive."""
+        waited = int(time.monotonic() - self._t_start)
+        self.camera.status = f"loading {waited}s"
+        if waited >= 15 and not getattr(self, "_warned", False):
+            self._warned = True
+            print("Camera still loading after 15 s -- the vision libraries are slow to load "
+                  "(see README: 'Slow first start'). The game works meanwhile; the camera "
+                  "joins when it's ready.", flush=True)
 
     def _read_previews(self) -> None:
         while not self._stop.is_set():

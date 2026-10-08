@@ -32,6 +32,24 @@ vendored in `web/vendor/`.
 macOS will ask for **camera** and **Bluetooth** permission for your terminal app the first
 time. Allow both.
 
+### Slow first start (iCloud Drive)
+
+If `~/Documents` syncs with iCloud Drive and "Optimize Mac Storage" is on, macOS offloads
+rarely used files to the cloud. That includes the hundreds of library files in `venv`. The
+camera then takes minutes to start, because MediaPipe has to download them one by one;
+the CAMERA chip shows `loading Ns` until then. Keep the environment outside iCloud and
+link it in:
+
+```bash
+python3.12 -m venv ~/.venvs/pingpong
+~/.venvs/pingpong/bin/pip install -r requirements.txt
+mv venv venv.icloud-old            # delete it once the new one works
+ln -s ~/.venvs/pingpong venv       # venv/bin/python and `source venv/bin/activate` still work
+```
+
+The first run after this still takes ~20 s while macOS checks the new library files.
+After that, the camera is ready in about 2 s.
+
 ## Run it
 
 ```bash
