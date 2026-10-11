@@ -31,9 +31,11 @@ CARD_COLOR = "purple"
 CARD_SERIAL = "0998"
 IMU_NOTIFICATION_MS = 15          # 15 ms (~66 Hz) is the fastest the motor allows; default 100 is too slow
 IMU_BUFFER_S = 2.0                # how much IMU history the paddle keeps in its ring buffer
-HAPTICS_ENABLED = False           # short motor buzz on a successful hit
-HAPTICS_PULSE_MS = 60
-HAPTICS_SPEED = 40
+HAPTICS_ENABLED = True            # sharp motor jolt on every paddle hit
+HAPTICS_PULSE_MS = 40             # short + full speed + brake = a crisp kick, not a hum
+HAPTICS_SPEED = 100               # % motor power; lower it if the kick moves anything on the axles
+HIT_BEEP_ENABLED = True           # the motor's built-in beeper plays on every paddle hit
+HIT_BEEP_HZ = 1760                # beep pitch (0-2700 Hz)
 
 # Raw-unit guesses used until calibration says otherwise (see hardware/swing.py docstring).
 DEFAULT_ACCEL_RAW_PER_G = 1000.0  # replaced at zero() by the measured at-rest magnitude

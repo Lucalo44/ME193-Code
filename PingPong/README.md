@@ -466,8 +466,11 @@ motion reaches the paddle), `POSE_ARM_SCALE_M` (metres per torso length) and
 - **Notification rate.** Swings need 15 ms IMU notifications. `paddle.py` connects with
   `device_notification_delay=15` and records every sample through the notification
   callback (it doesn't poll `motor.imu_device`).
-- **Motors.** They are never driven during play. Set `HAPTICS_ENABLED = True` for a short
-  buzz on each hit.
+- **Hit feedback.** Each time your paddle hits the ball, the Double Motor gives a sharp jolt
+  (both motors at full power for 40 ms, then braking hard) and beeps from its built-in
+  speaker. Otherwise the motors are never driven. Tune or turn this off with
+  `HAPTICS_ENABLED` / `HAPTICS_PULSE_MS` / `HAPTICS_SPEED` and `HIT_BEEP_ENABLED` /
+  `HIT_BEEP_HZ` in `config.py`.
 - **Card filter.** `CARD_COLOR` / `CARD_SERIAL` in `config.py` pick your Double Motor by
   its Connection Card, like in Pose Racecar. Set either to `None` to skip that filter.
 

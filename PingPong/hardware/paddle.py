@@ -10,7 +10,7 @@ buffer, and fed to the swing detector. Detected swings go on `swing_events`
 for the game loop to drain.
 
 The motors are never driven during play (they're held stopped), except for
-the optional haptic buzz on a hit (HAPTICS_ENABLED).
+the haptic jolt + beep on a hit (HAPTICS_ENABLED, HIT_BEEP_ENABLED).
 
 Interface shared with hardware/sim_paddle.py:
     status, kind, calibration, swing_events, toss_events, toss_armed
@@ -223,6 +223,11 @@ class Paddle(PaddleBase):
                 self.motor.movement_stop(blocking=False)
             except Exception:
                 pass
+            try:
+                # Brake (not coast) at the end of each haptic pulse so the jolt stops dead.
+                self.motor.motor_set_end_state(le.MOTOR_END_STATE_BRAKE, motor=le.MOTOR_BOTH, blocking=False)
+            except Exception:
+                pass
             self.status = "connected"
             if self.auto_zero:
                 # Give the buffer a moment to fill, then zero on the current pose.
@@ -259,14 +264,23 @@ class Paddle(PaddleBase):
         return ok
 
     def haptic(self) -> None:
-        if not C.HAPTICS_ENABLED or self.motor is None or self.status != "connected":
+        """Hit feedback: a sharp jolt from both motors plus a beep from the motor's
+        speaker. Both commands are fire-and-forget so the game loop never waits on BLE."""
+        if not (C.HAPTICS_ENABLED or C.HIT_BEEP_ENABLED) or self.motor is None or self.status != "connected":
             return
 
         def buzz():
-            try:
-                self.motor.motor_run_for_time(C.HAPTICS_PULSE_MS, speed=C.HAPTICS_SPEED, blocking=False)
-            except Exception:
-                pass
+            if C.HAPTICS_ENABLED:
+                try:
+                    self.motor.motor_run_for_time(C.HAPTICS_PULSE_MS, motor=le.MOTOR_BOTH,
+                                                  speed=C.HAPTICS_SPEED, blocking=False)
+                except Exception:
+                    pass
+            if C.HIT_BEEP_ENABLED:
+                try:
+                    self.motor.beep(frequency=C.HIT_BEEP_HZ, blocking=False)
+                except Exception:
+                    pass
         threading.Thread(target=buzz, daemon=True).start()
 
     def shutdown(self) -> None:
