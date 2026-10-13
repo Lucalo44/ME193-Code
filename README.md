@@ -10,4 +10,4 @@ pip install -r requirements.txt
 
 ## Structure
 
-Project work is organized into dated subfolders (e.g. `9/15` for September 15).
+Project work is organized into per-project subfolders.
