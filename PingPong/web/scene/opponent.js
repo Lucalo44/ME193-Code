@@ -1,6 +1,6 @@
 // opponent.js -- the computer opponent: one athlete per speed setting (see OPPONENTS
 // in theme.js), built from primitives -- lathed torso, tapered limbs with joints,
-// polo collar, a face with eyes/brows/nose/mouth, three hairstyles, shorts or skirt.
+// polo collar, a face with eyes/brows/nose/mouth, five hairstyles, shorts, skirt or jeans.
 //
 // It faces the player (+z in scene coords). Its right hand is on scene -x, so its
 // forehand side is -x, matching game/opponent.py. A left-handed character
@@ -276,8 +276,27 @@ function buildAthlete(spec) {
     rig.legs.push({ thigh, knee, ankle, side: s });
   }
 
-  // ---- shorts / skirt (on the hips, so they follow the pelvis) ----
-  if (spec.bottom === 'skirt') {
+  // ---- shorts / skirt / jeans (on the hips, so they follow the pelvis) ----
+  if (spec.bottom === 'jeans') {
+    // Seat on the hips; each trouser leg rides the thigh and the shin, so it bends with the knee.
+    lathe(rig.hips, [[0.0, 0.09], [0.155, 0.09], [0.162, 0.0], [0.165, -0.045], [0.0, -0.045]], bottom, 0.72, 1.08);
+    const belt = add(rig.hips, new THREE.CylinderGeometry(0.158, 0.158, 0.022, 32, 1, true), plain('#3a2a1e', 0.5), 0, 0.075, 0);
+    belt.scale.set(1.08, 1, 0.72);
+    add(rig.hips, new THREE.BoxGeometry(0.03, 0.022, 0.01), plain('#b9b4a8', 0.3, 0.8), 0, 0.075, 0.118);   // buckle
+    const cuff = plain(new THREE.Color(spec.bottomColor).multiplyScalar(0.8).getStyle(), 0.9);
+    for (const leg of rig.legs) {
+      // Thigh: starts a little above the hip joint (up into the seat), so the leg's own top
+      // never shows through, and is wide enough at the top to fill the crotch.
+      add(leg.thigh, new THREE.CylinderGeometry(0.064, 0.094, THIGH + 0.04, 18, 1), bottom, 0, -THIGH / 2 + 0.02, 0);
+      add(leg.knee, new THREE.SphereGeometry(0.063, 14, 10), bottom);
+      const shin = SHIN - 0.04;
+      segment(leg.knee, 0.061, 0.052, shin, bottom);
+      const calf = add(leg.knee, new THREE.SphereGeometry(0.058, 14, 10), bottom, 0, -0.13, -0.012);   // covers the calf
+      calf.scale.set(1.0, 2.3, 1.12);
+      add(leg.knee, new THREE.CylinderGeometry(0.054, 0.054, 0.025, 18, 1, true), cuff, 0, -shin + 0.012, 0)
+        .material.side = THREE.DoubleSide;                                            // turned-up hem
+    }
+  } else if (spec.bottom === 'skirt') {
     lathe(rig.hips, [[0.0, 0.09], [0.155, 0.09], [0.16, 0.05], [0.195, -0.08], [0.225, -0.17]], bottom, 0.72, 1.08);
   } else {
     lathe(rig.hips, [[0.0, 0.09], [0.155, 0.09], [0.162, 0.0], [0.172, -0.08], [0.0, -0.08]], bottom, 0.72, 1.08);
@@ -339,6 +358,23 @@ function buildAthlete(spec) {
     bob.material.side = THREE.DoubleSide;
     const fringe = add(rig.head, new THREE.SphereGeometry(0.111, 24, 8, -Math.PI * 0.32, Math.PI * 0.64, Math.PI * 0.17, Math.PI * 0.13), hairMat, 0, 0.104, 0.002);
     fringe.scale.set(0.94, 1.1, 1.0);
+  } else if (spec.hairStyle === 'long') {
+    // Shoulder-length: a shell around the sides and back reaching below the jaw, a curtain
+    // down the back of the neck to the shoulders, and a fringe swept to one side.
+    const shell = add(rig.head, new THREE.SphereGeometry(0.116, 32, 24, Math.PI / 2 + 0.85, Math.PI * 2 - 1.7, 0, Math.PI * 0.78), hairMat, 0, 0.1, -0.008);
+    shell.scale.set(0.97, 1.32, 1.02);
+    shell.material = hairMat.clone();
+    shell.material.side = THREE.DoubleSide;
+    const curtain = add(rig.head, new THREE.CapsuleGeometry(0.075, 0.09, 6, 16), hairMat, 0, -0.03, -0.07);
+    curtain.scale.set(1.25, 1, 0.42);
+    for (const s of [-1, 1]) {                                                       // locks by the cheeks
+      const lock = add(rig.head, new THREE.CapsuleGeometry(0.02, 0.1, 4, 10), hairMat, s * 0.092, 0.0, 0.01);
+      lock.rotation.z = s * 0.12;
+      lock.scale.set(1, 1, 1.4);
+    }
+    const fringe = add(rig.head, new THREE.SphereGeometry(0.113, 24, 8, -Math.PI * 0.36, Math.PI * 0.62, Math.PI * 0.16, Math.PI * 0.16), hairMat, 0, 0.104, 0.002);
+    fringe.scale.set(0.95, 1.12, 1.0);
+    fringe.rotation.z = -0.12;                                                       // swept to the side
   } else if (spec.hairStyle === 'buns') {
     for (const s of [-1, 1]) {
       add(rig.head, new THREE.SphereGeometry(0.038, 16, 12), hairMat, s * 0.065, 0.19, -0.03);

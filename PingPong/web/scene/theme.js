@@ -130,8 +130,8 @@ export function spinColor(topspin, sidespin, out) {
 // plus style opponents that play like a recorded player (hand: 'left' mirrors the model).
 // Purely visual: difficulty still comes from config.py's speed settings.
 //   heightM     standing height (the whole model scales with it)
-//   hair        'short' | 'ponytail' | 'bob' | 'buns'
-//   bottom      'shorts' | 'skirt'
+//   hair        'short' | 'long' | 'ponytail' | 'bob' | 'buns'
+//   bottom      'shorts' | 'skirt' | 'jeans'
 //   style       crouch (thigh angle, rad), knee bend, bounce Hz / amplitude (m),
 //               lean (torso pitch), footwork (shuffle speed multiplier)
 export const OPPONENTS = {
@@ -171,9 +171,9 @@ export const OPPONENTS = {
   luca: {
     name: 'LUCA', tagline: 'YOUR OWN STYLE', hand: 'left',
     heightM: 1.80,
-    skin: '#e0b896', hair: '#5a3a22', hairStyle: 'short', brows: '#4a2f1b',
+    skin: '#e0b896', hair: '#5a3a22', hairStyle: 'long', brows: '#4a2f1b',
     shirt: '#1d4fa3', trim: '#2f8dff', accent: '#2f8dff',
-    bottom: 'shorts', bottomColor: '#14213a',
+    bottom: 'jeans', bottomColor: '#3c5a86',
     socks: '#f4f6fb', shoes: '#f4f6fb', shoeAccent: '#2f8dff',
     wristband: '#2f8dff',
     style: { crouch: -0.45, knee: 0.8, bounceHz: 2.8, bounceAmp: 0.01, lean: 0.3, footwork: 1.1 },
