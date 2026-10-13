@@ -76,9 +76,49 @@ Other flags:
 | `--no-browser` | Don't auto-open the browser |
 | `--replay CSV` | Play a recorded IMU log (e.g. `imu_logs/luca/calib_hard.csv`) as the paddle, in real time and looping. Lets you test without the motor. |
 | `--record-file PATH` | Save the hit record somewhere other than `streak_record.json` (useful for test runs) |
+| `--player NAME` | Who's playing (default `luca`, `DEFAULT_PLAYER` in config.py). Names the game recording. For anyone else it also loads `swing_calibration_NAME.json` and sets their hand from `imu_logs/NAME/player.json`. |
+| `--no-record` / `--record` | Don't record this session / record even with the keyboard or replay paddle (for testing) |
 
 With a real paddle, the game refuses to start until `swing_calibration.json` exists
 (see Milestone 2) unless you pass `--use-default-calibration`.
+
+## Recording games and the play profile
+
+Every game played with the real paddle is recorded to `game_logs/<player>/<date-time>/`:
+- the full paddle stream and every camera pose frame;
+- every game event;
+- one record per swing: the paddle's and the camera's stroke readings, the ball it was
+  aimed at, the timing, and what the game made of it (hit, LATE, WRONG STROKE, too early,
+  stray, ...).
+
+```bash
+python main.py --player bri                    # Bri's calibration and hand, recorded as bri
+python tools/game_report.py --player bri       # Bri's profile from every recorded session
+python tools/game_report.py --last 3           # yours, the last 3 sessions
+```
+
+The report answers two questions:
+- **Are the calls right?** It shows each way you lost points:
+  - **NO SWING**: whether the paddle was moving when the ball arrived (a swing the
+    detector missed, or really no swing).
+  - **LATE / EARLY**: how far off the timing was. A steady offset means the latency
+    calibration (L in the lobby) is off, not you.
+  - **WRONG STROKE**: who called it, and whether the other source saw the right stroke.
+- **How do you play?** Hit rate by side and ball speed, shot speed and spin,
+  forehand/backhand mix, and where your returns land. This is the start of a model of a
+  player's style.
+
+**Mark wrong calls.** After a point, press **X** in the game if the call was wrong. The
+report counts disputes per kind of call, which is the only real ground truth for misreads.
+
+**Train on game swings.** Hits where the side rule and a sure camera agree are reliable
+forehand/backhand labels. Add them to the paddle's stroke classifier:
+
+```bash
+python tools/calibrate_swing.py --player luca --from-logs --with-games
+```
+
+Only swings played with the player's own hand set in the lobby are used.
 
 ## Score publishing (MQTT)
 
@@ -273,7 +313,8 @@ Before training, the tool cleans each set:
   which one the game will use.
 
 **If a toss still isn't recognized in the game**, the game says why while you're due to
-serve (e.g. "Toss not counted: too much rotation (310 deg/s, max 180)"). The debug
+serve (e.g. "Toss not counted: too gentle (0.5 g, needs 0.8)"). Rotation doesn't count against a
+toss unless `TOSS_CHECK_ROTATION` is on. The debug
 overlay (**D**) shows the numbers for your last flick.
 
 **Run it again** if you calibrated before backhands and the tilt step were added; older
@@ -301,6 +342,10 @@ python tools/calibrate_swing.py --player luca --from-logs --pool all   # refresh
 - `--pool all`, or a list like `--pool luca,sam`. Players with the other hand are skipped,
   because a left-hander's forehand turns the motor the opposite way.
 - `--hand left|right` tags a player. The default is their earlier tag, else the lobby's hand.
+- `--steps rest,tilt,toss` re-records only those steps and keeps the player's other
+  recordings (the replaced ones go to `previous/`). Use it when one step went wrong, e.g.
+  the player moved during the 3 s still hold or started tilting before pressing Enter.
+- The still hold uses its steadiest 1.5 s, so settling in late or moving early is forgiven.
 - With two or more players the summary prints **leave-one-player-out** accuracy: each
   player's swings read by classifiers trained only on the others. That's how well the pool
   will work for someone who hasn't calibrated. If it's low for one player, they swing
@@ -514,6 +559,7 @@ Every tunable is in `config.py`, with a comment for each.
 | `DEUCE_SERVE_EVERY_POINT` | `True` = the standard rule of alternating every point at 10–10 |
 | `PLAYER_SERVE` | `False` = the CPU serves every point |
 | `TOSS_ACCEL_G`, `TOSS_MAX_GYRO_DPS`, `TOSS_UP_FRACTION` | Defaults for how sharp, how twist-free and how straight up a flick must be to count as a toss. `calibrate_swing.py` learns your own values and saves them in `swing_calibration.json`, which overrides these. |
+| `TOSS_CHECK_ROTATION`, `TOSS_ACCEL_G_MAX`, `TOSS_UP_FRACTION_MAX` | In-game leniency for every player, applied on top of any calibration. By default rotation never rejects a toss, a 0.8 g upward jolt is always enough, and 50% upward is always straight enough. Tosses only count while the game waits for your serve, so a twisting flick, or even a swing with an upward jolt, just starts the point. Set `TOSS_CHECK_ROTATION = True` for the strict, calibrated check. |
 | `TOSS_CAL_PEAK_FRACTION`, `TOSS_CAL_UP_FRACTION`, `TOSS_COOLDOWN_S` | How much slack `calibrate_swing.py` leaves below your calibration flicks (in-game tosses are less clean), and the gap between tosses. Lower the fractions if real tosses are still rejected. |
 | `TOSS_HEIGHT_*`, `SERVE_SPEED_*`, `SERVE_CONTACT_Y` | Toss height range, serve speed range, and the height the serve is struck at |
 
@@ -578,7 +624,8 @@ vision/    camera.py     capture thread
 server/    protocol.py   all message schemas (mirrored in web/main.js)
            ws_server.py  HTTP static server + WebSocket
 web/                     three.js scene (scene/*.js), HUD, vendored three.js r169
-tools/                   train_pose, arm_check, imu_logger, calibrate_swing, make_tags
+game/      recorder.py   game recording (game_logs/) for the play profile
+tools/                   train_pose, arm_check, imu_logger, calibrate_swing, game_report, make_tags
 tests/                   pytest suite (synthetic IMU recordings in tests/synth.py)
 ```
 

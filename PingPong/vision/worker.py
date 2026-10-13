@@ -37,6 +37,7 @@ class VisionWorker:
         self.judge = StrokeJudge()
         self.on_preview = on_preview
         self.on_frame = on_frame          # per-frame results (used by vision/process.py)
+        self.frame_listeners: list = []   # callables(frame dict) -- the game recorder
         self.arms: Optional[dict] = None
         self.arm = ArmTracker(C.HANDEDNESS)
         self.tags_active = False
@@ -116,20 +117,25 @@ class VisionWorker:
                     mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb), ts_ms)
                 landmarks = result.pose_landmarks[0] if result.pose_landmarks else None
             self.pose_detected = landmarks is not None
-            label, conf = None, 0.0
-            if landmarks is not None and self.classifier is not None:
+            label, conf, feat = None, 0.0, None
+            if landmarks is not None:
                 feat = extract_features(landmarks)
-                if feat is not None:
-                    label, conf = self.classifier.predict(feat)
+            if feat is not None and self.classifier is not None:
+                label, conf = self.classifier.predict(feat)
             self.prediction, self.confidence = label, conf
             t_pose = t_frame - C.POSE_FRAME_LATENCY_S
             self.judge.add(t_pose, label, conf)
             self.arms = arm_points(landmarks) if landmarks is not None else None
             self.arm.update(t_pose, self.arms)
-            if self.on_frame:
-                self.on_frame({"type": "frame", "t": t_pose, "label": label, "conf": conf,
-                               "pose": landmarks is not None, "arms": self.arms,
-                               "tag_lead": self.tag_lead, "tag_progress": self.tag_progress, "fps": self.fps})
+            if self.on_frame or self.frame_listeners:
+                msg = {"type": "frame", "t": t_pose, "label": label, "conf": conf,
+                       "pose": landmarks is not None, "arms": self.arms,
+                       "feat": feat.tolist() if feat is not None else None,
+                       "tag_lead": self.tag_lead, "tag_progress": self.tag_progress, "fps": self.fps}
+                if self.on_frame:
+                    self.on_frame(msg)
+                for fn in self.frame_listeners:
+                    fn(msg)
 
             now = time.monotonic()
             dt, last = now - last, now

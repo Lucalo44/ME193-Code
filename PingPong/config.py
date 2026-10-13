@@ -111,6 +111,9 @@ SIDESPIN_MAX_RADS = 80.0
 # --------------------------------------------------------------------------
 HANDEDNESS = "right"              # "right" or "left" -- default; switch it in the game (lobby / pause)
 PLAYER_SETTINGS_FILE = "player_settings.json"   # remembers the in-game handedness choice
+DEFAULT_PLAYER = "luca"          # who's playing when main.py gets no --player (names the recordings)
+GAME_RECORDING = True             # record real-paddle games to game_logs/<player>/ (main.py --no-record to skip)
+GAME_LOG_DIR = "game_logs"
 POSE_CLASSES = ["ready", "forehand", "backhand"]
 POSE_K = 5
 # Training data from left- and right-handed players (each sample remembers its hand):
@@ -233,13 +236,19 @@ SERVE_SPEED_MAX = 6.0             # ... and at strength 1
 SERVE_SPIN_SCALE = 0.8            # serves carry this fraction of the swing's spin
 SERVE_OWN_BOUNCE_Z = 0.7          # nominal depth of the serve's first bounce (own half, m from net)
 CPU_SERVE_SPEED_FACTOR = 0.75     # CPU serve speed = base shot speed * this
-# Toss detection on the real paddle: a sharp UPWARD jolt with little rotation.
+# Toss detection on the real paddle: a sharp UPWARD jolt (defaults; calibration overrides).
 TOSS_ACCEL_G = 0.8                # upward linear acceleration that counts as a toss (g)
-TOSS_MAX_GYRO_DPS = 120.0         # more rotation than this = a swing, not a toss
+TOSS_MAX_GYRO_DPS = 120.0         # more rotation than this = a swing, not a toss (only if TOSS_CHECK_ROTATION)
 TOSS_UP_FRACTION = 0.6            # the jolt must be mostly along "up"
 TOSS_CAL_PEAK_FRACTION = 0.5      # calibration: accept tosses down to this x your gentlest calibration flick
 TOSS_CAL_UP_FRACTION = 0.65       # calibration: ... and this x your least-vertical one
 TOSS_COOLDOWN_S = 0.5            # long enough to skip the stop-jolt ~0.3 s after each flick, short enough for a quick retry
+# In-game leniency, for every player whatever their calibration says. Tosses only
+# count while the game is waiting for your serve, so a twisting flick -- or even a
+# swing with an upward jolt -- starting the point is fine.
+TOSS_CHECK_ROTATION = False       # True = also reject flicks rotating faster than toss_max_gyro_dps
+TOSS_ACCEL_G_MAX = 0.8            # never demand a harder upward jolt than this (g)
+TOSS_UP_FRACTION_MAX = 0.5        # never demand a straighter-up flick than this
 
 # --------------------------------------------------------------------------
 # Score publishing (MQTT): record number of continuous hits, as a float

@@ -28,6 +28,7 @@ browser).
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 import threading
@@ -53,8 +54,15 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-camera", action="store_true", help="no pose check (always correct stroke), no tags")
     p.add_argument("--camera", type=int, default=0, help="camera device index (default 0)")
     p.add_argument("--pose-data", default=os.path.join(HERE, C.POSE_DATA_FILE), help="pose training data (.npz)")
-    p.add_argument("--calibration", default=os.path.join(HERE, C.SWING_CALIBRATION_FILE),
-                   help="swing calibration JSON from tools/calibrate_swing.py")
+    p.add_argument("--player", default=C.DEFAULT_PLAYER,
+                   help=f"who's playing (default {C.DEFAULT_PLAYER}): names the game recording, and for anyone "
+                        "else loads swing_calibration_<player>.json and the hand from imu_logs/<player>/")
+    p.add_argument("--calibration", default=None,
+                   help="swing calibration JSON from tools/calibrate_swing.py (default: the player's own, "
+                        f"else {C.SWING_CALIBRATION_FILE})")
+    p.add_argument("--no-record", action="store_true", help="don't record this session to game_logs/")
+    p.add_argument("--record", action="store_true",
+                   help="record even without the real paddle (keyboard / replay -- for testing)")
     p.add_argument("--use-default-calibration", action="store_true",
                    help="play with a real paddle without running calibrate_swing.py first")
     p.add_argument("--debug", action="store_true", help="debug overlay on, verbose event logging")
@@ -68,6 +76,40 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--http-port", type=int, default=C.HTTP_PORT)
     p.add_argument("--ws-port", type=int, default=C.WS_PORT)
     return p
+
+
+def resolve_player(args) -> None:
+    """Fill in args.calibration and args.hand from --player."""
+    own = os.path.join(HERE, f"swing_calibration_{args.player}.json")
+    if args.calibration is None:
+        use_own = args.player != C.DEFAULT_PLAYER and os.path.exists(own)
+        args.calibration = own if use_own else os.path.join(HERE, C.SWING_CALIBRATION_FILE)
+    args.hand = None
+    try:
+        with open(os.path.join(HERE, "imu_logs", args.player, "player.json")) as f:
+            hand = json.load(f).get("hand")
+        args.hand = hand if hand in ("left", "right") else None
+    except (OSError, ValueError):
+        pass
+    print(f"Player: {args.player}"
+          + (f" ({args.hand}-handed)" if args.hand else "")
+          + f", swing calibration {os.path.basename(args.calibration)}")
+
+
+def make_recorder(args, paddle, vision):
+    if args.no_record or not C.GAME_RECORDING or (paddle.kind != "real" and not args.record):
+        return None
+    from game.recorder import GameRecorder
+    meta = {"hand": args.hand, "calibration": os.path.basename(args.calibration), "calibration_path": args.calibration,
+            "pose_data": args.pose_data,
+            "paddle": paddle.kind, "camera": vision is not None,
+            "config": {k: getattr(C, k) for k in ("LATENCY_OFFSET_S", "STROKE_WINDOW_S", "STROKE_CAMERA_SURE",
+                                                  "STROKE_IMU_SURE", "STROKE_USE_IMU", "POSE_HAND_MODE")}}
+    rec = GameRecorder(args.player, meta=meta)
+    paddle.raw_listeners.append(rec.on_sample)
+    if vision is not None and hasattr(vision, "frame_listeners"):
+        vision.frame_listeners.append(rec.on_frame)
+    return rec
 
 
 def make_paddle(args):
@@ -148,6 +190,7 @@ def terminal_input(game: Game, stop: threading.Event) -> None:
 
 def main() -> int:
     args = build_arg_parser().parse_args()
+    resolve_player(args)
     paddle = make_paddle(args)
     if paddle is None:
         return 1
@@ -178,9 +221,15 @@ def main() -> int:
     if scores.enabled:
         print(f"Publishing the hit record ({float(streak.record)}) to {args.mqtt_topic} on {C.MQTT_BROKER}")
 
+    recorder = make_recorder(args, paddle, vision)
+    if recorder:
+        print(f"Recording games to {os.path.join(C.GAME_LOG_DIR, args.player)}/ (--no-record to skip)")
     game = Game(paddle, vision, server.publish_state, publish_event, debug=args.debug, seed=args.seed,
                 streak=streak, mqtt_status=lambda: scores.status,
-                settings_file=args.settings_file or os.path.join(HERE, C.PLAYER_SETTINGS_FILE))
+                settings_file=args.settings_file or os.path.join(HERE, C.PLAYER_SETTINGS_FILE),
+                recorder=recorder)
+    if args.hand:
+        game.set_handedness(args.hand)      # this player's hand, whatever the lobby was left on
     game_ref["game"] = game
 
     stop = threading.Event()
@@ -216,6 +265,12 @@ def main() -> int:
         print("\nShutting down...")
         game.stop()
         game_thread.join(timeout=1.0)
+        if recorder:
+            recorder.update_meta(handedness_end=game.handedness)
+            recorder.close()
+            if recorder.dir:
+                print(f"Saved the session to {os.path.relpath(recorder.dir, HERE)}  "
+                      f"(python tools/game_report.py --player {args.player})")
         paddle.shutdown()
         if vision:
             vision.stop()

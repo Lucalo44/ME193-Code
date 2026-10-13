@@ -91,6 +91,7 @@ class PendingHit:
     confidence: float
     required: str
     serve: bool = False
+    swing_id: Optional[int] = None
 
 
 class Game:
@@ -100,8 +101,12 @@ class Game:
                  debug: bool = False, seed: Optional[int] = None,
                  clock: Callable[[], float] = time.monotonic,
                  streak: Optional[StreakTracker] = None, mqtt_status: Callable[[], str] = lambda: "off",
-                 settings_file: Optional[str] = None):
+                 settings_file: Optional[str] = None, recorder=None):
         self.paddle = paddle
+        self.recorder = recorder                  # game/recorder.py, or None (no recording)
+        self._swing_id = 0
+        self._last_hit_id: Optional[int] = None   # the player's shot in flight, for its result
+        self._last_call: Optional[dict] = None    # last miss call, for the "that was wrong" key
         self.vision = vision
         self._publish_state = publish_state or (lambda m: None)
         self._publish_event = publish_event or (lambda m: None)
@@ -226,6 +231,8 @@ class Game:
                 self._substep()
         self.clock_offset = self.clock() - (self.sim_t + self._acc)
         self.paddle.tick(dt)
+        if self.recorder is not None:
+            self.recorder.flush()
         self._drain_swings(ignore=paused)
         self._drain_tosses(ignore=paused)
         self._poll_tags()
@@ -311,6 +318,10 @@ class Game:
         self.match.reset()
         self._clear_rally()
         self.sm.to(SM.SERVE, self.sim_t)
+        if self.recorder is not None:
+            self.recorder.open()
+            self._record("game_start", speed=setting, handedness=self.handedness, paddle=self.paddle.kind,
+                         latency_offset_s=C.LATENCY_OFFSET_S)
         self._emit("message", text=f"{setting.upper()} - game on!")
 
     def reset(self) -> None:
@@ -414,6 +425,7 @@ class Game:
             shot = self.opponent.strike(b, self.sim_t, self.player_strength)
             if shot is None:
                 return  # whiff: the ball flies on and the floor settles it
+            self._record("cpu_shot", pos=b.pos, ball_vel=b.vel, ball_spin=b.spin, vel=shot.vel, spin=shot.spin)
             self.ball = P.Ball(b.pos, shot.vel, shot.spin)
             self._begin_flight("cpu")
             self._emit("hit", who="cpu", pos=b.pos, speed=P.v_norm(shot.vel))
@@ -455,6 +467,11 @@ class Game:
         if inc and not inc.resolved and self.pending is None \
                 and self.sim_t > inc.t + inc.late_s + C.LATE_ZONE_S:
             inc.resolved = True
+            # No swing registered in time: was the paddle moving at all? (tools/game_report.py
+            # checks imu.csv around `arrival_t` to tell a missed swing from no swing.)
+            self._record("missed_ball", required=inc.required, serve=inc.serve, pos=inc.pos,
+                         arrival_t=inc.t + self.clock_offset, ball_vel=self.ball.vel,
+                         swing_in_progress=self.paddle.swing_in_progress())
             self._player_miss("MISSED SERVE" if inc.serve else "NO SWING")
 
     def _begin_flight(self, hitter: str, serve: bool = False) -> None:
@@ -485,11 +502,16 @@ class Game:
 
     def _count_hit(self) -> None:
         """One continuous hit: the player's return landed in. Tracks the record."""
+        self._record("shot_result", swing_id=self._last_hit_id, result="in", pos=self.ball.pos)
         if self.streak.hit():
             self._emit("record", record=self.streak.record)
 
     def _end_point(self, winner: str, reason: str, game_penalty: bool = False, **extra) -> None:
+        f = self.flight
+        if winner == "cpu" and f is not None and f.hitter == "player" and f.bounces == 0:
+            self._record("shot_result", swing_id=self._last_hit_id, result=reason, pos=self.ball.pos)
         if winner == "cpu":
+            self._last_call = {"reason": reason, "sim_t": self.sim_t, "swing_id": extra.get("swing_id"), **extra}
             self.streak.reset_streak()      # only losing a point breaks the streak
             self._emit("miss", reason=reason, **extra)
         result = self.match.award_game(winner) if game_penalty else self.match.award_point(winner)
@@ -576,39 +598,69 @@ class Game:
         if arm is not None and self.paddle.kind != "sim":
             arm.on_swing(ev.t_peak)                 # teaches it which arm holds the paddle
         self._emit("swing", trace=ev.trace(self.paddle.calibration), **ev.summary())
+        self._swing_id += 1
+        rec = self._swing_record(ev, t, t_corr) if self.recorder is not None and self.recorder.active else None
+        outcome = self._handle_swing(ev, t, t_corr, rec)
+        if rec is not None:
+            rec["outcome"] = outcome
+            self.recorder.swing(rec)
+
+    def _handle_swing(self, ev, t: float, t_corr: float, rec: Optional[dict]) -> str:
+        """Act on one swing; returns what it was (the recorded outcome)."""
         if self.sm.phase == SM.LATENCY_CAL:
             self._latency_swing(t)
-            return
+            return "latency_cal"
         if self.sm.phase == SM.SERVE and self.serve_state == "await_toss" and self.paddle.kind != "sim":
             self._swing_while_awaiting = self.sim_t   # reported shortly unless a toss follows
-            return
+            return "awaiting_toss"
         inc = self.incoming
         if self.sm.phase != SM.RALLY or inc is None or inc.resolved or self.pending:
-            return
+            return "no_ball"
         if inc.serve and t < self.toss_t + C.TOSS_IGNORE_S:
-            return  # the tossing motion itself, not the serve stroke
+            return "toss_motion"  # the tossing motion itself, not the serve stroke
         dt = t_corr - inc.t
         if dt > inc.late_s + C.LATE_ZONE_S:
-            return  # stray swing, long after the ball
+            return "stray"  # stray swing, long after the ball
         if dt < -inc.early_s:
             # Too early: a whiff, not a miss -- the player can swing again (Wii-style).
             self._emit("early_swing", by_s=-dt)
-            return
+            return "early"
         if dt > inc.late_s:
             inc.resolved = True
-            self._player_miss("LATE", by_s=dt)
-            return
+            self._player_miss("LATE", by_s=dt, swing_id=self._swing_id)
+            return "late"
         if inc.serve:
             # Any stroke can serve; no pose check.
             inc.resolved = True
-            self.pending = PendingHit(max(t_corr, inc.t), ev, "serve", 1.0, "either", serve=True)
-            return
+            self.pending = PendingHit(max(t_corr, inc.t), ev, "serve", 1.0, "either", serve=True,
+                                      swing_id=self._swing_id)
+            return "serve_hit"
         stroke, conf, why = self._judge(ev, inc.required)
+        if rec is not None:
+            rec["call"] = {"stroke": stroke, "conf": conf, "source": why}
         inc.resolved = True
         if not stroke_ok(inc.required, stroke):
-            self._player_miss("WRONG STROKE", needed=inc.required, judged=stroke, confidence=conf, source=why)
-            return
-        self.pending = PendingHit(max(t_corr, inc.t), ev, stroke, conf, inc.required)
+            self._player_miss("WRONG STROKE", needed=inc.required, judged=stroke, confidence=conf, source=why,
+                              swing_id=self._swing_id)
+            return "wrong_stroke"
+        self.pending = PendingHit(max(t_corr, inc.t), ev, stroke, conf, inc.required, swing_id=self._swing_id)
+        return "hit"
+
+    def _swing_record(self, ev, t: float, t_corr: float) -> dict:
+        """Everything known about a swing at the moment it registers (before the game acts on it)."""
+        rec = {"id": self._swing_id, "t": ev.t_peak, "sim_t": t, "phase": self.sm.phase,
+               "serve_state": self.serve_state, "handedness": self.handedness, "speed": self.speed_setting,
+               **ev.summary(), "features": ev.features}
+        v = self.vision
+        if v is not None and getattr(v, "judge", None) is not None:
+            rec["camera"] = list(v.judge.judge(ev.t_peak))     # (stroke or None, vote share)
+            rec["camera_on"] = bool(v.stroke_check_enabled)
+        inc = self.incoming
+        if inc is not None and not inc.resolved:
+            rec["ball"] = {"required": inc.required, "serve": inc.serve, "pos": inc.pos,
+                           "arrival_t": inc.t + self.clock_offset, "dt": t_corr - inc.t,
+                           "early_s": inc.early_s, "late_s": inc.late_s, "vel": self.ball.vel}
+        return rec
 
     def _judge(self, ev, required: str):
         """(stroke, confidence, which source decided)."""
@@ -645,6 +697,7 @@ class Game:
         self.pending = None
         self.incoming = None
         self.player_strength = sw.strength
+        ball_in = self.ball
         self.ball = P.Ball(pos, shot.vel, shot.spin)
         self.flight = Flight("player", "cpu", self.sim_t, serve=h.serve)
         # Contact happened at h.t; catch the ball up to the present -- unless it was
@@ -655,6 +708,10 @@ class Game:
                 self._referee(ev)
             if self.sm.phase != SM.RALLY:
                 return
+        self._last_hit_id = h.swing_id
+        self._record("player_shot", swing_id=h.swing_id, pos=pos, serve=h.serve, stroke=h.stroke,
+                     required=h.required, held=bool(held), ball_vel=ball_in.vel, ball_spin=ball_in.spin,
+                     vel=shot.vel, spin=shot.spin, speed=speed)
         self.opponent.on_incoming(self.ball, self.sim_t, serve=h.serve)
         self.paddle.haptic()
         self._emit("hit", who="player", pos=pos, speed=speed, strength=sw.strength, serve=h.serve,
@@ -746,12 +803,33 @@ class Game:
             self.start_game(("slow", "medium", "fast")[int(k) - 1])
         elif k == "l":
             self.start_latency_cal()
+        elif k == "x":
+            self._dispute()
+
+    def _dispute(self) -> None:
+        """X: the player says the last miss call was wrong. Logged as ground truth for
+        tools/game_report.py (how often each kind of call is disputed)."""
+        if self.recorder is None or not self.recorder.active:
+            self._emit("message", text="Not recording -- nothing to mark")
+            return
+        if self._last_call is None:
+            self._emit("message", text="No call to mark yet")
+            return
+        self._record("dispute", **self._last_call)
+        self._emit("message", text=f"Marked: {self._last_call['reason']} was the wrong call")
+        self._last_call = None
 
     # ======================================================================
     # Output
     # ======================================================================
     def _emit(self, name: str, **fields) -> None:
         self._publish_event(protocol.event_message(name, **fields))
+        self._record(name, **fields)
+
+    def _record(self, name: str, **fields) -> None:
+        """Log an event to the game recording only (not sent to the browser)."""
+        if self.recorder is not None:
+            self.recorder.event(name, self.clock(), self.sim_t, fields)
 
     def snapshot(self) -> dict:
         ph = self.sm.phase

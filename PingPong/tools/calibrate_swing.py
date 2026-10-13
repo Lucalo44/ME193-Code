@@ -63,6 +63,7 @@ sys.path.insert(0, HERE)
 import config as C  # noqa: E402
 from hardware import swing_model  # noqa: E402
 from hardware.swing import (Calibration, ImuSample, SwingDetector, SwingEvent, TossDetector, combine_terms, detect_all,
+                            toss_limits,
                             load_csv as _load_csv, retime, save_csv)
 
 
@@ -82,8 +83,8 @@ STEPS = [
     ("left", "{n} swings BRUSHING LEFT across the ball (sidespin)"),
     ("right", "{n} swings BRUSHING RIGHT across the ball (sidespin)"),
 ]
-FOREHAND_SETS = ("soft", "hard", "closed", "open")
-BACKHAND_SETS = ("bh_soft", "bh_hard", "bh_closed", "bh_open")
+FOREHAND_SETS = ("soft", "hard", "closed", "open", "game_fh")       # game_*: --with-games
+BACKHAND_SETS = ("bh_soft", "bh_hard", "bh_closed", "bh_open", "game_bh")
 STROKE_FEATURES = ["gx_mean", "gy_mean", "gz_mean", "gx_int", "gy_int", "gz_int", "yaw_delta"]
 TOPSPIN_ANGLE_FEATURES = ["pitch_at_peak", "roll_at_peak", "yaw_at_peak"]
 TOPSPIN_GYRO_FEATURES = ["gx_mean", "gy_mean", "gz_mean"]
@@ -370,8 +371,9 @@ def calibrate_toss(cal: Calibration, toss_samples: Sequence[ImuSample],
         cal.toss_max_gyro_dps = (toss_gyro + min(rivals)) / 2
     else:
         cal.toss_max_gyro_dps = toss_gyro * 1.1 + 10
-        warnings.append("toss: some swings look like tosses (as upward and as twist-free); keep the toss flick "
-                        "straight up and the swings sweeping")
+        if C.TOSS_CHECK_ROTATION:   # otherwise the game ignores rotation, so the overlap doesn't matter
+            warnings.append("toss: some swings look like tosses (as upward and as twist-free); keep the toss flick "
+                            "straight up and the swings sweeping")
     return warnings
 
 
@@ -396,6 +398,29 @@ def clean_set(events: List[SwingEvent]) -> List[SwingEvent]:
     med_g = statistics.median(e.peak_accel_g for e in merged)
     med_w = statistics.median(e.peak_gyro_dps for e in merged)
     return [e for e in merged if e.peak_accel_g >= 0.4 * med_g and e.peak_gyro_dps >= 0.4 * med_w]
+
+
+def steadiest(rest: Sequence[ImuSample], seconds: float = 1.5) -> List[ImuSample]:
+    """The stillest `seconds` of the hold-still recording: players often settle in
+    late or start moving before the 3 s are up, and a single wobble would otherwise
+    set the noise floor -- and with it the swing and toss thresholds -- far too high."""
+    rest = list(rest)
+    if len(rest) < 5 or rest[-1].t - rest[0].t <= seconds:
+        return rest
+    keys = ("gx", "gy", "gz")
+    n = len(rest)
+    bias = [sum(getattr(s, k) for s in rest) / n for k in keys]
+    motion = [math.sqrt(sum((getattr(s, k) - bias[i]) ** 2 for i, k in enumerate(keys))) for s in rest]
+    best, best_score, j = rest, math.inf, 0
+    for i in range(n):
+        while j < n and rest[j].t - rest[i].t < seconds:
+            j += 1
+        if j >= n:
+            break
+        score = max(motion[i:j])
+        if score < best_score:
+            best, best_score = rest[i:j], score
+    return best
 
 
 def permissive(cal: Calibration) -> Calibration:
@@ -514,7 +539,7 @@ def load_player(player: str) -> PlayerData:
     def maybe(step):
         return load_csv(log_path(step, player)) if os.path.exists(log_path(step, player)) else []
     recordings = {step: maybe(step) for step, _ in STEPS}
-    return PlayerData(player, player_hand(player), maybe("rest"), maybe("tilt"), maybe("toss"),
+    return PlayerData(player, player_hand(player), steadiest(maybe("rest")), maybe("tilt"), maybe("toss"),
                       {k: v for k, v in recordings.items() if v})
 
 
@@ -557,7 +582,36 @@ def calibrate_player(data: PlayerData, expect: Optional[int] = None, verbose: bo
 def pool_sets(per_player: Dict[str, Dict[str, List[SwingEvent]]]) -> Dict[str, List[SwingEvent]]:
     """Every player's labelled swings, step by step. Each player's features were
     measured with their own calibration (own ready pose, own scale), so they mix."""
-    return {step: [e for sets in per_player.values() for e in sets.get(step, [])] for step, _ in STEPS}
+    steps = {step for sets in per_player.values() for step in sets}
+    return {step: [e for sets in per_player.values() for e in sets.get(step, [])] for step in steps}
+
+
+def game_sets_for(player: str, hand: str) -> Dict[str, List[SwingEvent]]:
+    """Forehands and backhands from the player's recorded games (game_logs/<player>/)
+    whose label is reliable: hit in time, and the side rule and a sure camera agree
+    (tools/game_report.py: confident_label). Only games played with this hand count --
+    with the wrong hand in the lobby, the side rule and the camera both flip."""
+    from tools.game_report import confident_label, load_sessions
+    out: Dict[str, List[SwingEvent]] = {"game_fh": [], "game_bh": []}
+    for session in load_sessions(player, None, None):
+        for sw in session.swings:
+            label = confident_label(sw)
+            if label is None or sw.get("handedness") != hand or not sw.get("features"):
+                continue
+            ev = SwingEvent(t_peak=sw["t"], strength=sw["strength"], return_speed=sw["return_speed"],
+                            topspin=sw["topspin"], sidespin=sw["sidespin"], peak_accel_g=sw["peak_accel_g"],
+                            peak_gyro_dps=sw["peak_gyro_dps"], features=sw["features"])
+            out["game_fh" if label == "forehand" else "game_bh"].append(ev)
+    return out
+
+
+def add_game_swings(sets: Dict[str, List[SwingEvent]], player: str, hand: str) -> int:
+    extra = game_sets_for(player, hand)
+    for k, v in extra.items():
+        sets[k] = sets.get(k, []) + v
+    n_fh, n_bh = len(extra["game_fh"]), len(extra["game_bh"])
+    print(f"   games: + {player}'s {n_fh} forehands and {n_bh} backhands from recorded games")
+    return n_fh + n_bh
 
 
 def leave_one_player_out(per_player: Dict[str, Dict[str, List[SwingEvent]]]) -> Dict[str, tuple]:
@@ -584,27 +638,47 @@ def leave_one_player_out(per_player: Dict[str, Dict[str, List[SwingEvent]]]) -> 
     return out
 
 
-def record_player(player: str, n: int, quick: bool) -> bool:
-    """Guided live recording into imu_logs/<player>/. Returns False if the motor didn't connect."""
+ALL_STEPS = ("rest", "tilt", "toss") + tuple(step for step, _ in STEPS)
+
+
+def archive_steps(player: str, steps: Sequence[str]) -> None:
+    """Move these steps' earlier recordings to imu_logs/<player>/previous/ before re-recording them."""
+    prev = os.path.join(player_dir(player), "previous")
+    files = [f for step in steps for f in glob.glob(os.path.join(player_dir(player), f"calib_{step}.csv"))
+             + glob.glob(os.path.join(player_dir(player), f"calib_{step}_*swings.csv"))]
+    if not files:
+        return
+    shutil.rmtree(prev, ignore_errors=True)
+    os.makedirs(prev)
+    for f in files:
+        shutil.move(f, prev)
+    print(f"Note: {player}'s earlier recordings of {', '.join(steps)} moved to {prev}.")
+
+
+def record_player(player: str, n: int, steps: Sequence[str]) -> bool:
+    """Guided live recording of `steps` into imu_logs/<player>/. Returns False if the motor didn't connect."""
     rec = Recorder()
     if not rec.connect():
         return False
     os.makedirs(player_dir(player), exist_ok=True)
     print("\nHold the paddle the way you will play.")
-    input("Step 1: hold it STILL at your ready position, then press Enter (records 3 s). ")
-    time.sleep(0.3)
-    save_csv(log_path("rest", player), rec.record_for(3.0))
-    input("\nStep 2: from the ready position, SLOWLY tilt the paddle face DOWN toward the table\n"
-          "        (about 45 degrees) and HOLD it there. Press Enter to start, Enter again once held. ")
-    save_csv(log_path("tilt", player), rec.record_until_enter())
-    input(f"\nStep 3: {n} serve TOSSES. From your ready position, flick the paddle sharply STRAIGHT UP\n"
-          "        (as if tossing the ball), with a pause between flicks. Press Enter to start. ")
-    save_csv(log_path("toss", player), rec.record_until_enter())
+    if "rest" in steps:
+        input("Step 1: hold it STILL at your ready position, then press Enter (records 3 s). ")
+        time.sleep(0.3)
+        save_csv(log_path("rest", player), rec.record_for(3.0))
+    if "tilt" in steps:
+        input("\nStep 2: hold the paddle at the ready position. Press Enter, THEN slowly tilt the face DOWN\n"
+              "        toward the table (about 45 degrees) and HOLD it there. Press Enter again once held. ")
+        save_csv(log_path("tilt", player), rec.record_until_enter())
+    if "toss" in steps:
+        input(f"\nStep 3: {n} serve TOSSES. From your ready position, flick the paddle sharply STRAIGHT UP\n"
+              "        (as if tossing the ball), with a pause between flicks. Press Enter to start. ")
+        save_csv(log_path("toss", player), rec.record_until_enter())
     probe = Calibration()
-    probe.zero_from(load_csv(log_path("rest", player)))
+    probe.zero_from(steadiest(load_csv(log_path("rest", player))) if os.path.exists(log_path("rest", player)) else [])
     seg = permissive(probe)
     for step, text in STEPS:
-        if quick and step not in QUICK_STEPS:
+        if step not in steps:
             continue
         input(f"\nNext: {text.format(n=n)}. Press Enter to start. ")
         samples = rec.record_until_enter()
@@ -626,9 +700,15 @@ def main() -> int:
     ap.add_argument("--pool", metavar="NAMES",
                     help="train the spin and forehand/backhand decisions on these players' swings too "
                          "(comma-separated, or 'all'); only players with the same hand are used")
+    ap.add_argument("--with-games", action="store_true",
+                    help="also train forehand vs backhand on reliably labelled swings from recorded games "
+                         "(game_logs/<player>/, see tools/game_report.py); with --pool, every pooled player's")
     ap.add_argument("--quick", action="store_true",
                     help="record only rest, tilt, tosses and soft/hard forehands and backhands; "
                          "spin comes from --pool")
+    ap.add_argument("--steps", metavar="STEPS",
+                    help="re-record only these steps (comma-separated, e.g. rest,tilt,toss) and keep the "
+                         "player's other recordings; steps: " + ", ".join(ALL_STEPS))
     ap.add_argument("--out", default=os.path.join(HERE, C.SWING_CALIBRATION_FILE))
     ap.add_argument("--swings", type=int, default=5, metavar="N",
                     help="repetitions per swing/toss step (default 5; 3-30). More = more reliable spin and "
@@ -637,6 +717,18 @@ def main() -> int:
     n = args.swings
     if not 3 <= n <= 30:
         ap.error("--swings must be between 3 and 30")
+    steps = list(ALL_STEPS)
+    if args.steps:
+        steps = [x.strip() for x in args.steps.split(",") if x.strip()]
+        bad = [x for x in steps if x not in ALL_STEPS]
+        if bad:
+            ap.error(f"unknown step(s) {', '.join(bad)}; choose from {', '.join(ALL_STEPS)}")
+        if args.from_logs or args.quick:
+            ap.error("--steps re-records steps live; it can't be combined with --from-logs or --quick")
+        if not os.path.exists(log_path("rest", args.player)) and "rest" not in steps:
+            ap.error(f"{args.player} has no earlier recordings to keep; record everything (leave out --steps)")
+    elif args.quick:
+        steps = ["rest", "tilt", "toss", *QUICK_STEPS]
     if args.quick and not args.pool:
         print("Note: --quick without --pool records no spin swings, so spin uses the defaults.")
 
@@ -647,15 +739,10 @@ def main() -> int:
                   f"Players with recordings: {', '.join(list_players()) or 'none'}")
             return 1
     else:
-        if os.path.exists(log_path("rest", args.player)):
-            # Keep the earlier session whole, so a --quick re-record never mixes old and new swings.
-            prev = os.path.join(player_dir(args.player), "previous")
-            shutil.rmtree(prev, ignore_errors=True)
-            os.makedirs(prev)
-            for f in glob.glob(os.path.join(player_dir(args.player), "calib_*.csv")):
-                shutil.move(f, prev)
-            print(f"Note: {args.player}'s earlier recordings moved to {prev}.")
-        if not record_player(args.player, n, args.quick):
+        # A full or --quick session replaces the whole earlier one (so old and new
+        # swings never mix); --steps replaces just the steps being redone.
+        archive_steps(args.player, steps if args.steps else ALL_STEPS)
+        if not record_player(args.player, n, steps):
             return 1
     if args.hand or player_hand(args.player) is None or not args.from_logs:
         save_player_hand(args.player, hand)
@@ -666,6 +753,7 @@ def main() -> int:
 
     # Pool other players' swings into the spin and stroke decisions.
     per_player = {args.player: game_sets}
+    added = add_game_swings(game_sets, args.player, hand) if args.with_games else 0
     if args.pool:
         names = list_players() if args.pool == "all" else [p.strip() for p in args.pool.split(",") if p.strip()]
         for p in names:
@@ -680,11 +768,13 @@ def main() -> int:
                       f"(tag with: calibrate_swing.py --player {p} --hand {hand} --from-logs)")
                 continue
             _, sets, _ = calibrate_player(other, verbose=False)
+            if args.with_games:
+                added += add_game_swings(sets, p, hand)
             per_player[p] = sets
             swing_samples += list(other.recordings.values())
             print(f"   pool: + {p} ({sum(len(v) for v in sets.values())} swings)")
-        if len(per_player) > 1:
-            fit_decisions(cal, pool_sets(per_player))
+    if len(per_player) > 1 or added:
+        fit_decisions(cal, pool_sets(per_player))
     # Toss: this player's flicks, kept clear of every pooled player's swings.
     toss_warnings = calibrate_toss(cal, data.toss, swing_samples) if data.toss else \
         ["toss: no toss recording -- keeping the default toss settings"]
@@ -700,11 +790,15 @@ def main() -> int:
     if cal.stroke_back_fh_deg is not None:
         print(f"backswing (live)     forehand {cal.stroke_back_fh_deg:+.0f} deg, backhand {cal.stroke_back_bh_deg:+.0f} deg "
               "of paddle turn = fully drawn back on screen")
-    print(f"serve toss           >= {cal.toss_accel_g:.2f} g upward, <= {cal.toss_max_gyro_dps:.0f} deg/s rotation, "
-          f">= {cal.toss_up_fraction:.0%} straight up")
+    accel, max_gyro, up_min = toss_limits(cal)
+    print(f"serve toss           >= {accel:.2f} g upward, "
+          + (f"<= {max_gyro:.0f} deg/s rotation, " if max_gyro is not None else "any rotation, ")
+          + f">= {up_min:.0%} straight up   (in the game, after the TOSS_* caps in config.py)")
     if toss:
         print(f"check toss        -> {count_tosses(toss, cal)} flicks count as tosses (asked for {n}); "
-              f"{sum(count_tosses(v, cal) for v in swing_samples)} of the swings do (should be 0)")
+              f"{sum(count_tosses(v, cal) for v in swing_samples)} of the swings would too"
+              + (" (should be 0)" if C.TOSS_CHECK_ROTATION else
+                 " -- fine: tosses only count while the game waits for your serve"))
     for w in toss_warnings:
         print("Warning: " + w)
     for name, terms in (("topspin FH", cal.topspin_terms), ("topspin BH", cal.topspin_terms_backhand or []),

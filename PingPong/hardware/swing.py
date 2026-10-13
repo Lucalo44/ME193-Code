@@ -60,7 +60,7 @@ import math
 import os
 from collections import deque
 from dataclasses import asdict, dataclass, field
-from typing import Deque, Dict, List, Optional, Sequence
+from typing import Deque, Dict, List, Optional, Sequence, Tuple
 
 import config as C
 from hardware import swing_model
@@ -521,6 +521,15 @@ def toss_height(strength: float) -> float:
     return C.TOSS_HEIGHT_MIN + (C.TOSS_HEIGHT_MAX - C.TOSS_HEIGHT_MIN) * s
 
 
+def toss_limits(cal: Calibration) -> Tuple[float, Optional[float], float]:
+    """The toss thresholds actually applied in the game: (upward g, max rotation in
+    deg/s or None = any, straight-up fraction) -- the calibration's values, loosened
+    by the TOSS_CHECK_ROTATION / TOSS_*_MAX caps in config.py."""
+    return (min(cal.toss_accel_g, C.TOSS_ACCEL_G_MAX),
+            cal.toss_max_gyro_dps if C.TOSS_CHECK_ROTATION else None,
+            min(cal.toss_up_fraction, C.TOSS_UP_FRACTION_MAX))
+
+
 class TossDetector:
     """Detects the serve toss: an upward jolt with little rotation. Shares the
     swing detector's gravity estimate and calibration; the thresholds come from
@@ -545,7 +554,7 @@ class TossDetector:
 
     def push(self, s: ImuSample) -> Optional[TossEvent]:
         cal = self.swing.cal
-        thr = cal.toss_accel_g
+        thr, max_gyro, up_min = toss_limits(cal)
         g = self.swing.gravity
         gmag = math.sqrt(sum(x * x for x in g)) or 1.0
         up = [x / gmag for x in g]               # at rest the accelerometer reads +1 g "up"
@@ -571,10 +580,10 @@ class TossDetector:
                 "up_frac": round(self._up_frac, 2)}
         if self._peak < thr:
             cand["result"] = f"too gentle ({self._peak:.1f} g, needs {thr:.1f})"
-        elif self._max_gyro > cal.toss_max_gyro_dps:
-            cand["result"] = f"too much rotation ({self._max_gyro:.0f} deg/s, max {cal.toss_max_gyro_dps:.0f})"
-        elif self._up_frac < cal.toss_up_fraction:
-            cand["result"] = f"not straight up ({self._up_frac:.0%} upward, needs {cal.toss_up_fraction:.0%})"
+        elif max_gyro is not None and self._max_gyro > max_gyro:
+            cand["result"] = f"too much rotation ({self._max_gyro:.0f} deg/s, max {max_gyro:.0f})"
+        elif self._up_frac < up_min:
+            cand["result"] = f"not straight up ({self._up_frac:.0%} upward, needs {up_min:.0%})"
         elif self._peak_t - self._last_t < C.TOSS_COOLDOWN_S:
             cand["result"] = "too soon after the last toss"
         else:

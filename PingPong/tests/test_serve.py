@@ -160,10 +160,18 @@ def test_upward_flick_is_a_toss_and_sets_height():
     assert C.TOSS_HEIGHT_MIN <= soft[0].height < hard[0].height <= C.TOSS_HEIGHT_MAX
 
 
-def test_swings_and_twists_are_not_tosses():
+def test_gentle_jolts_and_sideways_swings_are_not_tosses():
     assert tosses(flick(0.4)) == []                                # too gentle
-    assert tosses(flick(2.0, gyro=400)) == []                      # rotating = swing
     assert tosses(recording([{"peak_g": 4, "peak_dps": 600}] * 3)[0]) == []
+
+
+def test_a_rotating_upward_flick_is_a_toss():
+    assert len(tosses(flick(2.0, gyro=400))) == 1                  # the point starts
+
+
+def test_strict_mode_rejects_a_rotating_flick(monkeypatch):
+    monkeypatch.setattr(C, "TOSS_CHECK_ROTATION", True)
+    assert tosses(flick(2.0, gyro=400)) == []                      # rotating = swing
 
 
 # ---- toss calibration ------------------------------------------------------------------
@@ -187,7 +195,18 @@ def flick_session(peaks, twist_dps=200.0, sideways=0.35, seed=0):
     return out
 
 
-def test_default_thresholds_miss_a_twisty_flick_and_say_why():
+def test_twisty_flick_counts_with_default_thresholds():
+    sd = SwingDetector(Calibration())
+    td = TossDetector(sd)
+    events = []
+    for s in flick_session([1.5], twist_dps=250):
+        sd.push(s)
+        events.append(td.push(s))
+    assert sum(e is not None for e in events) == 1
+
+
+def test_strict_mode_misses_a_twisty_flick_and_says_why(monkeypatch):
+    monkeypatch.setattr(C, "TOSS_CHECK_ROTATION", True)
     sd = SwingDetector(Calibration())
     td = TossDetector(sd)
     for s in flick_session([1.5], twist_dps=250):
@@ -196,8 +215,9 @@ def test_default_thresholds_miss_a_twisty_flick_and_say_why():
     assert td.last["result"].startswith("too much rotation")
 
 
-def test_toss_calibration_accepts_your_flicks_and_rejects_your_swings():
+def test_toss_calibration_accepts_your_flicks_and_rejects_your_swings(monkeypatch):
     from tools.calibrate_swing import calibrate_toss, count_tosses
+    monkeypatch.setattr(C, "TOSS_CHECK_ROTATION", True)   # the strict mode the calibration tunes
     rest, _ = recording([], rest_s=2.0)
     cal = Calibration()
     cal.zero_from(rest)

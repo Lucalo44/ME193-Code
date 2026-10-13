@@ -154,6 +154,7 @@ class VisionProcess:
         self._stroke_check = False
         self._tags_active = False
         self._stop = threading.Event()
+        self.frame_listeners: list = []   # callables(frame dict) -- the game recorder
 
     # Same interface as VisionWorker ------------------------------------------
     @property
@@ -220,6 +221,8 @@ class VisionProcess:
                 self.fps = msg["fps"]
                 self.judge.add(msg["t"], msg["label"], msg["conf"])
                 self.arm.update(msg["t"], msg["arms"])
+                for fn in self.frame_listeners:
+                    fn(msg)
 
     def _loading_progress(self) -> None:
         """Show that the vision process is still loading (MediaPipe + OpenCV). Usually
