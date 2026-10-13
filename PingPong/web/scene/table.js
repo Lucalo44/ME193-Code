@@ -2,6 +2,7 @@
 // regulation-proportioned table with lines and net.
 import * as THREE from 'three';
 import { THEME, TABLE_H } from './theme.js';
+import { Crowd } from './crowd.js';
 
 const L = 2.74, W = 1.525, NET_H = 0.1525, OVERHANG = 0.1525, THICK = 0.03;
 
@@ -77,6 +78,7 @@ function buildVenue(scene) {
   const crowdMat = new THREE.MeshStandardMaterial({ color: v.crowd, roughness: 1 });
   const person = new THREE.CapsuleGeometry(0.17, 0.2, 3, 8);
   const spots = [];
+  const seats = [];                       // for the cut-out crowd (crowd.js)
   const stand = (cx, cz, rotY, len) => {
     for (let r = 0; r < v.standsRows; r++) {
       const step = new THREE.Mesh(new THREE.BoxGeometry(len, 0.45, 0.9), stepMat);
@@ -90,6 +92,7 @@ function buildVenue(scene) {
         const p = new THREE.Vector3(s, h + 0.62 + Math.random() * 0.06, -d)
           .applyAxisAngle(new THREE.Vector3(0, 1, 0), rotY);
         spots.push([cx + p.x, p.y, cz + p.z]);
+        seats.push({ x: cx + p.x, y: h + 0.225, z: cz + p.z, rotY });      // standing on the step
       }
     }
   };
@@ -107,6 +110,7 @@ function buildVenue(scene) {
     heads.setMatrixAt(i, m4.compose(new THREE.Vector3(p[0] + (Math.random() - 0.5) * 0.04, p[1] + 0.2 * k, p[2]), q, sc));
   });
   scene.add(bodies, heads);
+  const crowd = new Crowd(scene, seats, [bodies, heads]);    // swaps in the cut-outs once they load
 
   // Lights: overhead lamp housings + spotlights make the pool of light on the table.
   const lt = THEME.lights;
@@ -139,10 +143,12 @@ function buildVenue(scene) {
   const fill = new THREE.DirectionalLight(lt.fill.color, lt.fill.intensity);
   fill.position.set(...lt.fill.pos);
   scene.add(fill);
+  return crowd;
 }
 
+
 export function buildArena(scene) {
-  buildVenue(scene);
+  const crowd = buildVenue(scene);
   const t = THEME.table;
   const table = new THREE.Group();
 
@@ -201,7 +207,7 @@ export function buildArena(scene) {
   }
   scene.add(table);
 
-  return { table, net, top };
+  return { table, net, top, crowd };
 }
 
 // Faint half-table highlight used for the forehand/backhand hint.

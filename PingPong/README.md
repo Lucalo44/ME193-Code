@@ -623,6 +623,19 @@ Every tunable is in `config.py`, with a comment for each.
 
 ### Look and feel
 
+**The crowd** is paper cut-outs of whoever is in `web/crowd/`: Chris Rogers, at the moment.
+They sway during play, and they jump, shake and applaud after every point (louder when
+you win it). To make new ones from photos (the person is cut out by the pose model and
+given a white paper border):
+
+```bash
+python tools/make_cutouts.py photo1.jpg photo2.png          # replaces the current cut-outs
+python tools/make_cutouts.py --keep another.jpg             # adds to them
+```
+
+Size and brightness are `venue.cutouts` in `web/scene/theme.js`. With `web/crowd/` empty,
+the plain silhouette crowd comes back.
+
 The presentation is a tribute to Rockstar Games' *Table Tennis* (2006). All 3D models are
 original, built from primitives; no Rockstar logos or fonts are used.
 
@@ -684,7 +697,7 @@ server/    protocol.py   all message schemas (mirrored in web/main.js)
 web/                     three.js scene (scene/*.js), HUD, vendored three.js r169
 game/      recorder.py   game recording (game_logs/) for the play profile
            style.py      style profiles + the opponent that plays like a recorded player
-tools/                   train_pose, arm_check, imu_logger, calibrate_swing, game_report, build_style, make_tags
+tools/                   train_pose, arm_check, imu_logger, calibrate_swing, game_report, build_style, make_tags, make_cutouts
 tests/                   pytest suite (synthetic IMU recordings in tests/synth.py)
 ```
 

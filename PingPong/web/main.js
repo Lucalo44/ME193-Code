@@ -175,7 +175,7 @@ function onEvent(ev) {
     case 'bounce': effects.bounce(toScene(ev.pos)); sounds.bounce(); break;
     case 'net': effects.netHit(); sounds.net(); break;
     case 'miss': hud.miss(ev); sounds.miss(); paddleView.miss(); break;
-    case 'point': hud.point(ev); sounds.point(ev.winner === 'player'); break;
+    case 'point': hud.point(ev); sounds.point(ev.winner === 'player'); arena.crowd.cheer(ev.winner === 'player' ? 1 : 0.6); break;
     case 'game_over':
       if (!ev.match_over) hud.centerMessage(ev.winner === 'player' ? 'GAME' : `GAME ${opponentFor(latest && latest.speed_setting).name}`,
         `games ${ev.score.games_player} – ${ev.score.games_cpu}`, ev.winner === 'player' ? 'good' : 'bad', 2600);
@@ -353,6 +353,7 @@ function frame() {
   }
 
   effects.update(dt, camera);
+  arena.crowd.update(dt);
   if (orbit) orbit.update();
   if (bloomOn && composer) composer.render(dt);
   else renderer.render(scene, camera);

@@ -24,6 +24,8 @@ export const THEME = {
     wall: '#0a0a0d',
     standsRows: 7,
     crowd: '#17171c',
+    // Paper cut-out audience (web/crowd/, tools/make_cutouts.py). height in m; brightness 0..1.
+    cutouts: { height: 0.72, brightness: 0.78, scatter: { along: 0.18, depth: 0.12 } },   // scatter: random nudge (m)
     lampColor: '#fff3df',
   },
 

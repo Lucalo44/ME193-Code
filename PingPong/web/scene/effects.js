@@ -142,7 +142,8 @@ export class Sounds {
   bounce() { this._noise(0.02, 3600, 4, 0.45); this._tone(2300, 0.03, 'sine', 0.08); }
   net() { this._noise(0.12, 300, 1, 0.5, 'lowpass', 2); }
   miss() { this._noise(0.5, 500, 0.7, 0.12, 'lowpass', 1.5); }   // murmur
-  point(good) { if (good) this.applause(0.9); else this._noise(0.6, 400, 0.6, 0.1, 'lowpass', 1.2); }
+  // Applause after every point -- louder when the player won it.
+  point(good) { this.applause(good ? 1.0 : 0.55); }
   applause(level = 1) {
     // Many short claps, randomly spaced, under a soft swell.
     this._noise(1.6, 2000, 0.4, 0.06 * level, 'bandpass', 1.2);
