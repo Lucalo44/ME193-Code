@@ -54,7 +54,7 @@ ORIENTATION_SOURCE = "onboard"    # on-screen paddle: "onboard" = the motor's ow
 # AprilTags (start the game + pick ball speed)
 # --------------------------------------------------------------------------
 TAG_FAMILY = "36h11"
-TAG_IDS = {0: "slow", 1: "medium", 2: "fast"}
+TAG_IDS = {0: "slow", 1: "medium", 2: "fast", 3: "luca"}   # 3: the opponent that plays like luca
 TAG_CONFIRM_FRAMES = 8            # tag must be seen in this many ...
 TAG_HISTORY_FRAMES = 10           # ... of the last this-many frames
 
@@ -120,6 +120,8 @@ PLAYER_SETTINGS_FILE = "player_settings.json"   # remembers the in-game handedne
 DEFAULT_PLAYER = "luca"          # who's playing when main.py gets no --player (names the recordings)
 GAME_RECORDING = True             # record real-paddle games to game_logs/<player>/ (main.py --no-record to skip)
 GAME_LOG_DIR = "game_logs"
+GAME_DATA_RECENCY = 0.95          # training on recorded games: each session counts this much less than the
+                                  # next newer one (newest = 1) -- recent play matters a little more
 POSE_CLASSES = ["ready", "forehand", "backhand"]
 POSE_K = 5
 # Training data from left- and right-handed players (each sample remembers its hand):
@@ -218,6 +220,16 @@ OPPONENT_MISS_PER_SPIN = 0.25     # added at full spin (|spin| = SPIN_MAX_RADS)
 OPPONENT_MISS_MAX = 0.8
 OPPONENT_WIDE_SHOT_CHANCE = 0.15  # occasional shots aimed close to the sideline
 OPPONENT_SPIN_MAX = 0.5           # opponent spin as a fraction of SPIN_MAX_RADS
+
+# Style opponents (game/style.py): settings that play like a recorded player.
+# setting -> (player whose game_logs/ or styles/<player>.json it plays from,
+#             the speed setting whose hit windows and reaction time it uses)
+STYLE_OPPONENTS = {"luca": ("luca", "medium")}
+STYLE_DIR = "styles"
+STYLE_MISS_SCALE = 1.0            # x the player's own whiff rate (0 = never whiffs)
+for _setting, (_player, _base) in STYLE_OPPONENTS.items():
+    for _table in (SPEED_BY_SETTING, HIT_REACH_EARLY_M, HIT_REACH_LATE_M, OPPONENT_REACTION_S):
+        _table.setdefault(_setting, _table[_base])
 
 # --------------------------------------------------------------------------
 # Rules

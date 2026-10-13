@@ -22,7 +22,7 @@ state (~60 Hz):
      "score": {"player", "cpu", "games_player", "games_cpu", "server", "games_needed"},
      "streak": {"current": n, "record": n},     # continuous hits; record also goes to MQTT
      "serve": {"server": "player"|"cpu", "state": null|"cpu"|"await_toss"|"tossed", "paddle_kind": str},
-     "speed_setting": "slow"|"medium"|"fast",
+     "speed_setting": "slow"|"medium"|"fast"|"luca",
      "status": {"paddle": str, "paddle_kind": "real"|"sim", "camera": str, "pose": bool,
                 "stroke_check": bool, "calibration": "file"|"default", "pose_label": str|null,
                 "mqtt": "connected"|"connecting"|"reconnecting"|"disabled"|...},

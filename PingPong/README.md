@@ -55,7 +55,7 @@ After that, the camera is ready in about 2 s.
 ```bash
 source venv/bin/activate
 
-python main.py --no-motor --no-camera   # no hardware at all: keyboard paddle, keys 1/2/3 to start
+python main.py --no-motor --no-camera   # no hardware at all: keyboard paddle, keys 1-4 to start
 python main.py --no-motor               # webcam (tags + pose), keyboard paddle
 python main.py                          # full game: webcam + Double Motor
 ```
@@ -120,6 +120,13 @@ python tools/calibrate_swing.py --player luca --from-logs --with-games
 
 Only swings played with the player's own hand set in the lobby are used.
 
+**Which games count.** Both `--with-games` and the LUCA opponent use every recorded
+session, with two rules:
+- **Only the player's own hand.** Play with the other hand picked in the lobby is
+  skipped, because forehand and backhand swap. The game logs every lobby hand change.
+- **Recent games count a little more.** Each session counts `GAME_DATA_RECENCY` (0.95)
+  times the next newer one: the newest counts 1, ten sessions back about 0.6.
+
 **How swings are detected in a rally** (`hardware/swing.py`, found from the first
 recorded games):
 - **Gravity follows the paddle.** Gravity is removed using the motor's own orientation at
@@ -133,6 +140,42 @@ recorded games):
   185 rally balls instead of 155, and early whiffs fell from 68 to 43.
 - **Game swings follow the detector.** `calibrate_swing.py --with-games` re-detects game
   swings from the saved paddle data, so they always match the current detector.
+
+## Playing against a recorded player
+
+Tag 3 (key 4) starts **LUCA**, an opponent built from Luca's recorded games
+(`game_logs/luca/`, see above). Each time it's picked, `game/style.py` rebuilds Luca's
+style profile from every recorded session, so it keeps learning as you play. It also saves
+the profile to `styles/luca.json`, so the opponent works on a machine without the recordings.
+
+```bash
+python tools/build_style.py            # look at the profile (and save styles/luca.json)
+python tools/make_tags.py              # print tag 3 (tags/tag_3_luca.png, or page 4 of start_tags.pdf)
+```
+
+How LUCA plays:
+- **Returns:** for each ball, it picks one of Luca's real returns to a similar ball
+  (same stroke side, similar speed). It copies that return's speed, topspin and sidespin,
+  and aims where it landed, turned round to its end of the table. If that return went
+  long, this one does too.
+- **Recent play counts more:** only games played left-handed (Luca's hand) are used,
+  and recent sessions count a little more, both in which returns get copied and in the
+  miss rates (see "Which games count" above).
+- **Whiffs:** it misses as often as Luca did on that kind of ball. Calls marked wrong with
+  **X** and WRONG STROKE calls don't count as misses. `STYLE_MISS_SCALE` scales this.
+- **Serves:** it serves with the speed and spin of Luca's serves.
+- **Left-handed:** it plays left-handed like Luca, both in the rules and on screen (the
+  model is mirrored).
+- **Timing:** its hit windows and reaction time are the medium setting's.
+
+**Placement is only partly Luca's.** Where a player's return lands is randomized by the
+game around the middle of the table and pushed by their sidespin, so LUCA's placement
+follows Luca only as much as the game let it. Speed, spin, stroke mix, errors, misses and
+serves are Luca's own.
+
+**More style opponents.** Add a line to `STYLE_OPPONENTS` and `TAG_IDS` in `config.py`,
+a character to `OPPONENTS` in `web/scene/theme.js`, and a lobby card in `web/index.html`.
+Then run `python tools/make_tags.py`.
 
 ## Score publishing (MQTT)
 
@@ -172,8 +215,9 @@ The broker, port, topics and file name are `MQTT_*` / `RECORD_FILE` in `config.p
 
 ## How to play
 
-1. **Start:** in the lobby, hold tag 0, 1 or 2 up to the webcam until its ring fills
-   (or press 1/2/3). The tag sets the opponent's shot speed for the whole match.
+1. **Start:** in the lobby, hold a tag up to the webcam until its ring fills (or press
+   1-4). Tags 0, 1 and 2 set the opponent's shot speed for the whole match. Tag 3 plays
+   **LUCA**, an opponent that plays like Luca (see "Playing against a recorded player").
 2. **Hold the paddle still at your ready position** when it connects. It zeroes itself
    then. Press **Z** any time to re-zero.
 3. **Serving switches every 5 points**, like a real match (the yellow dot in the scorebug
@@ -639,7 +683,8 @@ server/    protocol.py   all message schemas (mirrored in web/main.js)
            ws_server.py  HTTP static server + WebSocket
 web/                     three.js scene (scene/*.js), HUD, vendored three.js r169
 game/      recorder.py   game recording (game_logs/) for the play profile
-tools/                   train_pose, arm_check, imu_logger, calibrate_swing, game_report, make_tags
+           style.py      style profiles + the opponent that plays like a recorded player
+tools/                   train_pose, arm_check, imu_logger, calibrate_swing, game_report, build_style, make_tags
 tests/                   pytest suite (synthetic IMU recordings in tests/synth.py)
 ```
 

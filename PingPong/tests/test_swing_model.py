@@ -92,3 +92,14 @@ def test_leave_one_player_out_scores_each_player_on_the_others():
     # A player whose strokes look reversed (e.g. the other hand) is read wrong by the pool.
     odd = dict(alike, d=player(-20, 20))
     assert leave_one_player_out(odd)["stroke"][0] < 0.8
+
+
+def test_example_weights_shift_the_decision():
+    """Two conflicting groups at the same spot: the heavier one wins it."""
+    rng = random.Random(4)
+    pos = [fake(20 + rng.gauss(0, 3), rng) for _ in range(8)] + [fake(0.0, rng) for _ in range(4)]
+    neg = [fake(-20 + rng.gauss(0, 3), rng) for _ in range(8)] + [fake(0.0, rng) for _ in range(4)]
+    favour_pos = swing_model.fit(pos, neg, weights=[1] * 8 + [3] * 4 + [1] * 8 + [0.2] * 4)
+    favour_neg = swing_model.fit(pos, neg, weights=[1] * 8 + [0.2] * 4 + [1] * 8 + [3] * 4)
+    probe = fake(0.0, rng)
+    assert swing_model.decision(favour_pos, probe) > swing_model.decision(favour_neg, probe)

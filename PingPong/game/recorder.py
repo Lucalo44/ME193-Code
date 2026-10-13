@@ -155,3 +155,31 @@ class GameRecorder:
             return
         self._files["swings"].write(json.dumps(_clean(rec)) + "\n")
         self.counts["swings"] += 1
+
+
+# --------------------------------------------------------------------------
+# Reading recordings back for training (game/style.py, tools/calibrate_swing.py)
+# --------------------------------------------------------------------------
+
+def session_weights(n: int) -> list:
+    """Training weight of each of n sessions, oldest first: the newest counts 1, each
+    older one GAME_DATA_RECENCY times the next -- recent play matters a little more."""
+    return [C.GAME_DATA_RECENCY ** (n - 1 - i) for i in range(n)]
+
+
+def hand_timeline(events: list, swings: list):
+    """hand_at(sim_t): the hand picked in the lobby at that moment of a session. From
+    the logged lobby changes, game starts and swing records (older sessions log no
+    changes, so their swings and game starts tell)."""
+    marks = sorted([(e["sim_t"], e["hand"]) for e in events if e["name"] == "handedness"]
+                   + [(e["sim_t"], e["handedness"]) for e in events if e["name"] == "game_start" and e.get("handedness")]
+                   + [(sw["sim_t"], sw["handedness"]) for sw in swings if sw.get("handedness")])
+
+    def hand_at(sim_t: float) -> Optional[str]:
+        hand = marks[0][1] if marks else None
+        for t, h in marks:
+            if t > sim_t + 1e-6:
+                break
+            hand = h
+        return hand
+    return hand_at

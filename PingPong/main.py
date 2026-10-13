@@ -4,7 +4,7 @@ main.py -- Virtual ping pong with a LEGO Education Double Motor paddle.
 
     python main.py                       # full game: camera + paddle + browser UI
     python main.py --no-motor            # keyboard stand-in for the paddle
-    python main.py --no-camera           # skip pose check (always "correct stroke") and tags (use 1/2/3 keys)
+    python main.py --no-camera           # skip pose check (always "correct stroke") and tags (use keys 1-4)
     python main.py --camera 1            # pick camera index
     python main.py --pose-data pose_data.npz --calibration swing_calibration.json
     python main.py --use-default-calibration
@@ -15,7 +15,7 @@ browser only renders. Keys work in the browser window, or type them into this
 terminal followed by Enter:
 
     p pause   r reset to lobby   z re-zero paddle   g (or d with a real paddle) debug overlay
-    1/2/3 start slow/medium/fast  l latency calibration  h toggle stroke hint   q quit
+    1/2/3/4 start slow/medium/fast/luca  l latency calibration  h toggle stroke hint   q quit
     --no-motor: space swing, shift+space hard swing, hold W/S top/backspin, A/D sidespin,
                 hold F/B to force forehand/backhand (with --no-camera)
 
@@ -165,7 +165,7 @@ def make_vision(args, server: GameServer):
     from vision.worker import VisionWorker
     camera = Camera(args.camera)
     if not camera.ok:
-        print(f"{camera.status} -- continuing as if --no-camera was passed (use keys 1/2/3 to start).")
+        print(f"{camera.status} -- continuing as if --no-camera was passed (use keys 1-4 to start).")
         return None
     return VisionWorker(camera, classifier, on_preview=server.publish_frame)
 

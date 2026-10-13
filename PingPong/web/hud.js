@@ -134,7 +134,7 @@ export class Hud {
       el.classList.toggle('active', p > 0);
     });
     let howto = st.camera === 'off'
-      ? 'Camera is off: press <b>1</b>, <b>2</b> or <b>3</b> to start.'
+      ? 'Camera is off: press <b>1</b>, <b>2</b>, <b>3</b> or <b>4</b> to start.'
       : 'Hold a printed tag up to the webcam until its ring fills. Forehand when the ball comes to the ' +
         'right half of the screen, backhand on the left.';
     if (st.paddle_kind === 'sim') {

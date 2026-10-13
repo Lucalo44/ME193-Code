@@ -121,6 +121,7 @@ def test_only_reliably_labelled_game_swings_become_training_data(tmp_path, monke
     ])
     sets = game_sets_for("p1", "left")
     assert len(sets["game_fh"]) == 1 and len(sets["game_bh"]) == 1
+    assert sets["game_fh"][0].weight == 1.0                    # the only (so newest) session
 
 
 def test_game_swings_are_balanced_between_strokes(tmp_path, monkeypatch):

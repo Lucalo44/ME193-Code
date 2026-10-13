@@ -3,7 +3,9 @@
 // polo collar, a face with eyes/brows/nose/mouth, three hairstyles, shorts or skirt.
 //
 // It faces the player (+z in scene coords). Its right hand is on scene -x, so its
-// forehand side is -x, matching game/opponent.py.
+// forehand side is -x, matching game/opponent.py. A left-handed character
+// (spec.hand === 'left', e.g. the luca style opponent) is the same rig mirrored,
+// so its paddle hand and forehand side are on +x, matching game/style.py.
 import * as THREE from 'three';
 import { THEME, opponentFor } from './theme.js';
 
@@ -408,7 +410,7 @@ export class OpponentView {
     this.setCharacter('medium');
   }
 
-  // speedSetting: 'slow' | 'medium' | 'fast' -- swaps the athlete if it changed.
+  // speedSetting: 'slow' | 'medium' | 'fast' | a style opponent ('luca') -- swaps the athlete if it changed.
   setCharacter(speedSetting) {
     const spec = opponentFor(speedSetting);
     if (this.rig && this.rig.spec === spec) return;
@@ -417,6 +419,7 @@ export class OpponentView {
       disposeTree(this.rig.root);
     }
     this.rig = buildAthlete(spec);
+    if (spec.hand === 'left') this.rig.root.scale.x = -1;    // three.js flips the face winding for us
     this.anchor.add(this.rig.root);
   }
 

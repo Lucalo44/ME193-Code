@@ -193,7 +193,8 @@ def train_models(sets: Dict[str, List[SwingEvent]]) -> Dict[str, dict]:
     for name, (pos_sets, neg_sets, groups) in DECISIONS.items():
         pos = [e.features for k in pos_sets for e in sets.get(k, [])]
         neg = [e.features for k in neg_sets for e in sets.get(k, [])]
-        model = swing_model.fit(pos, neg)
+        weights = [getattr(e, "weight", 1.0) for ks in (pos_sets, neg_sets) for k in ks for e in sets.get(k, [])]
+        model = swing_model.fit(pos, neg, weights=weights)
         if model is None:
             continue
         def fit_terms(p, n, groups=groups):
@@ -636,10 +637,13 @@ def game_sets_for(player: str, hand: str) -> Dict[str, List[SwingEvent]]:
     """Forehands and backhands from the player's recorded games (game_logs/<player>/)
     whose label is reliable: hit in time, and the side rule and a sure camera agree
     (tools/game_report.py: confident_label). Only games played with this hand count --
-    with the wrong hand in the lobby, the side rule and the camera both flip."""
+    with the wrong hand in the lobby, the side rule and the camera both flip. Each
+    swing carries its session's weight (game/recorder.py: session_weights)."""
+    from game.recorder import session_weights
     from tools.game_report import confident_label, load_sessions
     out: Dict[str, List[SwingEvent]] = {"game_fh": [], "game_bh": []}
-    for session in load_sessions(player, None, None):
+    sessions = load_sessions(player, None, None)
+    for session, weight in zip(sessions, session_weights(len(sessions))):
         labelled = [(sw, confident_label(sw)) for sw in session.swings]
         labelled = [(sw, lab) for sw, lab in labelled if lab is not None and sw.get("handedness") == hand]
         if not labelled:
@@ -648,6 +652,7 @@ def game_sets_for(player: str, hand: str) -> Dict[str, List[SwingEvent]]:
         for sw, label in labelled:
             ev = _match(sw, replayed)
             if ev is not None:
+                ev.weight = weight                   # recent sessions count a little more
                 out["game_fh" if label == "forehand" else "game_bh"].append(ev)
     # The camera is surer on some strokes than others, so one side can pile up; cap it at
     # GAME_CLASS_RATIO x the other (keeping the most recent) so the model doesn't lean to it.

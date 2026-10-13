@@ -1,0 +1,3797 @@
+{
+ "player": "luca",
+ "hand": "left",
+ "built": "2026-10-12 23:25:49",
+ "sessions": 7,
+ "recency": 0.95,
+ "skipped_other_hand": 0,
+ "returns": [
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.162,
+    0.643
+   ],
+   "w": 0.7351,
+   "in_speed": 2.88,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.72,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.025,
+    0.713
+   ],
+   "w": 0.7351,
+   "in_speed": 3.06,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.361,
+    0.646
+   ],
+   "w": 0.7351,
+   "in_speed": 4.14,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.717,
+    0.528
+   ],
+   "w": 0.7351,
+   "in_speed": 2.92,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.056,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.41,
+    0.906
+   ],
+   "w": 0.7351,
+   "in_speed": 3.62,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.468,
+    0.736
+   ],
+   "w": 0.7351,
+   "in_speed": 4.53,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 7.39,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.636,
+    0.73
+   ],
+   "w": 0.7351,
+   "in_speed": 2.83,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.497,
+   "sidespin": 0.455,
+   "result": "in",
+   "land": [
+    -0.027,
+    0.641
+   ],
+   "w": 0.7351,
+   "in_speed": 3.65,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.469,
+    0.545
+   ],
+   "w": 0.7351,
+   "in_speed": 4.22,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.993,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.438,
+    0.639
+   ],
+   "w": 0.7351,
+   "in_speed": 4.35,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.007,
+    0.555
+   ],
+   "w": 0.7351,
+   "in_speed": 2.42,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.567,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.192,
+    0.48
+   ],
+   "w": 0.7351,
+   "in_speed": 4.16,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.407,
+    0.707
+   ],
+   "w": 0.7351,
+   "in_speed": 4.19,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.17,
+    0.706
+   ],
+   "w": 0.7351,
+   "in_speed": 3.7,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.662,
+    1.174
+   ],
+   "w": 0.7351,
+   "in_speed": 3.88,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.122,
+    0.453
+   ],
+   "w": 0.7351,
+   "in_speed": 3.26,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.77,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.172,
+    0.398
+   ],
+   "w": 0.7351,
+   "in_speed": 4.12,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 7.28,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.309,
+    0.368
+   ],
+   "w": 0.7351,
+   "in_speed": 3.55,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.39,
+   "topspin": 0.567,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.053,
+    0.694
+   ],
+   "w": 0.7351,
+   "in_speed": 3.94,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.201,
+    0.51
+   ],
+   "w": 0.7351,
+   "in_speed": 2.59,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.85,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.04,
+    0.848
+   ],
+   "w": 0.7351,
+   "in_speed": 2.9,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.108,
+    0.597
+   ],
+   "w": 0.7351,
+   "in_speed": 3.78,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.864,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.66,
+    0.702
+   ],
+   "w": 0.7351,
+   "in_speed": 4.13,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.5,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.451,
+    0.584
+   ],
+   "w": 0.7351,
+   "in_speed": 2.9,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.064,
+    0.632
+   ],
+   "w": 0.7351,
+   "in_speed": 3.77,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.83,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.2,
+    0.548
+   ],
+   "w": 0.7351,
+   "in_speed": 4.28,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.1,
+    0.595
+   ],
+   "w": 0.7351,
+   "in_speed": 2.19,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.417,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.188,
+    0.718
+   ],
+   "w": 0.7351,
+   "in_speed": 4.07,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.07,
+   "topspin": 0.991,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.156,
+    0.661
+   ],
+   "w": 0.7351,
+   "in_speed": 2.66,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.468,
+   "sidespin": 1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 0.7351,
+   "in_speed": 3.06,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.968,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.131,
+    0.553
+   ],
+   "w": 0.7351,
+   "in_speed": 3.47,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.165,
+    0.516
+   ],
+   "w": 0.7351,
+   "in_speed": 2.99,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.04,
+   "topspin": 0.559,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.658,
+    0.718
+   ],
+   "w": 0.7351,
+   "in_speed": 3.8,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.275,
+    0.551
+   ],
+   "w": 0.7351,
+   "in_speed": 2.65,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.56,
+    0.557
+   ],
+   "w": 0.7351,
+   "in_speed": 3.9,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.468,
+    0.993
+   ],
+   "w": 0.7351,
+   "in_speed": 3.12,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.444,
+    0.474
+   ],
+   "w": 0.7351,
+   "in_speed": 2.37,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.068,
+    1.342
+   ],
+   "w": 0.7351,
+   "in_speed": 4.44,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.05,
+    0.758
+   ],
+   "w": 0.7351,
+   "in_speed": 3.29,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.958,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.095,
+    0.643
+   ],
+   "w": 0.7351,
+   "in_speed": 3.4,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -1.0,
+   "sidespin": -0.069,
+   "result": "OUT",
+   "land": null,
+   "w": 0.7351,
+   "in_speed": 4.48,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 5.52,
+   "topspin": -0.355,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.739,
+    0.996
+   ],
+   "w": 0.7351,
+   "in_speed": 3.2,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.334,
+    0.578
+   ],
+   "w": 0.7351,
+   "in_speed": 2.24,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.18,
+   "topspin": -1.0,
+   "sidespin": -0.43,
+   "result": "OUT",
+   "land": null,
+   "w": 0.7351,
+   "in_speed": 3.01,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.05,
+    0.358
+   ],
+   "w": 0.7351,
+   "in_speed": 3.24,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 5.87,
+   "topspin": 0.718,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.584,
+    0.746
+   ],
+   "w": 0.7351,
+   "in_speed": 2.84,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 7.62,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.36,
+    1.351
+   ],
+   "w": 0.7351,
+   "in_speed": 3.35,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.519,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.157,
+    1.139
+   ],
+   "w": 0.7351,
+   "in_speed": 2.49,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.57,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.581,
+    1.188
+   ],
+   "w": 0.7351,
+   "in_speed": 2.5,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.141,
+    0.641
+   ],
+   "w": 0.7351,
+   "in_speed": 3.83,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.232,
+    0.522
+   ],
+   "w": 0.7351,
+   "in_speed": 3.78,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.77,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.608,
+    0.513
+   ],
+   "w": 0.7351,
+   "in_speed": 3.08,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.23,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.446,
+    0.46
+   ],
+   "w": 0.7351,
+   "in_speed": 3.52,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.45,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 0.7351,
+   "in_speed": 3.69,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 5.87,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.342,
+    1.045
+   ],
+   "w": 0.7351,
+   "in_speed": 2.79,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 5.99,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 0.7351,
+   "in_speed": 3.23,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 5.88,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.567,
+    1.329
+   ],
+   "w": 0.7351,
+   "in_speed": 3.2,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 5.37,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.647,
+    1.037
+   ],
+   "w": 0.7351,
+   "in_speed": 3.13,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.471,
+    0.367
+   ],
+   "w": 0.7351,
+   "in_speed": 3.01,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.07,
+   "topspin": -0.821,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.599,
+    1.278
+   ],
+   "w": 0.7351,
+   "in_speed": 3.2,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.338,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.592,
+    0.691
+   ],
+   "w": 0.7351,
+   "in_speed": 3.37,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.88,
+   "topspin": 1.0,
+   "sidespin": 0.698,
+   "result": "in",
+   "land": [
+    -0.003,
+    0.408
+   ],
+   "w": 0.7351,
+   "in_speed": 3.46,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.14,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.286,
+    0.422
+   ],
+   "w": 0.7351,
+   "in_speed": 3.06,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.07,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.437,
+    0.559
+   ],
+   "w": 0.7351,
+   "in_speed": 2.78,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.99,
+   "topspin": 1.0,
+   "sidespin": 0.303,
+   "result": "in",
+   "land": [
+    -0.255,
+    0.384
+   ],
+   "w": 0.7351,
+   "in_speed": 2.77,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 5.45,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.613,
+    1.162
+   ],
+   "w": 0.7351,
+   "in_speed": 2.05,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.562,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.36,
+    0.815
+   ],
+   "w": 0.7351,
+   "in_speed": 3.04,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.534,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.35,
+    0.649
+   ],
+   "w": 0.7351,
+   "in_speed": 3.08,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.74,
+   "topspin": 0.782,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.064,
+    0.698
+   ],
+   "w": 0.7351,
+   "in_speed": 3.08,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.167,
+    0.458
+   ],
+   "w": 0.7351,
+   "in_speed": 4.13,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.849,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.135,
+    0.503
+   ],
+   "w": 0.7351,
+   "in_speed": 4.79,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.527,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.233,
+    1.245
+   ],
+   "w": 0.7351,
+   "in_speed": 4.2,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.349,
+    0.546
+   ],
+   "w": 0.7351,
+   "in_speed": 4.44,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 0.435,
+   "result": "in",
+   "land": [
+    -0.193,
+    0.653
+   ],
+   "w": 0.7351,
+   "in_speed": 4.18,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.98,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.65,
+    0.674
+   ],
+   "w": 0.7351,
+   "in_speed": 3.03,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.46,
+   "topspin": 0.104,
+   "sidespin": 0.492,
+   "result": "in",
+   "land": [
+    0.559,
+    0.671
+   ],
+   "w": 0.7351,
+   "in_speed": 4.5,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.509,
+    0.637
+   ],
+   "w": 0.7351,
+   "in_speed": 3.1,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 7.33,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.6,
+    0.429
+   ],
+   "w": 0.7351,
+   "in_speed": 4.69,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 7.3,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.446,
+    0.748
+   ],
+   "w": 0.7351,
+   "in_speed": 4.56,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 7.56,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.49,
+    0.67
+   ],
+   "w": 0.7351,
+   "in_speed": 4.34,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.658,
+    0.643
+   ],
+   "w": 0.7351,
+   "in_speed": 3.67,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.587,
+    0.636
+   ],
+   "w": 0.7351,
+   "in_speed": 3.97,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.015,
+    0.779
+   ],
+   "w": 0.7351,
+   "in_speed": 3.01,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.571,
+    0.667
+   ],
+   "w": 0.7351,
+   "in_speed": 3.05,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.182,
+    0.404
+   ],
+   "w": 0.7351,
+   "in_speed": 4.48,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.23,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.589,
+    1.126
+   ],
+   "w": 0.7351,
+   "in_speed": 3.37,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 0.996,
+   "result": "in",
+   "land": [
+    0.522,
+    0.588
+   ],
+   "w": 0.7351,
+   "in_speed": 4.17,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.294,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.163,
+    0.713
+   ],
+   "w": 0.7351,
+   "in_speed": 3.3,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.74,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.012,
+    0.565
+   ],
+   "w": 0.7351,
+   "in_speed": 4.11,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.001,
+    1.281
+   ],
+   "w": 0.7351,
+   "in_speed": 4.7,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.255,
+    0.86
+   ],
+   "w": 0.7351,
+   "in_speed": 2.11,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 7.11,
+   "topspin": -0.872,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.614,
+    1.184
+   ],
+   "w": 0.7351,
+   "in_speed": 4.54,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 0.513,
+   "result": "in",
+   "land": [
+    -0.227,
+    0.499
+   ],
+   "w": 0.7351,
+   "in_speed": 4.41,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.79,
+   "topspin": 0.176,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.471,
+    0.921
+   ],
+   "w": 0.7351,
+   "in_speed": 4.72,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.258,
+    0.579
+   ],
+   "w": 0.7351,
+   "in_speed": 4.58,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 0.44,
+   "result": "in",
+   "land": [
+    -0.053,
+    0.763
+   ],
+   "w": 0.7351,
+   "in_speed": 4.8,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 0.14,
+   "result": "in",
+   "land": [
+    -0.127,
+    0.603
+   ],
+   "w": 0.7351,
+   "in_speed": 4.79,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.44,
+    0.541
+   ],
+   "w": 0.7351,
+   "in_speed": 3.44,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 0.205,
+   "result": "in",
+   "land": [
+    0.267,
+    0.66
+   ],
+   "w": 0.7351,
+   "in_speed": 3.22,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.087,
+    0.621
+   ],
+   "w": 0.7351,
+   "in_speed": 3.16,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.658,
+    0.635
+   ],
+   "w": 0.7351,
+   "in_speed": 3.11,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.27,
+    0.813
+   ],
+   "w": 0.7351,
+   "in_speed": 4.47,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.436,
+    0.636
+   ],
+   "w": 0.7351,
+   "in_speed": 3.62,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 7.51,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.621,
+    0.765
+   ],
+   "w": 0.7351,
+   "in_speed": 3.31,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": -0.266,
+   "result": "in",
+   "land": [
+    -0.395,
+    0.647
+   ],
+   "w": 0.7351,
+   "in_speed": 4.62,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.24,
+   "topspin": -0.291,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.511,
+    1.248
+   ],
+   "w": 0.7351,
+   "in_speed": 5.1,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.472,
+    0.643
+   ],
+   "w": 0.7351,
+   "in_speed": 3.28,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.532,
+    0.498
+   ],
+   "w": 0.7351,
+   "in_speed": 3.1,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.806,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.345,
+    0.547
+   ],
+   "w": 0.7351,
+   "in_speed": 3.66,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.112,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.699,
+    1.02
+   ],
+   "w": 0.7351,
+   "in_speed": 4.76,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 5.68,
+   "topspin": -0.434,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.49,
+    1.139
+   ],
+   "w": 0.7351,
+   "in_speed": 3.23,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.255,
+    0.445
+   ],
+   "w": 0.7351,
+   "in_speed": 4.09,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.28,
+   "topspin": 0.813,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.237,
+    0.526
+   ],
+   "w": 0.7351,
+   "in_speed": 3.5,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": -0.746,
+   "result": "in",
+   "land": [
+    -0.491,
+    0.742
+   ],
+   "w": 0.7351,
+   "in_speed": 4.8,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.4,
+   "topspin": 0.309,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.091,
+    0.77
+   ],
+   "w": 0.7351,
+   "in_speed": 3.08,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.288,
+    0.63
+   ],
+   "w": 0.7351,
+   "in_speed": 4.31,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.8,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.129,
+    0.533
+   ],
+   "w": 0.7351,
+   "in_speed": 3.4,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.591,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.668,
+    1.088
+   ],
+   "w": 0.7351,
+   "in_speed": 4.06,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.921,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.55,
+    0.595
+   ],
+   "w": 0.7351,
+   "in_speed": 4.9,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.35,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.154,
+    0.551
+   ],
+   "w": 0.7351,
+   "in_speed": 3.94,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.43,
+    0.539
+   ],
+   "w": 0.7351,
+   "in_speed": 5.0,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.21,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.412,
+    0.507
+   ],
+   "w": 0.7351,
+   "in_speed": 4.16,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.86,
+   "topspin": 0.942,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.568,
+    0.583
+   ],
+   "w": 0.7351,
+   "in_speed": 4.77,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.27,
+   "topspin": -0.939,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.68,
+    1.12
+   ],
+   "w": 0.7351,
+   "in_speed": 3.88,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.192,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.024,
+    1.086
+   ],
+   "w": 0.7351,
+   "in_speed": 4.65,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.34,
+    0.66
+   ],
+   "w": 0.7351,
+   "in_speed": 4.55,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 0.362,
+   "result": "in",
+   "land": [
+    0.402,
+    0.736
+   ],
+   "w": 0.7351,
+   "in_speed": 4.5,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.537,
+    0.601
+   ],
+   "w": 0.7351,
+   "in_speed": 5.07,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.83,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.167,
+    0.801
+   ],
+   "w": 0.7351,
+   "in_speed": 4.27,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.59,
+   "topspin": -0.624,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.744,
+    1.365
+   ],
+   "w": 0.7351,
+   "in_speed": 4.69,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 7.99,
+   "topspin": 1.0,
+   "sidespin": -0.042,
+   "result": "in",
+   "land": [
+    -0.302,
+    0.654
+   ],
+   "w": 0.7351,
+   "in_speed": 3.13,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.384,
+    0.427
+   ],
+   "w": 0.7351,
+   "in_speed": 5.17,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.84,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.105,
+    0.72
+   ],
+   "w": 0.7351,
+   "in_speed": 4.84,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.844,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.282,
+    0.823
+   ],
+   "w": 0.7738,
+   "in_speed": 3.09,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.38,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.655,
+    0.602
+   ],
+   "w": 0.7738,
+   "in_speed": 4.49,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.113,
+    0.374
+   ],
+   "w": 0.7738,
+   "in_speed": 3.55,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.95,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.277,
+    0.441
+   ],
+   "w": 0.7738,
+   "in_speed": 3.82,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.418,
+    0.593
+   ],
+   "w": 0.7738,
+   "in_speed": 4.36,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.038,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.521,
+    1.014
+   ],
+   "w": 0.7738,
+   "in_speed": 4.06,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.404,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.438,
+    0.901
+   ],
+   "w": 0.7738,
+   "in_speed": 2.6,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.712,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.047,
+    1.212
+   ],
+   "w": 0.7738,
+   "in_speed": 3.11,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.136,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.106,
+    1.139
+   ],
+   "w": 0.7738,
+   "in_speed": 2.73,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.51,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.043,
+    0.615
+   ],
+   "w": 0.7738,
+   "in_speed": 3.37,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 5.48,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.644,
+    0.407
+   ],
+   "w": 0.7738,
+   "in_speed": 3.39,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.07,
+   "topspin": -0.85,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.675,
+    0.959
+   ],
+   "w": 0.7738,
+   "in_speed": 2.65,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.366,
+    0.724
+   ],
+   "w": 0.7738,
+   "in_speed": 3.07,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 0.421,
+   "result": "in",
+   "land": [
+    -0.298,
+    0.397
+   ],
+   "w": 0.7738,
+   "in_speed": 3.57,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.044,
+    0.399
+   ],
+   "w": 0.7738,
+   "in_speed": 2.72,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.49,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 0.7738,
+   "in_speed": 2.82,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.056,
+    0.627
+   ],
+   "w": 0.8145,
+   "in_speed": 3.26,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.374,
+    0.585
+   ],
+   "w": 0.8145,
+   "in_speed": 2.65,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.611,
+    0.706
+   ],
+   "w": 0.8145,
+   "in_speed": 3.21,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 0.8145,
+   "in_speed": 2.96,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 5.59,
+   "topspin": -0.968,
+   "sidespin": -1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 0.8145,
+   "in_speed": 2.97,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.502,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.669,
+    0.943
+   ],
+   "w": 0.8145,
+   "in_speed": 2.84,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.327,
+    0.562
+   ],
+   "w": 0.8145,
+   "in_speed": 3.68,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.89,
+   "topspin": -0.193,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.64,
+    1.141
+   ],
+   "w": 0.8145,
+   "in_speed": 3.0,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.076,
+    0.668
+   ],
+   "w": 0.8145,
+   "in_speed": 4.03,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.443,
+    0.495
+   ],
+   "w": 0.8145,
+   "in_speed": 2.82,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.154,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.632,
+    0.736
+   ],
+   "w": 0.8145,
+   "in_speed": 2.87,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.93,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.046,
+    0.759
+   ],
+   "w": 0.8145,
+   "in_speed": 3.12,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.412,
+   "sidespin": 1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 0.8145,
+   "in_speed": 3.0,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.512,
+    0.659
+   ],
+   "w": 0.8145,
+   "in_speed": 3.22,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.039,
+    0.439
+   ],
+   "w": 0.8145,
+   "in_speed": 2.94,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.432,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.041,
+    1.07
+   ],
+   "w": 0.8145,
+   "in_speed": 2.44,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.106,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.35,
+    0.834
+   ],
+   "w": 0.8145,
+   "in_speed": 3.21,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.18,
+   "topspin": -0.956,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.147,
+    1.251
+   ],
+   "w": 0.8145,
+   "in_speed": 4.16,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.88,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.381,
+    0.452
+   ],
+   "w": 0.8145,
+   "in_speed": 3.67,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.228,
+    0.473
+   ],
+   "w": 0.8145,
+   "in_speed": 4.23,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.268,
+    0.573
+   ],
+   "w": 0.8145,
+   "in_speed": 4.28,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.52,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.375,
+    0.372
+   ],
+   "w": 0.8145,
+   "in_speed": 3.86,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.287,
+    0.497
+   ],
+   "w": 0.8145,
+   "in_speed": 3.45,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.105,
+    0.486
+   ],
+   "w": 0.8145,
+   "in_speed": 3.01,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.655,
+    0.571
+   ],
+   "w": 0.8145,
+   "in_speed": 3.36,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 0.8145,
+   "in_speed": 3.01,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.223,
+    0.785
+   ],
+   "w": 0.8145,
+   "in_speed": 2.78,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.578,
+    0.589
+   ],
+   "w": 0.8145,
+   "in_speed": 2.93,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.662,
+    0.835
+   ],
+   "w": 0.8145,
+   "in_speed": 3.41,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.423,
+    0.414
+   ],
+   "w": 0.8145,
+   "in_speed": 2.76,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.329,
+    0.546
+   ],
+   "w": 0.8145,
+   "in_speed": 2.22,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.199,
+    0.683
+   ],
+   "w": 0.8145,
+   "in_speed": 3.16,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.575,
+    0.569
+   ],
+   "w": 0.8145,
+   "in_speed": 4.61,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 5.22,
+   "topspin": 0.1,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.345,
+    0.678
+   ],
+   "w": 0.8145,
+   "in_speed": 2.49,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 5.0,
+   "topspin": 0.268,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.434,
+    0.737
+   ],
+   "w": 0.8145,
+   "in_speed": 2.41,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.198,
+    0.603
+   ],
+   "w": 0.8145,
+   "in_speed": 3.59,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.216,
+    0.705
+   ],
+   "w": 0.8145,
+   "in_speed": 2.97,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.71,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.184,
+    0.823
+   ],
+   "w": 0.8574,
+   "in_speed": 3.15,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 7.83,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.013,
+    0.883
+   ],
+   "w": 0.8574,
+   "in_speed": 2.79,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 5.0,
+   "topspin": -0.658,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.706,
+    0.502
+   ],
+   "w": 0.9025,
+   "in_speed": 4.61,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.033,
+    0.683
+   ],
+   "w": 0.9025,
+   "in_speed": 2.92,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.337,
+    0.516
+   ],
+   "w": 0.9025,
+   "in_speed": 3.25,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.383,
+    0.341
+   ],
+   "w": 0.9025,
+   "in_speed": 2.48,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.093,
+    0.623
+   ],
+   "w": 0.9025,
+   "in_speed": 4.73,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.231,
+    0.69
+   ],
+   "w": 0.9025,
+   "in_speed": 3.62,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.025,
+    0.487
+   ],
+   "w": 0.9025,
+   "in_speed": 4.21,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.498,
+    0.458
+   ],
+   "w": 0.9025,
+   "in_speed": 4.56,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.564,
+    0.534
+   ],
+   "w": 0.9025,
+   "in_speed": 3.56,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.17,
+    0.377
+   ],
+   "w": 0.9025,
+   "in_speed": 2.46,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.449,
+    0.476
+   ],
+   "w": 0.9025,
+   "in_speed": 4.41,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 5.0,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.58,
+    0.892
+   ],
+   "w": 0.9025,
+   "in_speed": 3.36,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.399,
+    0.42
+   ],
+   "w": 0.9025,
+   "in_speed": 2.34,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.395,
+    0.779
+   ],
+   "w": 0.9025,
+   "in_speed": 3.08,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.14,
+    0.4
+   ],
+   "w": 0.9025,
+   "in_speed": 3.45,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.01,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.152,
+    0.389
+   ],
+   "w": 0.9025,
+   "in_speed": 3.45,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.556,
+    0.562
+   ],
+   "w": 0.9025,
+   "in_speed": 3.56,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.368,
+    0.63
+   ],
+   "w": 1.0,
+   "in_speed": 2.88,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.413,
+    0.616
+   ],
+   "w": 1.0,
+   "in_speed": 1.45,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 0.119,
+   "result": "in",
+   "land": [
+    -0.161,
+    0.494
+   ],
+   "w": 1.0,
+   "in_speed": 6.91,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 5.45,
+   "topspin": 1.0,
+   "sidespin": -0.683,
+   "result": "in",
+   "land": [
+    -0.04,
+    0.364
+   ],
+   "w": 1.0,
+   "in_speed": 2.76,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.86,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.053,
+    0.738
+   ],
+   "w": 1.0,
+   "in_speed": 4.06,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.041,
+    0.709
+   ],
+   "w": 1.0,
+   "in_speed": 2.65,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.847,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.072,
+    0.788
+   ],
+   "w": 1.0,
+   "in_speed": 5.7,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.522,
+    0.751
+   ],
+   "w": 1.0,
+   "in_speed": 4.67,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.16,
+    0.392
+   ],
+   "w": 1.0,
+   "in_speed": 6.51,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 0.657,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.409,
+    0.415
+   ],
+   "w": 1.0,
+   "in_speed": 4.13,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.21,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.366,
+    1.164
+   ],
+   "w": 1.0,
+   "in_speed": 7.0,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.111,
+    0.598
+   ],
+   "w": 1.0,
+   "in_speed": 3.16,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.291,
+    0.791
+   ],
+   "w": 1.0,
+   "in_speed": 6.82,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.586,
+    0.762
+   ],
+   "w": 1.0,
+   "in_speed": 2.75,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.12,
+    0.82
+   ],
+   "w": 1.0,
+   "in_speed": 2.65,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.003,
+    0.552
+   ],
+   "w": 1.0,
+   "in_speed": 3.24,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.533,
+    0.542
+   ],
+   "w": 1.0,
+   "in_speed": 3.89,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.527,
+    1.091
+   ],
+   "w": 1.0,
+   "in_speed": 6.52,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.866,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.407,
+    1.174
+   ],
+   "w": 1.0,
+   "in_speed": 3.78,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 7.58,
+   "topspin": -0.655,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.418,
+    1.282
+   ],
+   "w": 1.0,
+   "in_speed": 4.76,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -0.842,
+   "sidespin": 1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 1.0,
+   "in_speed": 6.75,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.479,
+    0.795
+   ],
+   "w": 1.0,
+   "in_speed": 2.77,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 1.0,
+   "in_speed": 5.62,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.53,
+    0.51
+   ],
+   "w": 1.0,
+   "in_speed": 5.91,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.078,
+    0.716
+   ],
+   "w": 1.0,
+   "in_speed": 7.04,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.04,
+   "topspin": 1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.199,
+    0.635
+   ],
+   "w": 1.0,
+   "in_speed": 2.76,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 6.48,
+   "topspin": 1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.629,
+    0.521
+   ],
+   "w": 1.0,
+   "in_speed": 2.75,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 1.0,
+   "in_speed": 3.24,
+   "stroke": "backhand"
+  },
+  {
+   "speed": 6.47,
+   "topspin": 1.0,
+   "sidespin": -0.013,
+   "result": "in",
+   "land": [
+    -0.414,
+    0.612
+   ],
+   "w": 1.0,
+   "in_speed": 2.89,
+   "stroke": "forehand"
+  },
+  {
+   "speed": 8.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.397,
+    0.649
+   ],
+   "w": 1.0,
+   "in_speed": 7.07,
+   "stroke": "forehand"
+  }
+ ],
+ "serves": [
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.005,
+    0.948
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.37,
+   "topspin": -0.094,
+   "sidespin": 0.934,
+   "result": "in",
+   "land": [
+    0.05,
+    1.125
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 4.52,
+   "topspin": -0.421,
+   "sidespin": -0.521,
+   "result": "in",
+   "land": [
+    -0.347,
+    0.6
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.302,
+    0.931
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.41,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    0.138,
+    0.831
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.67,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.083,
+    0.848
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.01,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.039,
+    0.624
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.18,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    0.124,
+    0.661
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.7,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.335,
+    0.816
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.54,
+   "topspin": -1.0,
+   "sidespin": -0.228,
+   "result": "in",
+   "land": [
+    -0.241,
+    0.753
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.44,
+   "topspin": -1.0,
+   "sidespin": -0.344,
+   "result": "in",
+   "land": [
+    -0.018,
+    0.77
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.83,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.45,
+    0.838
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.023,
+    0.946
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.36,
+   "topspin": -1.0,
+   "sidespin": -0.384,
+   "result": "in",
+   "land": [
+    -0.311,
+    0.699
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.71,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.22,
+    0.867
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 4.72,
+   "topspin": -0.729,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.159,
+    0.568
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.24,
+   "topspin": -1.0,
+   "sidespin": -0.077,
+   "result": "in",
+   "land": [
+    0.086,
+    0.689
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 4.64,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.303,
+    1.085
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.83,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.193,
+    0.961
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.42,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    0.116,
+    0.784
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -0.431,
+   "sidespin": -0.809,
+   "result": "in",
+   "land": [
+    -0.51,
+    1.175
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 4.98,
+   "topspin": -0.655,
+   "sidespin": 0.82,
+   "result": "in",
+   "land": [
+    -0.131,
+    0.795
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 4.74,
+   "topspin": -0.293,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    0.252,
+    0.841
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.81,
+   "topspin": -0.83,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.479,
+    0.958
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": 0.5,
+   "sidespin": 0.939,
+   "result": "in",
+   "land": [
+    0.437,
+    1.347
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 4.95,
+   "topspin": -0.482,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.33,
+    0.787
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.71,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.642,
+    0.735
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -0.954,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.285,
+    1.033
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 0.208,
+   "result": "in",
+   "land": [
+    -0.17,
+    1.017
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 0.888,
+   "result": "in",
+   "land": [
+    -0.217,
+    0.963
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.286,
+    0.972
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.56,
+    0.969
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": -0.907,
+   "result": "in",
+   "land": [
+    -0.06,
+    1.032
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.442,
+    0.89
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.125,
+    1.023
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.58,
+   "topspin": -0.093,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.344,
+    1.204
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.4,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.499,
+    0.674
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.66,
+   "topspin": -1.0,
+   "sidespin": -0.357,
+   "result": "in",
+   "land": [
+    0.038,
+    0.897
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.25,
+   "topspin": -1.0,
+   "sidespin": 0.098,
+   "result": "in",
+   "land": [
+    -0.546,
+    0.685
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.154,
+    1.002
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 4.55,
+   "topspin": -0.798,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.213,
+    0.548
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 5.62,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.712,
+    0.669
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -0.626,
+   "sidespin": 0.472,
+   "result": "in",
+   "land": [
+    -0.054,
+    1.117
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 4.12,
+   "topspin": -0.289,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.326,
+    0.524
+   ],
+   "w": 0.7351
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.341,
+    0.937
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 6.0,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "OUT",
+   "land": null,
+   "w": 0.8145
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": -0.327,
+   "result": "in",
+   "land": [
+    -0.288,
+    0.979
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.372,
+    0.942
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.014,
+    0.977
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 3.78,
+   "topspin": 1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.217,
+    0.857
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 6.0,
+   "topspin": -0.728,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.3,
+    1.036
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 5.55,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    0.084,
+    0.796
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 5.95,
+   "topspin": -0.65,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.364,
+    1.083
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 5.87,
+   "topspin": -1.0,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.568,
+    0.813
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 3.6,
+   "topspin": 0.002,
+   "sidespin": 0.649,
+   "result": "in",
+   "land": [
+    -0.175,
+    0.459
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 6.0,
+   "topspin": -0.663,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.345,
+    1.095
+   ],
+   "w": 0.8145
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.187,
+    0.945
+   ],
+   "w": 0.9025
+  },
+  {
+   "speed": 5.21,
+   "topspin": -0.569,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.44,
+    0.913
+   ],
+   "w": 0.9025
+  },
+  {
+   "speed": 3.6,
+   "topspin": -0.122,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.071,
+    0.431
+   ],
+   "w": 1.0
+  },
+  {
+   "speed": 6.0,
+   "topspin": 0.181,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.535,
+    1.337
+   ],
+   "w": 1.0
+  },
+  {
+   "speed": 6.0,
+   "topspin": -0.671,
+   "sidespin": 0.382,
+   "result": "in",
+   "land": [
+    -0.204,
+    1.079
+   ],
+   "w": 1.0
+  },
+  {
+   "speed": 3.6,
+   "topspin": -1.0,
+   "sidespin": -0.345,
+   "result": "unknown",
+   "land": null,
+   "w": 1.0
+  },
+  {
+   "speed": 3.6,
+   "topspin": -1.0,
+   "sidespin": 0.217,
+   "result": "unknown",
+   "land": null,
+   "w": 1.0
+  },
+  {
+   "speed": 6.0,
+   "topspin": 0.029,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.533,
+    1.196
+   ],
+   "w": 1.0
+  },
+  {
+   "speed": 6.0,
+   "topspin": -0.627,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    0.295,
+    1.111
+   ],
+   "w": 1.0
+  },
+  {
+   "speed": 6.0,
+   "topspin": -1.0,
+   "sidespin": 1.0,
+   "result": "in",
+   "land": [
+    -0.258,
+    0.949
+   ],
+   "w": 1.0
+  },
+  {
+   "speed": 5.88,
+   "topspin": -1.0,
+   "sidespin": 0.179,
+   "result": "in",
+   "land": [
+    -0.358,
+    0.884
+   ],
+   "w": 1.0
+  },
+  {
+   "speed": 3.6,
+   "topspin": 0.878,
+   "sidespin": -1.0,
+   "result": "in",
+   "land": [
+    -0.143,
+    0.665
+   ],
+   "w": 1.0
+  }
+ ],
+ "faced": {
+  "forehand/0": [
+   50.1453,
+   3.2301
+  ],
+  "backhand/0": [
+   41.8224,
+   4.5648
+  ],
+  "forehand/1": [
+   38.4867,
+   4.8934
+  ],
+  "backhand/2": [
+   23.7623,
+   4.4996
+  ],
+  "backhand/1": [
+   23.8943,
+   3.7549
+  ],
+  "forehand/2": [
+   42.8598,
+   12.6851
+  ],
+  "either/1": [
+   0.8145,
+   0.8145
+  ]
+ }
+}

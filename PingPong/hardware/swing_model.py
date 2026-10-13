@@ -47,18 +47,21 @@ def _matrix(feature_dicts: Sequence[Dict[str, float]], names: Sequence[str]) -> 
     return np.array([[float(f.get(n, 0.0)) for n in names] for f in feature_dicts], dtype=float)
 
 
-def _fit_raw(X: np.ndarray, y: np.ndarray, ridge: float = RIDGE, iters: int = 25):
-    """Logistic regression by iteratively reweighted least squares. X standardized."""
+def _fit_raw(X: np.ndarray, y: np.ndarray, ridge: float = RIDGE, iters: int = 25,
+             sw: Optional[np.ndarray] = None):
+    """Logistic regression by iteratively reweighted least squares. X standardized;
+    sw = per-example weights (default 1)."""
     n, d = X.shape
+    sw = np.ones(n) if sw is None else sw
     A = np.hstack([X, np.ones((n, 1))])
     w = np.zeros(d + 1)
     P = np.eye(d + 1) * ridge
     P[-1, -1] = 0.0                                   # don't penalize the bias
     for _ in range(iters):
         p = 1.0 / (1.0 + np.exp(-np.clip(A @ w, -30, 30)))
-        W = p * (1 - p) + 1e-6
+        W = sw * (p * (1 - p) + 1e-6)
         H = A.T @ (A * W[:, None]) + P
-        g = A.T @ (p - y) + P @ w
+        g = A.T @ (sw * (p - y)) + P @ w
         step = np.linalg.solve(H, g)
         w -= step
         if np.max(np.abs(step)) < 1e-8:
@@ -67,13 +70,16 @@ def _fit_raw(X: np.ndarray, y: np.ndarray, ridge: float = RIDGE, iters: int = 25
 
 
 def fit(positive: Sequence[Dict[str, float]], negative: Sequence[Dict[str, float]],
-        names: Sequence[str] = FEATURES) -> Optional[dict]:
+        names: Sequence[str] = FEATURES, weights: Optional[Sequence[float]] = None) -> Optional[dict]:
     """Train on feature dicts of the two classes. Returns the model (with its
-    leave-one-out accuracy), or None with too few examples."""
+    leave-one-out accuracy), or None with too few examples. weights: one per
+    example, positives then negatives (default all 1) -- recorded game swings
+    count by how recent their session is."""
     if len(positive) < 3 or len(negative) < 3:
         return None
     X = _matrix(list(positive) + list(negative), names)
     y = np.array([1.0] * len(positive) + [0.0] * len(negative))
+    sw = np.ones(len(y)) if weights is None else np.asarray(weights, dtype=float)
 
     floors = np.array([noise_floor(n) for n in names])
 
@@ -86,11 +92,11 @@ def fit(positive: Sequence[Dict[str, float]], negative: Sequence[Dict[str, float
     for i in range(len(y)):
         keep = np.arange(len(y)) != i
         Xtr, Xte, _, _ = standardize(X[keep], X[i:i + 1])
-        w, b = _fit_raw(Xtr, y[keep])
+        w, b = _fit_raw(Xtr, y[keep], sw=sw[keep])
         z_out[i] = (Xte @ w + b)[0]
         correct += int(z_out[i] >= 0) == int(y[i])
     Xs, _, mu, sd = standardize(X, X[:1])
-    w, b = _fit_raw(Xs, y)
+    w, b = _fit_raw(Xs, y, sw=sw)
     # Map the decision value so the average positive swing reads +1 and the
     # average negative swing -1 (the spin *amount* used in the game). Use the
     # held-out values: a model is more confident on swings it trained on than

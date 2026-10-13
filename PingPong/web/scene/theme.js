@@ -126,7 +126,8 @@ export function spinColor(topspin, sidespin, out) {
   return out;
 }
 
-// One opponent per speed setting, named after characters from Rockstar's game.
+// One opponent per speed setting, named after characters from Rockstar's game,
+// plus style opponents that play like a recorded player (hand: 'left' mirrors the model).
 // Purely visual: difficulty still comes from config.py's speed settings.
 //   heightM     standing height (the whole model scales with it)
 //   hair        'short' | 'ponytail' | 'bob' | 'buns'
@@ -164,6 +165,18 @@ export const OPPONENTS = {
     socks: '#f4f6fb', shoes: '#c6f04a', shoeAccent: '#5b3a91',
     wristband: null,
     style: { crouch: -0.48, knee: 0.85, bounceHz: 4.2, bounceAmp: 0.014, lean: 0.28, footwork: 1.5 },
+  },
+  // Plays like Luca: shots, spin, errors and serves come from Luca's recorded games
+  // (game/style.py). Left-handed like Luca -- the model is mirrored. Change the look freely.
+  luca: {
+    name: 'LUCA', tagline: 'YOUR OWN STYLE', hand: 'left',
+    heightM: 1.80,
+    skin: '#e0b896', hair: '#5a3a22', hairStyle: 'short', brows: '#4a2f1b',
+    shirt: '#1d4fa3', trim: '#2f8dff', accent: '#2f8dff',
+    bottom: 'shorts', bottomColor: '#14213a',
+    socks: '#f4f6fb', shoes: '#f4f6fb', shoeAccent: '#2f8dff',
+    wristband: '#2f8dff',
+    style: { crouch: -0.45, knee: 0.8, bounceHz: 2.8, bounceAmp: 0.01, lean: 0.3, footwork: 1.1 },
   },
 };
 

@@ -172,6 +172,8 @@ class Game:
             arm.votes = [0, 0]                      # let swings re-confirm the paddle arm
         if hasattr(self.vision, "set_hand"):
             self.vision.set_hand(handedness)        # stroke classifier: mirror / pick that hand's data
+        if getattr(self, "recorder", None) is not None:
+            self._record("handedness", hand=handedness)   # training only uses the player's own hand
         if save and self._settings_file:
             data = self._load_settings()
             data["handedness"] = handedness
@@ -315,6 +317,7 @@ class Game:
         if self.sm.phase not in (SM.LOBBY, SM.GAME_OVER):
             self.reset()
         self.speed_setting = setting
+        self._pick_opponent(setting)
         self.opponent.speed_setting = setting
         self.opponent.reset()
         self.match.reset()
@@ -328,6 +331,22 @@ class Game:
                          latency_offset_s=C.LATENCY_OFFSET_S)
             self._record_paddle_state("paddle_state")
         self._emit("message", text=f"{setting.upper()} - game on!")
+
+    def _pick_opponent(self, setting: str) -> None:
+        """The plain computer opponent, or one that plays like a recorded player."""
+        if setting not in C.STYLE_OPPONENTS:
+            if not type(self.opponent) is Opponent:
+                self.opponent = Opponent(self.rng)
+            return
+        from game.style import StyleOpponent, load_profile
+        player = C.STYLE_OPPONENTS[setting][0]
+        profile = load_profile(player)
+        if profile is None:
+            self._emit("message", text=f"No recorded games for {player} yet -- playing a medium opponent")
+            self.opponent = Opponent(self.rng)
+            return
+        self.opponent = StyleOpponent(self.rng, profile)
+        self._record("style_opponent", player=player, returns=len(profile["returns"]), serves=len(profile["serves"]))
 
     def reset(self) -> None:
         self.sm.reset(self.sim_t)
@@ -808,8 +827,8 @@ class Game:
             self.debug = not self.debug
         elif k == "h":
             self.show_hint = not self.show_hint
-        elif k in ("1", "2", "3"):
-            self.start_game(("slow", "medium", "fast")[int(k) - 1])
+        elif k in ("1", "2", "3", "4"):
+            self.start_game(("slow", "medium", "fast", "luca")[int(k) - 1])
         elif k == "l":
             self.start_latency_cal()
         elif k == "x":

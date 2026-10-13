@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-tools/make_tags.py -- render the three start/speed AprilTags (36h11) for printing.
+tools/make_tags.py -- render the start AprilTags (one per opponent in TAG_IDS) (36h11) for printing.
 
 Writes:
     tags/tag_<id>_<speed>.png   one printable page-sized image per tag, ID and speed label underneath
-    tags/start_tags.pdf         all three on separate pages (via matplotlib)
+    tags/start_tags.pdf         all of them on separate pages (via matplotlib)
     web/tags/tag_<id>.png       small copies shown on the lobby screen
 
 Print them at least ~8 cm wide and keep the white border -- the detector

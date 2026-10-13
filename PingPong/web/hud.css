@@ -49,7 +49,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #050507; col
 #scorebug .tab .sep { opacity: 0.4; }
 #scorebug .tab.streak { margin-left: 2px; }
 #scorebug .tab.streak b { color: var(--fg); font-variant-numeric: tabular-nums; }
-#speed-chip.slow { color: var(--top); } #speed-chip.medium { color: var(--back); } #speed-chip.fast { color: var(--right); }
+#speed-chip.slow { color: var(--top); } #speed-chip.medium { color: var(--back); } #speed-chip.fast { color: var(--right); } #speed-chip.luca { color: var(--left); }
 
 /* ---- Status readouts (training / hardware) ---- */
 #status { position: absolute; top: 24px; right: 24px; display: flex; flex-direction: column; gap: 2px; align-items: flex-end; }
@@ -178,10 +178,10 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #050507; col
 .overlay .rule { width: 120px; height: 4px; background: var(--fg); margin: 18px 0 14px; }
 .overlay .sub { color: var(--dim); font-size: 16px; font-weight: 600; letter-spacing: 0.24em; margin: 4px 0 30px; }
 .overlay code { color: var(--fg); text-transform: none; }
-.tags { display: flex; gap: 26px; }
+.tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 26px; }
 .tag { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 180px; padding: 16px 0 14px;
   background: rgba(255,255,255,0.04); border-top: 4px solid var(--fg); }
-.tag.slow { border-color: var(--top); } .tag.medium { border-color: var(--back); } .tag.fast { border-color: var(--right); }
+.tag.slow { border-color: var(--top); } .tag.medium { border-color: var(--back); } .tag.fast { border-color: var(--right); } .tag.luca { border-color: var(--left); }
 .tag-img { position: relative; width: 136px; height: 136px; display: grid; place-items: center; }
 .tag-img img { width: 96px; height: 96px; image-rendering: pixelated; background: #fff; padding: 5px; }
 .tag-img svg { position: absolute; inset: 0; transform: rotate(-90deg); }
