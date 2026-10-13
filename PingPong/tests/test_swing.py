@@ -13,7 +13,8 @@ import re
 
 import pytest
 
-from hardware.swing import Calibration, detect_all, load_calibration, load_csv, save_csv
+import config as C
+from hardware.swing import Calibration, ImuSample, detect_all, load_calibration, load_csv, save_csv
 from tests.synth import recording
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -124,3 +125,45 @@ def test_calibration_picks_spin_axis_and_sign():
     assert closed.topspin > 0.5 and opened.topspin < -0.5
     right = detect_all(recording([sw(yaw_deg=-32)], seed=9)[0], cal)[0]
     assert right.sidespin > 0.5
+
+
+# ---- in-rally detection: gravity tracking and contact timing ------------------------
+
+def _tilt_recording(seconds=1.0, deg_per_s=C.SWING_GYRO_THRESHOLD * 1.5):
+    """The paddle slowly turning about its y axis (no swing): the motor's own angles,
+    gyro and accelerometer all consistent with each other."""
+    from hardware.orientation import onboard_quat, qconj, qrotate
+    out, t, up = [], 0.0, (0.0, 0.0, 1.0)
+    while t < seconds:
+        pitch = deg_per_s * t
+        q = onboard_quat(0.0, pitch, 0.0)
+        a = qrotate(qconj(q), qrotate(onboard_quat(0, 0, 0), up))
+        out.append(ImuSample(t, 0, pitch * 10, 0, a[0] * 1000, a[1] * 1000, a[2] * 1000, 0, deg_per_s, 0))
+        t += 0.015
+    return out
+
+
+def test_slow_tilt_is_not_a_swing_with_gravity_tracking(monkeypatch):
+    samples = _tilt_recording()
+    monkeypatch.setattr(C, "SWING_TRACK_GRAVITY", False)
+    assert detect_all(samples), "without tracking, the tilt's stale gravity looks like a swing"
+    monkeypatch.setattr(C, "SWING_TRACK_GRAVITY", True)
+    assert detect_all(samples) == []
+
+
+def test_swing_is_timed_by_contact_not_the_early_acceleration_peak():
+    """A big stroke: acceleration peaks as the forward swing starts; rotation keeps building
+    and peaks 0.25 s later at contact (the shape of the "too early" swings in real games)."""
+    import math as _m
+    out, t = [], 0.0
+    t_acc, t_rot = 1.0, 1.25
+    while t < 2.2:
+        acc = 3.0 * _m.exp(-((t - t_acc) / 0.05) ** 2)
+        rot = 400 * _m.exp(-((t - t_acc) / 0.3) ** 2) + 900 * _m.exp(-((t - t_rot) / 0.08) ** 2)
+        out.append(ImuSample(t, 0, 0, 0, acc * 1000, 0, 1000, 0, 0, rot))
+        t += 0.015
+    events = detect_all(out)
+    assert len(events) == 1
+    ev = events[0]
+    assert abs(ev.t_peak - t_acc) < 0.03
+    assert abs(ev.t_hit - t_rot) < 0.03

@@ -24,8 +24,13 @@ not document their units. What we rely on:
 
 Detection
 ---------
-Linear acceleration = accel (in g) minus a gravity estimate that is captured
-at zero() and slowly re-learned whenever the paddle is still. A swing event
+Linear acceleration = accel (in g) minus gravity. With SWING_TRACK_GRAVITY,
+gravity is turned into the motor's frame at every sample using the motor's own
+fused orientation (yaw/pitch/roll), with world "up" re-learned whenever the
+paddle is still. Without it, gravity is the direction captured at zero() and
+re-learned while still -- fine while the paddle stays near its ready pose, but
+in a rally the paddle keeps tilting, and the stale gravity showed up as up to
+~1 g of "swing" acceleration that never died down. A swing event
 fires when gyro magnitude exceeds the gyro threshold and linear acceleration
 exceeds the accel threshold within SWING_COINCIDENCE_S of each other. The
 swing ends after both signals drop below threshold * SWING_HYSTERESIS for
@@ -35,7 +40,13 @@ window after it -- rather than when the follow-through settles. On our
 recordings that cut the median reporting delay from ~260 ms to ~110 ms.
 One event is emitted per swing, and a SWING_COOLDOWN_S
 refractory period suppresses double triggers. t_peak is the time of peak
-linear acceleration.
+linear acceleration; the swing features are measured around it.
+
+t_contact is when the ball is struck: the paddle's fastest rotation from the
+acceleration peak up to SWING_CONTACT_MAX_LAG_S later. On a big stroke the
+acceleration peaks as the forward swing starts, up to ~0.3 s before contact,
+so timing the hit window by t_peak called on-time swings "too early". The
+event waits until that rotation peak has passed too.
 
 Serve toss
 ----------
@@ -64,6 +75,7 @@ from typing import Deque, Dict, List, Optional, Sequence, Tuple
 
 import config as C
 from hardware import swing_model
+from hardware.orientation import onboard_quat, qconj, qrotate
 
 
 @dataclass
@@ -274,6 +286,12 @@ class SwingEvent:
     stroke_hint: Optional[str] = None   # sim paddle only: forced stroke for --no-camera testing
     imu_stroke: Optional[str] = None    # forehand/backhand as told by the IMU (needs calibration)
     imu_stroke_conf: float = 0.0        # 0.5 = a coin toss, 1.0 = certain
+    t_contact: Optional[float] = None   # when the ball is struck (see module docstring); None = t_peak
+
+    @property
+    def t_hit(self) -> float:
+        """The swing's timing for the hit window: contact if known, else peak acceleration."""
+        return self.t_contact if self.t_contact is not None else self.t_peak
 
     def trace(self, cal: Calibration) -> list:
         """Downsampled [t_rel, linear_g, gyro_dps] rows for the HUD swing trace."""
@@ -291,6 +309,7 @@ class SwingEvent:
             "peak_gyro_dps": round(self.peak_gyro_dps, 1),
             "imu_stroke": self.imu_stroke,
             "imu_stroke_conf": round(self.imu_stroke_conf, 2),
+            "contact_lag_s": round(self.t_hit - self.t_peak, 3),
         }
 
 
@@ -359,7 +378,8 @@ class SwingDetector:
 
     def __init__(self, cal: Optional[Calibration] = None):
         self.cal = cal or Calibration()
-        self.gravity = list(self.cal.gravity)
+        self.gravity = list(self.cal.gravity)   # gravity in the motor's frame (g), current sample
+        self._up_world: Optional[tuple] = None   # "up" in the motor's onboard world frame (SWING_TRACK_GRAVITY)
         self._recent: Deque[ImuSample] = deque()
         self._active = False
         self._window: List[ImuSample] = []
@@ -373,20 +393,36 @@ class SwingDetector:
     def set_calibration(self, cal: Calibration) -> None:
         self.cal = cal
         self.gravity = list(cal.gravity)
+        self._up_world = None                    # re-anchored on the next sample
 
     def _reset_swing(self) -> None:
         self._start = 0.0
         self._peak_lin = 0.0
         self._peak_lin_t = 0.0
         self._peak_gyro = 0.0
+        self._contact_t = 0.0         # fastest rotation since the acceleration peak ...
+        self._contact_gyro = 0.0      # ... and how fast
         self._last_gyro_trip = -math.inf
         self._last_accel_trip = -math.inf
         self._coincided = False
         self._spent = False           # this swing has already been reported
         self._quiet_since: Optional[float] = None
 
+    def _track_gravity(self, s: ImuSample) -> Optional[tuple]:
+        """Gravity in the motor's frame right now, from its fused orientation. Returns
+        the orientation quaternion (for re-learning "up"), or None when off."""
+        if not C.SWING_TRACK_GRAVITY:
+            return None
+        k = self.cal.angle_raw_per_deg
+        q = onboard_quat(s.yaw / k, s.pitch / k, s.roll / k)
+        if self._up_world is None:
+            self._up_world = qrotate(q, self.gravity)
+        self.gravity = list(qrotate(qconj(q), self._up_world))
+        return q
+
     def push(self, s: ImuSample) -> Optional[SwingEvent]:
         cal = self.cal
+        q = self._track_gravity(s)
         lin = linear_g(s, cal, self.gravity)
         gyr = gyro_dps(s, cal)
         a_thr, g_thr = cal.accel_threshold, cal.gyro_threshold
@@ -402,7 +438,13 @@ class SwingDetector:
                 a = accel_g(s, cal)
                 mag = math.sqrt(sum(x * x for x in a))
                 if abs(mag - 1.0) < 0.1:
-                    self.gravity = [0.97 * g + 0.03 * x for g, x in zip(self.gravity, a)]
+                    if q is None:
+                        self.gravity = [0.97 * g + 0.03 * x for g, x in zip(self.gravity, a)]
+                    else:
+                        up = qrotate(q, a)
+                        blend = [0.97 * u + 0.03 * x for u, x in zip(self._up_world, up)]
+                        n = math.sqrt(sum(x * x for x in blend)) or 1.0
+                        self._up_world = tuple(x / n for x in blend)
             if gyr > g_thr or lin > a_thr:
                 self._active = True
                 self._reset_swing()
@@ -415,6 +457,9 @@ class SwingDetector:
 
         if lin > self._peak_lin:
             self._peak_lin, self._peak_lin_t = lin, s.t
+            self._contact_t, self._contact_gyro = s.t, gyr      # contact is never before the accel peak
+        elif gyr > self._contact_gyro and s.t - self._peak_lin_t <= C.SWING_CONTACT_MAX_LAG_S:
+            self._contact_t, self._contact_gyro = s.t, gyr
         self._peak_gyro = max(self._peak_gyro, gyr)
         if gyr > g_thr:
             self._last_gyro_trip = s.t
@@ -429,10 +474,11 @@ class SwingDetector:
         # settles: once acceleration is clearly past its peak and the strike
         # window is complete, everything the event needs is known.
         if not self._spent and self._coincided and s.t - self._peak_lin_t >= C.SWING_STRIKE_WINDOW_S[1] \
-                and lin < C.SWING_PAST_PEAK_RATIO * self._peak_lin:
+                and lin < C.SWING_PAST_PEAK_RATIO * self._peak_lin and self._contact_passed(s.t, gyr):
             if self.stroke is not None and self.stroke.drawing_back(self._peak_lin_t):
                 # That burst was the backswing: forget it and wait for the forward stroke.
                 self._peak_lin, self._peak_lin_t, self._peak_gyro = 0.0, s.t, 0.0
+                self._contact_t, self._contact_gyro = s.t, 0.0
                 self._coincided = False
                 return None
             self._spent = True
@@ -450,6 +496,12 @@ class SwingDetector:
         if not ended:
             return None
         return self._finish()
+
+    def _contact_passed(self, t: float, gyr: float) -> bool:
+        """Has the paddle's rotation peaked (the ball is struck) since the acceleration peak?"""
+        if C.SWING_CONTACT_MAX_LAG_S <= 0 or t - self._peak_lin_t >= C.SWING_CONTACT_MAX_LAG_S:
+            return True
+        return t - self._contact_t >= C.SWING_STRIKE_WINDOW_S[1] and gyr < C.SWING_PAST_PEAK_RATIO * self._contact_gyro
 
     def _finish(self) -> Optional[SwingEvent]:
         """The swing has settled. Usually it was already reported at the strike."""
@@ -506,6 +558,7 @@ class SwingDetector:
             raw=list(self._window),
             imu_stroke=stroke,
             imu_stroke_conf=stroke_conf,
+            t_contact=max(t_peak, self._contact_t) if C.SWING_CONTACT_MAX_LAG_S > 0 else None,
         )
 
 

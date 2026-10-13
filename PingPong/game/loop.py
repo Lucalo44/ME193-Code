@@ -322,6 +322,7 @@ class Game:
             self.recorder.open()
             self._record("game_start", speed=setting, handedness=self.handedness, paddle=self.paddle.kind,
                          latency_offset_s=C.LATENCY_OFFSET_S)
+            self._record_paddle_state("paddle_state")
         self._emit("message", text=f"{setting.upper()} - game on!")
 
     def reset(self) -> None:
@@ -592,7 +593,7 @@ class Game:
         self._emit("toss", height=ev.height, pos=start)
 
     def _on_swing(self, ev) -> None:
-        t = ev.t_peak - self.clock_offset          # sim time of the swing peak
+        t = ev.t_hit - self.clock_offset           # sim time of contact (hardware/swing.py: t_contact)
         t_corr = t - C.LATENCY_OFFSET_S
         arm = getattr(self.vision, "arm", None)
         if arm is not None and self.paddle.kind != "sim":
@@ -648,7 +649,7 @@ class Game:
 
     def _swing_record(self, ev, t: float, t_corr: float) -> dict:
         """Everything known about a swing at the moment it registers (before the game acts on it)."""
-        rec = {"id": self._swing_id, "t": ev.t_peak, "sim_t": t, "phase": self.sm.phase,
+        rec = {"id": self._swing_id, "t": ev.t_peak, "t_contact": ev.t_hit, "sim_t": t, "phase": self.sm.phase,
                "serve_state": self.serve_state, "handedness": self.handedness, "speed": self.speed_setting,
                **ev.summary(), "features": ev.features}
         v = self.vision
@@ -794,6 +795,8 @@ class Game:
             if arm is not None:
                 arm.zero()                          # the arm's ready position too
             ok = self.paddle.zero()
+            if ok:
+                self._record_paddle_state("zero")
             self._emit("message", text="Paddle zeroed" if ok else "Zero failed - is the paddle connected?")
         elif k == "g" or (k == "d" and not sim):   # in sim mode D is sidespin
             self.debug = not self.debug
@@ -825,6 +828,13 @@ class Game:
     def _emit(self, name: str, **fields) -> None:
         self._publish_event(protocol.event_message(name, **fields))
         self._record(name, **fields)
+
+    def _record_paddle_state(self, name: str) -> None:
+        """The paddle's zeroed ready pose, so a recording can be replayed exactly
+        (tools/calibrate_swing.py re-detects game swings from imu.csv)."""
+        cal = self.paddle.calibration
+        self._record(name, neutral=cal.neutral, gravity=cal.gravity, gyro_bias=cal.gyro_bias,
+                     accel_raw_per_g=cal.accel_raw_per_g, noise_g=cal.noise_g, noise_dps=cal.noise_dps)
 
     def _record(self, name: str, **fields) -> None:
         """Log an event to the game recording only (not sent to the browser)."""

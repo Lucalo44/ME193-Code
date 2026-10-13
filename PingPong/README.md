@@ -120,6 +120,20 @@ python tools/calibrate_swing.py --player luca --from-logs --with-games
 
 Only swings played with the player's own hand set in the lobby are used.
 
+**How swings are detected in a rally** (`hardware/swing.py`, found from the first
+recorded games):
+- **Gravity follows the paddle.** Gravity is removed using the motor's own orientation at
+  every sample (`SWING_TRACK_GRAVITY`). The old fixed gravity direction went stale as soon
+  as the paddle tilted mid-rally, and the error looked like up to 1 g of swing.
+- **Timed at contact.** A swing is timed at contact: the paddle's fastest rotation up to
+  `SWING_CONTACT_MAX_LAG_S` (0.35 s) after peak acceleration. On big strokes acceleration
+  peaks as the forward swing starts, so on-time swings were being called "too early" and
+  the real stroke then went missing (NO SWING).
+- **Measured on the first game:** replaying it with the new detector gave 162 hits from
+  185 rally balls instead of 155, and early whiffs fell from 68 to 43.
+- **Game swings follow the detector.** `calibrate_swing.py --with-games` re-detects game
+  swings from the saved paddle data, so they always match the current detector.
+
 ## Score publishing (MQTT)
 
 The game publishes your **record number of continuous hits** to the class broker:

@@ -98,8 +98,18 @@ def swing_rec(i, required, camera, hand="left", outcome="hit"):
             "features": {"gz_int": 1.0}, "camera": camera, "ball": {"required": required, "dt": 0.0}}
 
 
+def replay_as_recorded(monkeypatch):
+    """Stand-in for re-detecting swings from imu.csv: one swing at each recorded time."""
+    import tools.calibrate_swing as cs
+    from hardware.swing import SwingEvent
+    monkeypatch.setattr(cs, "replay_game_swings", lambda session: [
+        SwingEvent(t_peak=sw["t"], strength=0.5, return_speed=8, topspin=0, sidespin=0, peak_accel_g=3,
+                   peak_gyro_dps=500, features=sw["features"]) for sw in session.swings])
+
+
 def test_only_reliably_labelled_game_swings_become_training_data(tmp_path, monkeypatch):
     from tools.calibrate_swing import game_sets_for
+    replay_as_recorded(monkeypatch)
     fake_session(tmp_path, monkeypatch, [
         swing_rec(1, "forehand", ["forehand", 0.9]),               # used
         swing_rec(2, "backhand", ["backhand", 0.8]),               # used
@@ -113,6 +123,16 @@ def test_only_reliably_labelled_game_swings_become_training_data(tmp_path, monke
     assert len(sets["game_fh"]) == 1 and len(sets["game_bh"]) == 1
 
 
+def test_game_swings_are_balanced_between_strokes(tmp_path, monkeypatch):
+    from tools.calibrate_swing import GAME_CLASS_RATIO, game_sets_for
+    replay_as_recorded(monkeypatch)
+    fake_session(tmp_path, monkeypatch, [swing_rec(i, "forehand", ["forehand", 0.9]) for i in range(10)]
+                 + [swing_rec(20 + i, "backhand", ["backhand", 0.9]) for i in range(2)])
+    sets = game_sets_for("p1", "left")
+    assert len(sets["game_bh"]) == 2 and len(sets["game_fh"]) == 2 * GAME_CLASS_RATIO
+    assert sets["game_fh"][-1].t_peak == 9.0                    # the most recent are kept
+
+
 def test_report_tells_a_missed_swing_from_no_swing(tmp_path, monkeypatch):
     from tools.game_report import load_sessions, motion_near
     still = [ImuSample(10 + i * 0.015, 0, 0, 0, 0, 0, 1000, 0, 0, 0) for i in range(60)]
@@ -122,3 +142,18 @@ def test_report_tells_a_missed_swing_from_no_swing(tmp_path, monkeypatch):
     gyro_still, _ = motion_near(s, 10.45)
     gyro_moving, _ = motion_near(s, 20.45)
     assert gyro_still < s.cal.gyro_threshold <= gyro_moving
+
+
+def test_game_swings_are_re_detected_from_the_raw_stream(tmp_path, monkeypatch):
+    """With real paddle data, the training swing comes from replaying imu.csv."""
+    from tests.synth import recording
+    from tools.calibrate_swing import game_sets_for
+    samples, centers = recording([{"peak_g": 4, "peak_dps": 600}], rest_s=1.0)
+    fake_session(tmp_path, monkeypatch, [swing_rec(1, "forehand", ["forehand", 0.9])], samples)
+    import tools.game_report as gr
+    sess = gr.load_sessions("p1", None, None)[0]
+    for sw in sess.swings:                       # point the record at the synthetic swing
+        sw["t"] = centers[0]
+    monkeypatch.setattr(gr, "load_sessions", lambda *a: [sess])
+    sets = game_sets_for("p1", "left")
+    assert len(sets["game_fh"]) == 1 and sets["game_fh"][0].features

@@ -91,6 +91,12 @@ SWING_RECOVERY_S = 0.65           # a detection this soon after a swing ...
 SWING_RECOVERY_RATIO = 0.8        # ... and weaker than this fraction of it is the return to ready, not a swing
 SWING_STRIKE_WINDOW_S = (0.15, 0.08)  # swing features are measured this long before / after peak acceleration
 SWING_PAST_PEAK_RATIO = 0.6       # a swing is reported once acceleration falls below this fraction of its peak
+SWING_TRACK_GRAVITY = True        # remove gravity using the motor's own orientation at every sample. Off = the
+                                  # gravity direction from the last still moment, which is wrong once the paddle
+                                  # tilts mid-rally (up to ~1 g of fake "swing" acceleration)
+SWING_CONTACT_MAX_LAG_S = 0.35    # contact = the paddle's fastest rotation up to this long after peak acceleration:
+                                  # on big strokes acceleration peaks at the start of the forward swing, well
+                                  # before the ball is struck. Swings are timed (hit window) by contact. 0 = old timing
 # Hit-stop: a real swing is only reported ~0.1-0.25 s after the strike (plus Bluetooth
 # delay). So when the ball reaches the paddle while a swing is under way, it's held there
 # until the swing registers and then launched FROM THE PADDLE -- no rewind, no jump.

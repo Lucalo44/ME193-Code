@@ -533,6 +533,7 @@ class PlayerData:
     tilt: List[ImuSample]
     toss: List[ImuSample]
     recordings: Dict[str, List[ImuSample]]      # swing step -> raw samples (missing steps left out)
+    rest_full: List[ImuSample] = None           # the whole hold-still recording (rest = its steadiest part)
 
 
 def load_player(player: str) -> PlayerData:
@@ -540,7 +541,7 @@ def load_player(player: str) -> PlayerData:
         return load_csv(log_path(step, player)) if os.path.exists(log_path(step, player)) else []
     recordings = {step: maybe(step) for step, _ in STEPS}
     return PlayerData(player, player_hand(player), steadiest(maybe("rest")), maybe("tilt"), maybe("toss"),
-                      {k: v for k, v in recordings.items() if v})
+                      {k: v for k, v in recordings.items() if v}, maybe("rest"))
 
 
 def calibrate_player(data: PlayerData, expect: Optional[int] = None, verbose: bool = True):
@@ -549,7 +550,9 @@ def calibrate_player(data: PlayerData, expect: Optional[int] = None, verbose: bo
     game_sets are the swings exactly as the game finds them, ready for pooling."""
     say = print if verbose else (lambda *a, **k: None)
     base = Calibration()
-    tilt_result = analyze_tilt(data.rest, data.tilt, base)
+    # The tilt step needs the whole hold: its noise level is how a tilt's start is
+    # told from a steady hand (the trimmed steadiest part made that far too touchy).
+    tilt_result = analyze_tilt(data.rest_full or data.rest, data.tilt, base)
     if tilt_result:
         base.gyro_raw_per_dps, base.close_axis, angle = tilt_result
         say(f"   tilt: {angle:.0f} deg -> gyro {base.gyro_raw_per_dps:.2f} raw per deg/s, "
@@ -586,6 +589,49 @@ def pool_sets(per_player: Dict[str, Dict[str, List[SwingEvent]]]) -> Dict[str, L
     return {step: [e for sets in per_player.values() for e in sets.get(step, [])] for step in steps}
 
 
+GAME_CLASS_RATIO = 2      # at most this many game swings of one stroke per swing of the other
+STATE_FIELDS = ("neutral", "gravity", "gyro_bias", "accel_raw_per_g", "noise_g", "noise_dps")
+
+
+def replay_game_swings(session) -> List[SwingEvent]:
+    """Re-detect a recorded game's swings from its raw paddle stream with the current
+    detector, so game swings stay comparable with calibration swings whenever detection
+    changes. The paddle's zeroed pose comes from the session's paddle_state / zero
+    events; older sessions without them are zeroed on their stillest early moment."""
+    from hardware.stroke import StrokeTracker
+    imu = session.imu()
+    if not imu:
+        return []
+    base = session.cal
+    states = [e for e in session.events if e["name"] in ("paddle_state", "zero")]
+    if not states:
+        probe = Calibration(**{k: getattr(base, k) for k in base.__dataclass_fields__})
+        probe.zero_from(steadiest(imu[:200]))
+        states = [{"t": imu[0].t, **{k: getattr(probe, k) for k in STATE_FIELDS}}]
+    bounds = [st["t"] for st in states[1:]] + [math.inf]
+    out: List[SwingEvent] = []
+    for state, t_end in zip(states, bounds):
+        seg = [x for x in imu if (x.t >= state["t"] or state is states[0]) and x.t < t_end]
+        if not seg:
+            continue
+        cal = Calibration(**{k: getattr(base, k) for k in base.__dataclass_fields__})
+        for k in STATE_FIELDS:
+            if k in state:
+                setattr(cal, k, state[k])
+        rest = [x for x in imu if state["t"] - 0.5 <= x.t <= state["t"]] or seg[:30]
+        out += detect_like_game(seg, cal, rest)
+    return out
+
+
+def _match(rec: dict, events: Sequence[SwingEvent]) -> Optional[SwingEvent]:
+    """The replayed swing that is this recorded one (by peak or contact time, within 0.3 s)."""
+    times = [rec["t"]] + ([rec["t_contact"]] if rec.get("t_contact") is not None else [])
+    best = min(events, key=lambda e: min(abs(e.t_peak - t) for t in times) if events else 0, default=None)
+    if best is None or min(abs(best.t_peak - t) for t in times) > 0.3 and min(abs(best.t_hit - t) for t in times) > 0.3:
+        return None
+    return best
+
+
 def game_sets_for(player: str, hand: str) -> Dict[str, List[SwingEvent]]:
     """Forehands and backhands from the player's recorded games (game_logs/<player>/)
     whose label is reliable: hit in time, and the side rule and a sure camera agree
@@ -594,14 +640,21 @@ def game_sets_for(player: str, hand: str) -> Dict[str, List[SwingEvent]]:
     from tools.game_report import confident_label, load_sessions
     out: Dict[str, List[SwingEvent]] = {"game_fh": [], "game_bh": []}
     for session in load_sessions(player, None, None):
-        for sw in session.swings:
-            label = confident_label(sw)
-            if label is None or sw.get("handedness") != hand or not sw.get("features"):
-                continue
-            ev = SwingEvent(t_peak=sw["t"], strength=sw["strength"], return_speed=sw["return_speed"],
-                            topspin=sw["topspin"], sidespin=sw["sidespin"], peak_accel_g=sw["peak_accel_g"],
-                            peak_gyro_dps=sw["peak_gyro_dps"], features=sw["features"])
-            out["game_fh" if label == "forehand" else "game_bh"].append(ev)
+        labelled = [(sw, confident_label(sw)) for sw in session.swings]
+        labelled = [(sw, lab) for sw, lab in labelled if lab is not None and sw.get("handedness") == hand]
+        if not labelled:
+            continue
+        replayed = replay_game_swings(session)
+        for sw, label in labelled:
+            ev = _match(sw, replayed)
+            if ev is not None:
+                out["game_fh" if label == "forehand" else "game_bh"].append(ev)
+    # The camera is surer on some strokes than others, so one side can pile up; cap it at
+    # GAME_CLASS_RATIO x the other (keeping the most recent) so the model doesn't lean to it.
+    fh, bh = out["game_fh"], out["game_bh"]
+    cap = GAME_CLASS_RATIO * min(len(fh), len(bh))
+    if min(len(fh), len(bh)) > 0:
+        out = {"game_fh": fh[-cap:], "game_bh": bh[-cap:]}
     return out
 
 
@@ -610,7 +663,8 @@ def add_game_swings(sets: Dict[str, List[SwingEvent]], player: str, hand: str) -
     for k, v in extra.items():
         sets[k] = sets.get(k, []) + v
     n_fh, n_bh = len(extra["game_fh"]), len(extra["game_bh"])
-    print(f"   games: + {player}'s {n_fh} forehands and {n_bh} backhands from recorded games")
+    print(f"   games: + {player}'s {n_fh} forehands and {n_bh} backhands from recorded games "
+          f"(one stroke capped at {GAME_CLASS_RATIO}x the other)")
     return n_fh + n_bh
 
 
