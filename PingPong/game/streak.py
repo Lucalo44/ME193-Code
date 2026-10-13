@@ -3,9 +3,11 @@ game/streak.py -- the record number of continuous hits.
 
 A "hit" is one of the player's returns that lands legally on the opponent's
 side. The current streak keeps counting across points the player wins and
-resets only when the player loses a point. The record is the best streak
-ever, saved to RECORD_FILE so it survives restarts. Every time the record is beaten, `on_record(record)` is
-called (main.py publishes it over MQTT).
+resets only when the player loses a point. The record is the best streak of
+the current game: it starts over at 0 when a new game starts (new_game()). It
+is saved to RECORD_FILE, so after a restart the last game's record is still
+shown until the next game begins. Every time the record changes,
+`on_record(record)` is called (main.py publishes it over MQTT).
 """
 
 from __future__ import annotations
@@ -42,6 +44,10 @@ class StreakTracker:
 
     def reset_streak(self) -> None:
         self.current = 0
+
+    def new_game(self) -> None:
+        """A new game: streak and record start over (and the 0 is published)."""
+        self.reset_record()
 
     def reset_record(self) -> None:
         self.current = self.record = 0

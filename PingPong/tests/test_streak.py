@@ -68,3 +68,37 @@ def test_streak_survives_points_won_and_breaks_on_points_lost():
     game.sm.phase = SM.RALLY
     game._end_point("cpu", "NO SWING")           # player loses the point
     assert game.streak.snapshot() == {"current": 0, "record": 3}
+
+
+def test_record_starts_over_with_each_new_game():
+    published = []
+    game, clock, events = make_game(seed=7)
+    game.streak = StreakTracker(on_record=published.append)
+    game.streak.record = game.streak.current = 5            # left over from the last game
+    game.start_game("medium")
+    assert game.streak.snapshot() == {"current": 0, "record": 0}
+    assert published == [0]                                 # the reset is published too
+
+
+def test_score_is_published_at_game_start_and_after_every_point():
+    scores = []
+    game, clock, events = make_game()
+    game._on_score = scores.append
+    game.start_game("medium")
+    assert scores[0]["event"] == "game_start" and (scores[0]["player"], scores[0]["cpu"]) == (0, 0)
+    advance(game, clock, 30.0)                               # no swings: the CPU wins points
+    points = [s for s in scores if s["event"] == "point"]
+    assert len(points) == len([e for e in events if e["name"] == "point"]) >= 2
+    assert points[-1]["cpu"] == game.match.points["cpu"] or points[-1]["game_over"]
+    assert all(s["winner"] == "cpu" and s["reason"] for s in points)
+
+
+def test_score_payload_is_compact_json():
+    msg = ScorePublisher.score_payload({"event": "point", "player": 3, "cpu": 2})
+    assert json.loads(msg) == {"event": "point", "player": 3, "cpu": 2} and " " not in msg
+
+
+def test_disabled_publisher_ignores_scores():
+    p = ScorePublisher(enabled=False)
+    p.publish_score({"player": 1, "cpu": 0})
+    assert p.score_topic == C.MQTT_TOPIC + "/score" and p.status == "disabled"

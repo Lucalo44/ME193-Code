@@ -136,39 +136,39 @@ recorded games):
 
 ## Score publishing (MQTT)
 
-The game publishes your **record number of continuous hits** to the class broker:
+The game publishes to the class broker, `test.mosquitto.org:1883` (same as
+`9_22/mqttlib.py`). Both messages are retained, so a late subscriber gets the current
+values right away.
 
-| | |
-|---|---|
-| Broker | `test.mosquitto.org:1883` (same as `9_22/mqttlib.py`) |
-| Topic | `ME193/Rogers/Luca` |
-| Payload | the record as a floating-point number, e.g. `7.0` |
+| Topic | Payload | Sent |
+|---|---|---|
+| `ME193/Rogers/Luca` | this game's **record number of continuous hits**, as a float, e.g. `7.0` | at startup, `0.0` when a game starts, then on every new record |
+| `ME193/Rogers/Luca/score` | the **game score** as JSON, e.g. `{"event":"point","player":3,"cpu":2,"games_player":0,"games_cpu":0,"speed":"medium","streak":4,"record":7,"winner":"player","reason":"CPU MISSED","game_over":false,"match_over":false}` | `"event":"game_start"` (0-0) when a game starts, then after every point |
 
 A continuous hit is one of your returns that lands legally on the opponent's side. The
-streak carries on through points you win and breaks only when you lose a point. The
-record is your best streak ever.
+streak carries on through points you win and breaks only when you lose a point.
 
-- **When it's sent:** once at startup, then every time you set a new record. The message
-  is retained, so a late subscriber gets the current record right away.
-- **Where it's saved:** `streak_record.json`, so it survives restarts.
+- **The record is per game.** It starts over at 0 with every new game.
+- **Where it's saved:** `streak_record.json`. After a restart, the last game's record is
+  shown and published until the next game starts.
 - **On screen:** the scorebug shows `STREAK n / BEST n`, and the status list shows the
   MQTT connection.
-- **No network:** the game keeps running, and the latest record is sent once the broker
-  is reachable.
+- **No network:** the game keeps running, and the latest record and score are sent once
+  the broker is reachable.
 
-To watch it from another terminal:
+To watch both from another terminal, with timestamps:
 
 ```bash
-mosquitto_sub -h test.mosquitto.org -t ME193/Rogers/Luca -v
+mosquitto_sub -h test.mosquitto.org -t "ME193/Rogers/Luca/#" -F "%I  %t  %p"     # /# also matches ME193/Rogers/Luca itself
 ```
 
 | Flag | What it does |
 |---|---|
 | `--reset-record` | Start the record over at 0 (and publish `0.0`) |
 | `--no-mqtt` | Don't publish |
-| `--mqtt-topic T` | Publish to a different topic |
+| `--mqtt-topic T` | Publish the record to `T` and the score to `T/score` |
 
-The broker, port, topic and file name are `MQTT_*` / `RECORD_FILE` in `config.py`.
+The broker, port, topics and file name are `MQTT_*` / `RECORD_FILE` in `config.py`.
 
 ## How to play
 

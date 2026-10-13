@@ -101,8 +101,10 @@ class Game:
                  debug: bool = False, seed: Optional[int] = None,
                  clock: Callable[[], float] = time.monotonic,
                  streak: Optional[StreakTracker] = None, mqtt_status: Callable[[], str] = lambda: "off",
-                 settings_file: Optional[str] = None, recorder=None):
+                 settings_file: Optional[str] = None, recorder=None,
+                 on_score: Optional[Callable[[dict], None]] = None):
         self.paddle = paddle
+        self._on_score = on_score or (lambda score: None)   # main.py: publish over MQTT
         self.recorder = recorder                  # game/recorder.py, or None (no recording)
         self._swing_id = 0
         self._last_hit_id: Optional[int] = None   # the player's shot in flight, for its result
@@ -316,8 +318,10 @@ class Game:
         self.opponent.speed_setting = setting
         self.opponent.reset()
         self.match.reset()
+        self.streak.new_game()                    # the record is per game
         self._clear_rally()
         self.sm.to(SM.SERVE, self.sim_t)
+        self._publish_score("game_start")
         if self.recorder is not None:
             self.recorder.open()
             self._record("game_start", speed=setting, handedness=self.handedness, paddle=self.paddle.kind,
@@ -518,6 +522,8 @@ class Game:
         result = self.match.award_game(winner) if game_penalty else self.match.award_point(winner)
         self.point_result = result
         self._emit("point", winner=winner, reason=reason, score=self.match.snapshot())
+        self._publish_score("point", winner=winner, reason=reason, game_over=result.game_over,
+                            match_over=result.match_over)
         if result.game_over:
             self._emit("game_over", match_over=result.match_over, winner=result.game_winner,
                        match_winner=result.match_winner, score=self.match.snapshot())
@@ -828,6 +834,15 @@ class Game:
     def _emit(self, name: str, **fields) -> None:
         self._publish_event(protocol.event_message(name, **fields))
         self._record(name, **fields)
+
+    def _publish_score(self, event: str, **fields) -> None:
+        """The score, for MQTT: after every point and at the start of a game."""
+        m = self.match.snapshot()
+        score = {"event": event, "player": m["player"], "cpu": m["cpu"],
+                 "games_player": m["games_player"], "games_cpu": m["games_cpu"],
+                 "speed": self.speed_setting, "streak": self.streak.current, "record": self.streak.record}
+        score.update(fields)
+        self._on_score(score)
 
     def _record_paddle_state(self, name: str) -> None:
         """The paddle's zeroed ready pose, so a recording can be replayed exactly

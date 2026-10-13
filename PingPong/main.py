@@ -69,7 +69,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--no-browser", action="store_true", help="don't open the browser automatically")
     p.add_argument("--seed", type=int, default=None, help="random seed (reproducible rallies)")
     p.add_argument("--no-mqtt", action="store_true", help="don't publish the hit record over MQTT")
-    p.add_argument("--mqtt-topic", default=C.MQTT_TOPIC, help=f"MQTT topic for the record (default {C.MQTT_TOPIC})")
+    p.add_argument("--mqtt-topic", default=C.MQTT_TOPIC, help=f"MQTT topic for the record (default {C.MQTT_TOPIC}); "
+                   "the score goes to <topic>/score")
     p.add_argument("--reset-record", action="store_true", help="start the continuous-hit record over at 0")
     p.add_argument("--record-file", default=None, help="where the hit record is saved (default streak_record.json)")
     p.add_argument("--settings-file", default=None, help="where the handedness choice is saved (default player_settings.json)")
@@ -212,14 +213,17 @@ def main() -> int:
 
     publish_event = log_and_publish if args.debug else server.publish_event
 
-    # Record number of continuous hits -> MQTT (as a float), sent at startup and on every new record.
-    scores = ScorePublisher(topic=args.mqtt_topic, enabled=C.MQTT_ENABLED and not args.no_mqtt)
+    # Record number of continuous hits -> MQTT (as a float), sent at startup and whenever it changes
+    # (new record, or 0 when a game starts); the game score -> <topic>/score after every point.
+    score_topic = C.MQTT_SCORE_TOPIC if args.mqtt_topic == C.MQTT_TOPIC else f"{args.mqtt_topic}/score"
+    scores = ScorePublisher(topic=args.mqtt_topic, score_topic=score_topic, enabled=C.MQTT_ENABLED and not args.no_mqtt)
     streak = StreakTracker(args.record_file or default_path(), on_record=scores.publish_record)
     if args.reset_record:
         streak.reset_record()
     scores.publish_record(streak.record)
     if scores.enabled:
-        print(f"Publishing the hit record ({float(streak.record)}) to {args.mqtt_topic} on {C.MQTT_BROKER}")
+        print(f"Publishing the hit record ({float(streak.record)}) to {args.mqtt_topic} and the score after "
+              f"every point to {score_topic} on {C.MQTT_BROKER}")
 
     recorder = make_recorder(args, paddle, vision)
     if recorder:
@@ -227,7 +231,7 @@ def main() -> int:
     game = Game(paddle, vision, server.publish_state, publish_event, debug=args.debug, seed=args.seed,
                 streak=streak, mqtt_status=lambda: scores.status,
                 settings_file=args.settings_file or os.path.join(HERE, C.PLAYER_SETTINGS_FILE),
-                recorder=recorder)
+                recorder=recorder, on_score=scores.publish_score)
     if args.hand:
         game.set_handedness(args.hand)      # this player's hand, whatever the lobby was left on
     game_ref["game"] = game

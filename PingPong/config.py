@@ -262,7 +262,8 @@ TOSS_UP_FRACTION_MAX = 0.5        # never demand a straighter-up flick than this
 MQTT_ENABLED = True
 MQTT_BROKER = "test.mosquitto.org"    # shared class broker (same as 9_22/mqttlib.py)
 MQTT_PORT = 1883
-MQTT_TOPIC = "ME193/Rogers/Luca"
+MQTT_TOPIC = "ME193/Rogers/Luca"          # the current game's continuous-hit record (float)
+MQTT_SCORE_TOPIC = MQTT_TOPIC + "/score"   # the game score after every point (JSON)
 RECORD_FILE = "streak_record.json"    # the record survives restarts
 
 # --------------------------------------------------------------------------
