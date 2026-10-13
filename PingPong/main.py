@@ -49,7 +49,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Virtual ping pong with a LEGO Double Motor paddle.",
                                 formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
     p.add_argument("--no-motor", action="store_true", help="use the keyboard stand-in instead of the Double Motor")
-    p.add_argument("--replay", metavar="CSV", help="play a recorded IMU log (e.g. imu_logs/calib_hard.csv) as the paddle")
+    p.add_argument("--replay", metavar="CSV", help="play a recorded IMU log (e.g. imu_logs/luca/calib_hard.csv) as the paddle")
     p.add_argument("--no-camera", action="store_true", help="no pose check (always correct stroke), no tags")
     p.add_argument("--camera", type=int, default=0, help="camera device index (default 0)")
     p.add_argument("--pose-data", default=os.path.join(HERE, C.POSE_DATA_FILE), help="pose training data (.npz)")

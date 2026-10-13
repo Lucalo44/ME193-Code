@@ -1,6 +1,6 @@
 """
 hardware/replay_paddle.py -- play a recorded IMU log back as if the Double Motor
-were connected (python main.py --replay imu_logs/calib_hard.csv).
+were connected (python main.py --replay imu_logs/luca/calib_hard.csv).
 
 Every sample goes through the same path as the real paddle -- swing and toss
 detection, orientation, the live stroke -- in real time, looping. Handy for

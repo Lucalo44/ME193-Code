@@ -70,3 +70,25 @@ def test_quick_weaker_retry_counts_when_it_is_a_forward_stroke():
         det.stroke = Tracker(mode)
         evs = [e for e in (det.push(s) for s in samples) if e]
         assert len(evs) == expected, (mode, [e.peak_accel_g for e in evs])
+
+
+def test_leave_one_player_out_scores_each_player_on_the_others():
+    from tools.calibrate_swing import leave_one_player_out, pool_sets
+    rng = random.Random(2)
+
+    def ev(value):
+        e = SwingEvent(t_peak=0, strength=0.5, return_speed=7, topspin=0, sidespin=0, peak_accel_g=3, peak_gyro_dps=400)
+        e.features = fake(value, rng)
+        return e
+
+    def player(fh, bh):        # forehands read +fh on the informative feature, backhands bh
+        return {"soft": [ev(fh + rng.gauss(0, 3)) for _ in range(6)],
+                "bh_soft": [ev(bh + rng.gauss(0, 3)) for _ in range(6)]}
+
+    alike = {"a": player(20, -20), "b": player(25, -15), "c": player(15, -25)}
+    assert len(pool_sets(alike)["soft"]) == 18
+    acc, total, players = leave_one_player_out(alike)["stroke"]
+    assert acc >= 0.9 and total == 36 and players == 3
+    # A player whose strokes look reversed (e.g. the other hand) is read wrong by the pool.
+    odd = dict(alike, d=player(-20, 20))
+    assert leave_one_player_out(odd)["stroke"][0] < 0.8

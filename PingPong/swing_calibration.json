@@ -71,9 +71,9 @@
     0.9965533348471615,
     0.07109295756514969
   ],
-  "toss_accel_g": 1.116,
-  "toss_max_gyro_dps": 1153.3,
-  "toss_up_fraction": 0.8075,
+  "toss_accel_g": 0.93,
+  "toss_max_gyro_dps": 1315.2,
+  "toss_up_fraction": 0.6175,
   "toss_peak_min_g": 1.86,
   "toss_peak_max_g": 4.36,
   "models": {

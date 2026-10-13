@@ -236,8 +236,10 @@ CPU_SERVE_SPEED_FACTOR = 0.75     # CPU serve speed = base shot speed * this
 # Toss detection on the real paddle: a sharp UPWARD jolt with little rotation.
 TOSS_ACCEL_G = 0.8                # upward linear acceleration that counts as a toss (g)
 TOSS_MAX_GYRO_DPS = 120.0         # more rotation than this = a swing, not a toss
-TOSS_UP_FRACTION = 0.7            # the jolt must be mostly along "up"
-TOSS_COOLDOWN_S = 1.0
+TOSS_UP_FRACTION = 0.6            # the jolt must be mostly along "up"
+TOSS_CAL_PEAK_FRACTION = 0.5      # calibration: accept tosses down to this x your gentlest calibration flick
+TOSS_CAL_UP_FRACTION = 0.65       # calibration: ... and this x your least-vertical one
+TOSS_COOLDOWN_S = 0.5            # long enough to skip the stop-jolt ~0.3 s after each flick, short enough for a quick retry
 
 # --------------------------------------------------------------------------
 # Score publishing (MQTT): record number of continuous hits, as a float

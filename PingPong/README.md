@@ -74,7 +74,7 @@ Other flags:
 | `--debug` | Debug overlay on; logs events to the terminal |
 | `--seed N` | Reproducible rallies |
 | `--no-browser` | Don't auto-open the browser |
-| `--replay CSV` | Play a recorded IMU log (e.g. `imu_logs/calib_hard.csv`) as the paddle, in real time and looping. Lets you test without the motor. |
+| `--replay CSV` | Play a recorded IMU log (e.g. `imu_logs/luca/calib_hard.csv`) as the paddle, in real time and looping. Lets you test without the motor. |
 | `--record-file PATH` | Save the hit record somewhere other than `streak_record.json` (useful for test runs) |
 
 With a real paddle, the game refuses to start until `swing_calibration.json` exists
@@ -225,8 +225,8 @@ Put those numbers in `config.py` (`DEFAULT_GYRO_RAW_PER_DPS`, `ANGLE_RAW_PER_DEG
 the "Measured on our hardware" block of the `hardware/swing.py` docstring.
 
 ```bash
-python tools/calibrate_swing.py              # guided, about 9 minutes (steps below)
-python tools/calibrate_swing.py --swings 10  # 10 of each instead of 5: more reliable spin/stroke detection
+python tools/calibrate_swing.py --player luca              # guided, about 9 minutes (steps below)
+python tools/calibrate_swing.py --player luca --swings 10  # 10 of each instead of 5: more reliable spin/stroke detection
 python -m pytest -q tests/test_swing.py
 ```
 
@@ -279,10 +279,33 @@ overlay (**D**) shows the numbers for your last flick.
 **Run it again** if you calibrated before backhands and the tilt step were added; older
 files still work but lack them.
 
-**Turn recordings into tests.** Recordings with exactly 5 detected swings are saved as
-`imu_logs/calib_*_5swings.csv`. Copy them into `tests/data/` and the swing tests assert
+**Turn recordings into tests.** Recordings are saved per player in `imu_logs/<player>/`
+(with the player's hand in `player.json`). Those with exactly 5 detected swings are also
+saved as `calib_*_5swings.csv`. Copy them into `tests/data/` and the swing tests assert
 5 events per file. To recompute without the hardware, run
-`python tools/calibrate_swing.py --from-logs`.
+`python tools/calibrate_swing.py --player luca --from-logs`. Recording a player again moves
+their earlier session to `imu_logs/<player>/previous/`.
+
+**Pooling players.** The spin and forehand/backhand classifiers can learn from everyone
+who plays with the same hand. Thresholds, strength range, backswing and toss always stay
+the player's own, because they depend on how hard and how far *that* player swings.
+A new player then only needs the short session (rest, tilt, tosses, soft and hard
+forehands and backhands, about 4 minutes):
+
+```bash
+python tools/calibrate_swing.py --player sam --quick --pool all --out swing_calibration_sam.json
+python main.py --calibration swing_calibration_sam.json
+python tools/calibrate_swing.py --player luca --from-logs --pool all   # refresh your own with everyone's swings
+```
+
+- `--pool all`, or a list like `--pool luca,sam`. Players with the other hand are skipped,
+  because a left-hander's forehand turns the motor the opposite way.
+- `--hand left|right` tags a player. The default is their earlier tag, else the lobby's hand.
+- With two or more players the summary prints **leave-one-player-out** accuracy: each
+  player's swings read by classifiers trained only on the others. That's how well the pool
+  will work for someone who hasn't calibrated. If it's low for one player, they swing
+  differently or hold the motor differently, so give them a full calibration instead.
+- Pooling assumes everyone holds the motor the same way.
 
 **Check the on-screen paddle.** Run `python main.py --no-camera`. Like Wii Sports, the
 game moves the paddle to the ball and you control the stroke:
@@ -491,6 +514,7 @@ Every tunable is in `config.py`, with a comment for each.
 | `DEUCE_SERVE_EVERY_POINT` | `True` = the standard rule of alternating every point at 10–10 |
 | `PLAYER_SERVE` | `False` = the CPU serves every point |
 | `TOSS_ACCEL_G`, `TOSS_MAX_GYRO_DPS`, `TOSS_UP_FRACTION` | Defaults for how sharp, how twist-free and how straight up a flick must be to count as a toss. `calibrate_swing.py` learns your own values and saves them in `swing_calibration.json`, which overrides these. |
+| `TOSS_CAL_PEAK_FRACTION`, `TOSS_CAL_UP_FRACTION`, `TOSS_COOLDOWN_S` | How much slack `calibrate_swing.py` leaves below your calibration flicks (in-game tosses are less clean), and the gap between tosses. Lower the fractions if real tosses are still rejected. |
 | `TOSS_HEIGHT_*`, `SERVE_SPEED_*`, `SERVE_CONTACT_Y` | Toss height range, serve speed range, and the height the serve is struck at |
 
 ### Look and feel
