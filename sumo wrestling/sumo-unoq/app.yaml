@@ -1,0 +1,5 @@
+name: Sumo UnoQ
+description: "Publishes the flipper paddle's limit switches over MQTT and drives the sumo robot's wheel motors from MQTT"
+ports: []
+bricks: []
+icon: 🤼
