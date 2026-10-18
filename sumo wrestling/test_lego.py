@@ -6,23 +6,31 @@ running sumo.py with all three.
     python test_lego.py motor        # wiggles the flipper a little, then beeps
     python test_lego.py sensor       # prints the color it sees (Ctrl+C to stop)
     python test_lego.py controller   # prints lever positions + button (Ctrl+C)
+    python test_lego.py drive        # levers drive the UnoQ wheels over MQTT (Ctrl+C)
+    python test_lego.py scan         # list every LEGO device nearby + its card
 
-Add --card <serial> to connect to the device with that Connection Card on it
-(the number printed on the card). Without --card it connects to the first
-device of that type it finds -- fine at home, risky in a room full of teams.
+It connects to the device that has our purple 0998 Connection Card tapped
+onto it (CARD_COLOR / CARD_SERIAL in sumo.py). For a different card:
+
+    python test_lego.py motor --card 1234 --card-color red
 """
 
 import argparse
+import asyncio
 import time
+
+from bleak import BleakScanner
 
 import legoeducation as le
 
-from sumo import FLIP_MIRRORED, NOTIFY_MS, connect
+from sumo import (BROKER, CARD_COLORS, FLIP_MIRRORED, PORT, TOPIC_BASE, SwitchLink,
+                  add_card_args, connect, levers_to_drive)
 
 DEVICES = {
     "motor": (le.DoubleMotor, "Double Motor (flipper)"),
     "sensor": (le.ColorSensor, "Color Sensor"),
     "controller": (le.Controller, "Controller"),
+    "drive": (le.Controller, "Controller"),
 }
 
 
@@ -59,16 +67,74 @@ def test_controller(pad):
         time.sleep(0.25)
 
 
+def test_drive(pad):
+    """Controller levers -> UnoQ wheels, exactly as sumo.py's TELEOP does,
+    without the color sensor or flipper."""
+    link = SwitchLink(BROKER, PORT, TOPIC_BASE)
+    print("Wheels off the table! Push the levers to drive. Ctrl+C to stop.")
+    try:
+        last_print = 0.0
+        while True:
+            s = pad.sensor
+            levers = [0 if v != v else int(v) for v in (s.leftPercent, s.rightPercent)]  # NaN -> 0
+            left, right = levers_to_drive(*levers)
+            link.drive(left, right)
+            if time.monotonic() - last_print >= 0.25:
+                print(f"  levers {levers[0]:>4} {levers[1]:>4}  ->  wheels {left:>4} {right:>4}")
+                last_print = time.monotonic()
+            time.sleep(0.05)
+    finally:
+        link.close()  # sends a final stop
+
+
+def scan(seconds=8):
+    """List every LEGO device advertising nearby, with the card it reports."""
+    from legoeducation.basic_ble import LEGO_COMPANY_ID, SERVICE_UUID
+    from legoeducation.color_map import _firmware_to_app
+
+    kinds = {le.PRODUCT_GROUP_DEVICE_SINGLE_MOTOR: "Single Motor",
+             le.PRODUCT_GROUP_DEVICE_DOUBLE_MOTOR: "Double Motor",
+             le.PRODUCT_GROUP_DEVICE_COLOR_SENSOR: "Color Sensor",
+             le.PRODUCT_GROUP_DEVICE_CONTROLLER: "Controller"}
+    color_names = {c: n for n, c in CARD_COLORS.items()}
+    found = {}
+
+    def on_adv(device, adv):
+        data = adv.manufacturer_data.get(LEGO_COMPANY_ID)
+        if data is None or len(data) < 5:
+            return
+        product = (data[0] << 8) | data[1]
+        color = _firmware_to_app(data[2])
+        found[device.address] = (kinds.get(product, f"product {product}"), device.name,
+                                 color_names.get(color, f"none ({color})"),
+                                 f"{data[3] | (data[4] << 8):04d}")
+
+    async def run():
+        async with BleakScanner(detection_callback=on_adv, service_uuids=[SERVICE_UUID]):
+            await asyncio.sleep(seconds)
+
+    print(f"Scanning {seconds} s for LEGO devices (devices already connected "
+          f"to a program or the LEGO app don't show up)...")
+    asyncio.run(run())
+    if not found:
+        print("  nothing found -- are they turned on? Is Bluetooth allowed for this terminal?")
+    for kind, name, color, serial in sorted(found.values()):
+        print(f"  {kind:<13} {str(name):<22} card {color:<10} {serial}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Test one LEGO device")
-    parser.add_argument("device", choices=DEVICES)
-    parser.add_argument("--card", help="Connection Card serial printed on the card")
+    parser.add_argument("device", choices=[*DEVICES, "scan"])
+    add_card_args(parser)
     args = parser.parse_args()
+    if args.device == "scan":
+        return scan()
 
     cls, name = DEVICES[args.device]
-    device = connect(cls(), name, args.card)
+    device = connect(cls(), name, args.card, CARD_COLORS[args.card_color])
     try:
-        {"motor": test_motor, "sensor": test_sensor, "controller": test_controller}[args.device](device)
+        {"motor": test_motor, "sensor": test_sensor, "controller": test_controller,
+         "drive": test_drive}[args.device](device)
     except KeyboardInterrupt:
         pass
     finally:

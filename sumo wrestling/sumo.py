@@ -48,8 +48,8 @@ MQTT messages (TOPIC_BASE defaults to ME193/Luca/sumo)
 Usage
 -----
     source venv/bin/activate
-    python sumo.py
-    python sumo.py --motor-card 0049 --sensor-card 0050 --controller-card 0051
+    python sumo.py                            # connects to devices with our card
+    python sumo.py --card 1234 --card-color red   # a different Connection Card
     python sumo.py --broker 192.168.1.20      # local mosquitto, lower latency
 
 Press the controller button to start a match (and again to re-arm after a
@@ -75,6 +75,11 @@ import paho.mqtt.client as mqtt
 BROKER = "test.mosquitto.org"
 PORT = 1883
 TOPIC_BASE = "ME193/Luca/sumo"
+
+# Our Connection Card. Tap it onto all three LEGO devices; each one is then
+# found by card + device type, so other teams' hubs are ignored.
+CARD_COLOR = le.LEGO_COLOR_PURPLE
+CARD_SERIAL = "0998"      # a string, to keep the leading zero
 
 LOOP_PERIOD = 0.02          # s -- decision tree runs at 50 Hz
 NOTIFY_MS = 20              # ms -- how often LEGO sensors report (15..1000)
@@ -311,12 +316,29 @@ def play_sad_song(device):
 # Main
 # --------------------------------------------------------------------------
 
-def connect(device, name: str, card_serial):
+CARD_COLORS = {"red": le.LEGO_COLOR_RED, "yellow": le.LEGO_COLOR_YELLOW,
+               "blue": le.LEGO_COLOR_BLUE, "green": le.LEGO_COLOR_GREEN,
+               "purple": le.LEGO_COLOR_PURPLE, "orange": le.LEGO_COLOR_ORANGE,
+               "teal": le.LEGO_COLOR_TEAL, "white": le.LEGO_COLOR_WHITE,
+               "magenta": le.LEGO_COLOR_MAGENTA, "azure": le.LEGO_COLOR_AZURE}
+
+
+def add_card_args(parser):
+    """--card / --card-color, defaulting to our purple 0998 card."""
+    default_color = next(n for n, c in CARD_COLORS.items() if c == CARD_COLOR)
+    parser.add_argument("--card", default=CARD_SERIAL,
+                        help=f"Connection Card serial (default {CARD_SERIAL})")
+    parser.add_argument("--card-color", default=default_color, choices=CARD_COLORS,
+                        help=f"Connection Card color (default {default_color})")
+
+
+def connect(device, name: str, card_serial=CARD_SERIAL, card_color=CARD_COLOR):
     """Connect with retries -- the hubs sometimes report 'not ready' at first."""
-    print(f"[lego] connecting to {name}" + (f" (card {card_serial})" if card_serial else "") + "...")
+    print(f"[lego] connecting to {name} (card {card_serial})...")
     for attempt in range(5):
         try:
-            device.connect(card_serial=card_serial, device_notification_delay=NOTIFY_MS)
+            device.connect(card_serial=card_serial, card_color=card_color,
+                           device_notification_delay=NOTIFY_MS)
             break
         except Exception as e:
             if "not ready" in str(e).lower() and attempt < 4:
@@ -324,7 +346,10 @@ def connect(device, name: str, card_serial):
             else:
                 raise
     if not device.connected:
-        raise ConnectionError(f"could not connect to {name}")
+        raise ConnectionError(
+            f"could not find {name} with card {card_serial}. Is it on, and was "
+            f"the card tapped onto it? Make sure it isn't connected to another "
+            f"program or the LEGO app.")
     print(f"[lego] {name} connected")
     return device
 
@@ -334,15 +359,14 @@ def main():
     parser.add_argument("--broker", default=BROKER)
     parser.add_argument("--port", type=int, default=PORT)
     parser.add_argument("--topic-base", default=TOPIC_BASE)
-    parser.add_argument("--motor-card", help="Connection Card serial of the flipper Double Motor")
-    parser.add_argument("--sensor-card", help="Connection Card serial of the Color Sensor")
-    parser.add_argument("--controller-card", help="Connection Card serial of the Controller")
+    add_card_args(parser)
     args = parser.parse_args()
 
     link = SwitchLink(args.broker, args.port, args.topic_base)
-    motor = connect(le.DoubleMotor(), "Double Motor (flipper)", args.motor_card)
-    sensor = connect(le.ColorSensor(), "Color Sensor", args.sensor_card)
-    pad = connect(le.Controller(), "Controller", args.controller_card)
+    card = (args.card, CARD_COLORS[args.card_color])
+    motor = connect(le.DoubleMotor(), "Double Motor (flipper)", *card)
+    sensor = connect(le.ColorSensor(), "Color Sensor", *card)
+    pad = connect(le.Controller(), "Controller", *card)
 
     ring = RingMonitor()
     flipper = Flipper(motor)

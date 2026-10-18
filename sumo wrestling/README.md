@@ -97,19 +97,78 @@ pip install -r requirements.txt
 
 ## Run
 
-1. Deploy the UnoQ app (board on WiFi, IP current in `ArduinoUNOq/tools/board_secrets.py`).
-   `sumo-unoq/` in this folder is a copy of `ArduinoUNOq/sumo-unoq/`, the copy
-   that actually gets deployed. Copy it into your own `ArduinoUNOq/` folder
-   first, and keep the two in sync when you change either one:
-   ```bash
-   cd ../ArduinoUNOq && python3 tools/deploy.py sumo-unoq
-   ```
-   The log prints `[switch] left=ON ...` when you press a switch.
-2. Turn on the three LEGO devices, then on the laptop:
-   ```bash
-   python sumo.py --motor-card <serial> --sensor-card <serial> --controller-card <serial>
-   ```
-3. Press the controller button to start the match. Ctrl+C stops everything.
+Do these in order. Each step tests one more piece, so when something breaks
+you know where. Lift the wheels off the table for steps 3 and 6.
+
+### 1. Start the UnoQ app
+
+The board must be on WiFi, with its IP current in
+`ArduinoUNOq/tools/board_secrets.py`. `sumo-unoq/` in this folder is a copy of
+`ArduinoUNOq/sumo-unoq/`, the copy that actually gets deployed. Copy it into
+your own `ArduinoUNOq/` folder first, and keep the two in sync when you change
+either one.
+
+```bash
+cd ~/GitHub/ME193-Code/ArduinoUNOq
+python3 tools/deploy.py sumo-unoq
+```
+
+### 2. Test the limit switches
+
+Watch the board's log and press each switch:
+
+```bash
+python3 tools/deploy.py --cmd "arduino-app-cli app logs /home/arduino/ArduinoApps/sumo-unoq --follow --tail 5"
+```
+
+It should print `[switch] left=ON  right=off`, then `left=off` when released.
+Then check the laptop receives it (new terminal; ~5 lines/second, `"pressed": true` while pressed):
+
+```bash
+mosquitto_sub -h test.mosquitto.org -t "ME193/Luca/sumo/switch" -v
+```
+
+### 3. Test the wheel motors
+
+```bash
+mosquitto_pub -h test.mosquitto.org -t "ME193/Luca/sumo/drive" -m '{"left": 120, "right": 120}'
+```
+
+Both wheels spin forward for ~0.75 s, then stop by themselves. Try `-120`
+for reverse, and `0` on one side to check left and right aren't swapped. If a
+wheel runs backwards, swap that motor's two wires at the driver.
+
+### 4. Pair the LEGO devices with our card
+
+Turn on the Double Motor, Color Sensor and Controller, and **tap our purple
+Connection Card (0998) onto each of them**. The scripts look for a device of
+the right type with that card, so other teams' hubs are ignored. The card is
+set in `CARD_COLOR` / `CARD_SERIAL` at the top of `sumo.py`.
+
+The first time, macOS asks whether Terminal (or VS Code) may use Bluetooth:
+click Allow, or turn it on under System Settings → Privacy & Security → Bluetooth.
+
+### 5. Test each LEGO device on its own
+
+```bash
+cd ~/GitHub/ME193-Code/"sumo wrestling"
+source venv/bin/activate
+python test_lego.py motor        # paddle lifts 30° and back, then beeps
+python test_lego.py sensor       # prints the color; check the tape reads BLUE (Ctrl+C)
+python test_lego.py controller   # prints levers and button (Ctrl+C)
+```
+
+If the paddle moved down first or the two sides fought each other,
+`test_lego.py` prints which setting in `sumo.py` to change.
+
+### 6. Run the robot
+
+```bash
+python sumo.py
+```
+
+Press the controller button to start the match. Ctrl+C stops everything.
+For a different card: `python sumo.py --card 1234 --card-color red`.
 
 ## First-test checklist
 
