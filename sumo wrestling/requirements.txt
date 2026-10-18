@@ -1,0 +1,7 @@
+# Sumo wrestling robot -- Python 3.12 venv on macOS (same base as PingPong / Pose Racecar).
+legoeducation==1.1.1   # LEGO Education hub BLE protocol (DoubleMotor for the flipper paddle + drive)
+bleak==3.0.2           # BLE transport used by legoeducation
+paho-mqtt==2.1.0       # UnoQ limit-switch events in, teleop commands / status out
+numpy==2.5.3           # sensor math, KNN / K-means if used for the policy
+py_trees==2.3.0        # behavior tree for the autonomous policy
+pygame==2.6.1          # gamepad / keyboard teleoperation + sad-song playback
