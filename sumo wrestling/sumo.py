@@ -52,14 +52,16 @@ Usage
     python sumo.py --card 1234 --card-color red   # a different Connection Card
     python sumo.py --broker 192.168.1.20      # local mosquitto, lower latency
 
-Press the controller button to start a match (and again to re-arm after a
-loss). Ctrl+C stops everything.
+Press the controller button (or Enter in this terminal) to start a match,
+and again to re-arm after a loss. Until then the robot stays in WAITING and
+ignores the levers and limit switches. Ctrl+C stops everything.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -379,7 +381,16 @@ def main():
     last_print = 0.0
     warned_stale = False
 
-    print("\nReady. Press the controller button to start the match. Ctrl+C to quit.\n")
+    # Enter in the terminal does the same as the controller button's start/re-arm.
+    enter_pressed = threading.Event()
+
+    def watch_enter():
+        for _ in sys.stdin:
+            enter_pressed.set()
+    threading.Thread(target=watch_enter, daemon=True).start()
+
+    print("\nReady. Press the controller button or Enter to start the match. "
+          "Ctrl+C to quit.\n")
     try:
         while True:
             now = time.monotonic()
@@ -398,8 +409,10 @@ def main():
                 print("[mqtt] no limit-switch messages from the UnoQ -- auto flip disabled")
                 warned_stale = True
 
-            # Button starts a match, or re-arms after a loss.
-            if button_tap and (not match_on or ring.out):
+            # Button or Enter starts a match, or re-arms after a loss.
+            start = enter_pressed.is_set() or button_tap
+            enter_pressed.clear()
+            if start and (not match_on or ring.out):
                 match_on = True
                 ring.reset()
                 button_tap = False  # don't also count it as a manual flip
@@ -438,13 +451,14 @@ def main():
                     link.drive(0, 0)
                     flipper.stop()
                     threading.Thread(target=play_sad_song, args=(motor,), daemon=True).start()
-                    print("[match] pushed out. Press the controller button to re-arm.")
+                    print("[match] pushed out. Press the controller button or Enter to re-arm.")
                 last_state = d.state
 
             if now - last_print >= 0.5:
                 print(f"  {d.state:<11} levers {inputs.lever_left:4d} {inputs.lever_right:4d}"
                       f"  drive {d.left:4d} {d.right:4d}  color {color}"
-                      f"  switch {'ON ' if switch else 'off'}{'' if switch_fresh else ' (stale)'}")
+                      f"  switch {'ON ' if switch else 'off'}{'' if switch_fresh else ' (stale)'}"
+                      f"  button {'DOWN' if button_down else '-'}")
                 last_print = now
 
             time.sleep(max(0.0, LOOP_PERIOD - (time.monotonic() - now)))
