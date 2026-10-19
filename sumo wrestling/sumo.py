@@ -128,9 +128,9 @@ CONTACT_HOLD_S = 0.5        # a hit stays "recent" this long
 IMU_BLANK_S = 0.3           # ignore the IMU while the flipper swings + this long after
 
 # Flipper (Double Motor)
-FLIP_DEGREES = 120          # how far the paddle swings up
+FLIP_DEGREES = 150          # how far the paddle swings up
 FLIP_SPEED = 100            # % -- swing up as hard as possible
-RETURN_SPEED = 50           # % -- lower the paddle gently
+RETURN_SPEED = 35           # % -- lower the paddle gently
 FLIP_COOLDOWN_S = 0.8       # s -- after returning, before it can fire again
 FLIP_MIRRORED = True        # the two sides drive the paddle from opposite
                             # sides (mirror image). Set False if both outputs
