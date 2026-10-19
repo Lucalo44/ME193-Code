@@ -5,6 +5,7 @@ running sumo.py with all three.
 
     python test_lego.py motor        # wiggles the flipper a little, then beeps
     python test_lego.py sensor       # prints the color it sees (Ctrl+C to stop)
+    python test_lego.py imu          # prints the Double Motor IMU: tap/shove it to tune IMU_HIT_JERK
     python test_lego.py controller   # prints lever positions + button (Ctrl+C)
     python test_lego.py drive        # levers drive the UnoQ wheels over MQTT (Ctrl+C)
     python test_lego.py scan         # list every LEGO device nearby + its card
@@ -28,6 +29,7 @@ from sumo import (BROKER, CARD_COLORS, FLIP_MIRRORED, PORT, TOPIC_BASE, SwitchLi
 
 DEVICES = {
     "motor": (le.DoubleMotor, "Double Motor (flipper)"),
+    "imu": (le.DoubleMotor, "Double Motor (IMU)"),
     "sensor": (le.ColorSensor, "Color Sensor"),
     "controller": (le.Controller, "Controller"),
     "drive": (le.Controller, "Controller"),
@@ -56,6 +58,26 @@ def test_sensor(sensor):
         name = str(le.LEGO_COLOR_NAME_MAP.get(s.color, s.color)).removeprefix("LEGO_COLOR_")
         print(f"  color {name!s:<10} reflection {s.reflection}")
         time.sleep(0.25)
+
+
+def test_imu(motor):
+    """Shows the jerk the way sumo.py computes it. Tap the robot, shove it, run
+    the wheels, and pick IMU_HIT_JERK between 'quiet' and 'real hit'."""
+    from sumo import ImuMonitor
+    imu = ImuMonitor()
+    print("Tap and shove the robot. Peak jerk is since the last line. Ctrl+C to stop.")
+    peak = 0.0
+    last = 0.0
+    while True:
+        now = time.monotonic()
+        imu.update(motor, now)
+        peak = max(peak, imu.jerk)
+        if now - last >= 0.25:
+            s = motor.imu_device
+            print(f"  peak jerk {peak:8.0f}  {'HIT' if imu.hit(now) else '   '}"
+                  f"  pitch {s.pitch}  roll {s.roll}  gesture {motor.imu_gesture.gesture}")
+            peak, last = 0.0, now
+        time.sleep(0.02)
 
 
 def test_controller(pad):
@@ -133,7 +155,7 @@ def main():
     cls, name = DEVICES[args.device]
     device = connect(cls(), name, args.card, CARD_COLORS[args.card_color])
     try:
-        {"motor": test_motor, "sensor": test_sensor, "controller": test_controller,
+        {"motor": test_motor, "sensor": test_sensor, "imu": test_imu, "controller": test_controller,
          "drive": test_drive}[args.device](device)
     except KeyboardInterrupt:
         pass

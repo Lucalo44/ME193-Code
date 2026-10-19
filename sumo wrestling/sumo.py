@@ -22,6 +22,7 @@ Decision tree (decide() below, checked top to bottom)
     match not started?               -> WAITING      wheels stopped
     pushed out of the ring?          -> LOST         stop, play sad song
     rear sensor on the blue tape?    -> ESCAPE       drive forward, ignore levers
+      ...and the switch is hit too?  -> ESCAPE_FLIP  drive forward AND fire the flipper
     limit switch hit, flipper ready? -> AUTO_FLIP    fire flipper, keep driving
     button pressed, flipper ready?   -> MANUAL_FLIP  fire flipper, keep driving
     otherwise                        -> TELEOP       wheels follow the levers
@@ -32,6 +33,19 @@ are being pushed over the line. One color sensor can't tell the floor
 inside the ring from the floor outside it, so if the robot is shoved
 across the tape faster than OUT_TAPE_S it won't notice -- tune OUT_TAPE_S
 in the real ring.
+
+Sensor fusion
+-------------
+RingMonitor fuses three sources into on_tape / out:
+  * color + reflection   a smoothed 0..1 "tape confidence" with hysteresis
+                         (enter at TAPE_ENTER, leave at TAPE_LEAVE), so one
+                         bad reading can't flip the decision.
+  * limit switch         contact in front of us.
+  * Double Motor IMU     a jerk spike or COLLISION gesture = contact from any
+                         direction. Ignored while the flipper swings, because
+                         the swing shakes the chassis too.
+While we are on the tape AND in contact we are probably being shoved
+backward, so "out" is declared after OUT_TAPE_PUSHED_S instead of OUT_TAPE_S.
 
 MQTT messages (TOPIC_BASE defaults to ME193/Luca/sumo)
 ------------------------------------------------------
@@ -95,9 +109,23 @@ DRIVE_HEARTBEAT = 0.1       # s -- resend drive at least this often
 
 # Ring edge (Color Sensor)
 TAPE_COLORS = {le.LEGO_COLOR_BLUE, le.LEGO_COLOR_AZURE}  # blue tape can read as either
-TAPE_DEBOUNCE_S = 0.04      # must see tape this long before it counts
+TAPE_REFLECTION = None      # (lo, hi) reflection range of the tape; None = color only.
+                            # Read it with `python test_lego.py sensor`.
+W_COLOR = 0.65              # evidence weights; with a reflection range set, color alone
+W_REFLECTION = 0.35         # must still reach TAPE_ENTER (W_COLOR > TAPE_ENTER)
+TAPE_ALPHA = 0.5            # smoothing per 20 ms tick (higher = faster)
+TAPE_ENTER = 0.6            # confidence needed to call it "on tape"
+TAPE_LEAVE = 0.3            # confidence below which we're off the tape again
 ESCAPE_DRIVE = MAX_DRIVE    # forward speed while backing off the tape
 OUT_TAPE_S = 0.6            # on tape this long despite ESCAPE -> we're out
+OUT_TAPE_PUSHED_S = 0.3     # ...or this long if something is also touching us
+
+# Contact (Double Motor IMU + limit switch)
+IMU_HIT_JERK = 600        # change in the accelerometer vector between samples that
+                            # counts as a hit. Units are the IMU's raw ones; tune it
+                            # with `python test_lego.py imu`.
+CONTACT_HOLD_S = 0.5        # a hit stays "recent" this long
+IMU_BLANK_S = 0.3           # ignore the IMU while the flipper swings + this long after
 
 # Flipper (Double Motor)
 FLIP_DEGREES = 120          # how far the paddle swings up
@@ -155,7 +183,9 @@ def decide(i: Inputs) -> Decision:
     if i.out:
         return Decision("LOST")
     if i.on_tape:
-        return Decision("ESCAPE", ESCAPE_DRIVE, ESCAPE_DRIVE)
+        # Opponent in front while the rear is on the line: shove it as we back off.
+        fire = i.flipper_ready and i.switch
+        return Decision("ESCAPE_FLIP" if fire else "ESCAPE", ESCAPE_DRIVE, ESCAPE_DRIVE, fire=fire)
 
     left, right = levers_to_drive(i.lever_left, i.lever_right)
     if i.flipper_ready and i.switch:
@@ -169,28 +199,77 @@ def decide(i: Inputs) -> Decision:
 # Sensing
 # --------------------------------------------------------------------------
 
+class ImuMonitor:
+    """Double Motor IMU -> "something hit us". Jerk (sample-to-sample change
+    of the accelerometer vector) or a COLLISION gesture marks a hit, which
+    stays recent for CONTACT_HOLD_S."""
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self._prev = None
+        self._last_gesture = None
+        self._hit_at = float("-inf")
+        self.jerk = 0.0
+
+    def update(self, motor, now: float, blanked: bool = False):
+        s = motor.imu_device
+        a = (s.accelerometerX, s.accelerometerY, s.accelerometerZ)
+        if any(v != v for v in a):  # NaN before the first notification
+            return
+        if self._prev is not None:
+            self.jerk = sum((x - y) ** 2 for x, y in zip(a, self._prev)) ** 0.5
+        self._prev = a
+
+        gesture = motor.imu_gesture  # a new object per notification
+        collision = (gesture is not self._last_gesture
+                     and gesture.gesture == le.MOTION_GESTURE_COLLISION)
+        self._last_gesture = gesture
+
+        if not blanked and (self.jerk >= IMU_HIT_JERK or collision):
+            self._hit_at = now
+
+    def hit(self, now: float) -> bool:
+        return now - self._hit_at <= CONTACT_HOLD_S
+
+
 class RingMonitor:
-    """Turns raw color readings into on_tape / out."""
+    """Fuses color, reflection and contact into on_tape / out."""
 
     def __init__(self):
         self.reset()
 
     def reset(self):
         self._tape_since = None
+        self.confidence = 0.0
         self.on_tape = False
         self.out = False
 
-    def update(self, color, now: float):
-        if color in TAPE_COLORS:
-            if self._tape_since is None:
-                self._tape_since = now
-            on_for = now - self._tape_since
-            self.on_tape = on_for >= TAPE_DEBOUNCE_S
-            if on_for >= OUT_TAPE_S:
-                self.out = True  # latched until the next match
+    def _evidence(self, color, reflection) -> float:
+        """0..1: how much this one reading looks like tape."""
+        color_match = 1.0 if color in TAPE_COLORS else 0.0
+        if TAPE_REFLECTION is None or reflection != reflection:  # not used / NaN
+            return color_match
+        lo, hi = TAPE_REFLECTION
+        reflection_match = 1.0 if lo <= reflection <= hi else 0.0
+        return (W_COLOR * color_match + W_REFLECTION * reflection_match) / (W_COLOR + W_REFLECTION)
+
+    def update(self, color, reflection, contact: bool, now: float):
+        self.confidence += TAPE_ALPHA * (self._evidence(color, reflection) - self.confidence)
+        if self.on_tape:
+            self.on_tape = self.confidence >= TAPE_LEAVE
         else:
+            self.on_tape = self.confidence >= TAPE_ENTER
+
+        if not self.on_tape:
             self._tape_since = None
-            self.on_tape = False
+            return
+        if self._tape_since is None:
+            self._tape_since = now
+        limit = OUT_TAPE_PUSHED_S if contact else OUT_TAPE_S
+        if now - self._tape_since >= limit:
+            self.out = True  # latched until the next match
 
 
 class SwitchLink:
@@ -268,6 +347,11 @@ class Flipper:
     def ready(self) -> bool:
         with self._lock:
             return not self._busy and time.monotonic() - self._done_at >= FLIP_COOLDOWN_S
+
+    def settled(self) -> bool:
+        """True when the flipper is not shaking the chassis (for the IMU)."""
+        with self._lock:
+            return not self._busy and time.monotonic() - self._done_at >= IMU_BLANK_S
 
     def fire(self):
         with self._lock:
@@ -371,6 +455,7 @@ def main():
     pad = connect(le.Controller(), "Controller", *card)
 
     ring = RingMonitor()
+    imu = ImuMonitor()
     flipper = Flipper(motor)
 
     match_on = False
@@ -400,9 +485,11 @@ def main():
             button_tap = button_down and not button_was_down
             button_was_down = button_down
 
-            color = sensor.sensor.color
-            ring.update(color, now)
             switch, switch_fresh = link.switch()
+            imu.update(motor, now, blanked=not flipper.settled())
+            imu_hit = imu.hit(now)
+            color = sensor.sensor.color
+            ring.update(color, sensor.sensor.reflection, switch or imu_hit, now)
             if switch_fresh:
                 warned_stale = False
             elif match_on and not warned_stale:
@@ -415,6 +502,7 @@ def main():
             if start and (not match_on or ring.out):
                 match_on = True
                 ring.reset()
+                imu.reset()
                 button_tap = False  # don't also count it as a manual flip
                 print("[match] started")
 
@@ -446,7 +534,8 @@ def main():
 
             if d.state != last_state:
                 print(f"[state] {last_state} -> {d.state}")
-                link.state({"state": d.state, "color": color, "switch": switch})
+                link.state({"state": d.state, "color": color, "switch": switch,
+                            "imu_hit": imu_hit, "tape": round(ring.confidence, 2)})
                 if d.state == "LOST":
                     link.drive(0, 0)
                     flipper.stop()
@@ -456,7 +545,8 @@ def main():
 
             if now - last_print >= 0.5:
                 print(f"  {d.state:<11} levers {inputs.lever_left:4d} {inputs.lever_right:4d}"
-                      f"  drive {d.left:4d} {d.right:4d}  color {color}"
+                      f"  drive {d.left:4d} {d.right:4d}  color {color} tape {ring.confidence:.2f}"
+                      f"  imu {'HIT' if imu_hit else '-'} (jerk {imu.jerk:.0f})"
                       f"  switch {'ON ' if switch else 'off'}{'' if switch_fresh else ' (stale)'}"
                       f"  button {'DOWN' if button_down else '-'}")
                 last_print = now

@@ -156,6 +156,7 @@ source venv/bin/activate
 python test_lego.py motor        # paddle lifts 30° and back, then beeps
 python test_lego.py sensor       # prints the color; check the tape reads BLUE (Ctrl+C)
 python test_lego.py controller   # prints levers and button (Ctrl+C)
+python test_lego.py imu          # Double Motor IMU: tap/shove it, then set IMU_HIT_JERK in sumo.py
 ```
 
 If the paddle moved down first or the two sides fought each other,
@@ -177,4 +178,7 @@ For a different card: `python sumo.py --card 1234 --card-color red`.
 - [ ] Press each limit switch by hand: the paddle flips, `sumo.py` shows `AUTO_FLIP`.
 - [ ] Short-press the controller button during a match: `MANUAL_FLIP`.
 - [ ] Hold the robot's rear over the tape: `ESCAPE`, then `LOST` and the sad song after 0.6 s.
+- [ ] Tune the fusion: `test_lego.py sensor` to read the tape's reflection (set `TAPE_REFLECTION`
+      in `sumo.py`), `test_lego.py imu` for `IMU_HIT_JERK`. Offline logic check: `python test_fusion.py`.
+- [ ] Hold the rear over the tape while pressing a limit switch: `ESCAPE_FLIP` (drives forward and flips).
 - [ ] Ctrl+C on the laptop: the wheels stop within 0.75 s.
