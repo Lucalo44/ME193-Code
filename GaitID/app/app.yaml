@@ -1,0 +1,5 @@
+name: GaitID
+description: "Wearable activity classifier: still / walk / run / bike"
+ports: []
+bricks: []
+icon: 🚶

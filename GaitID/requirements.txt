@@ -1,0 +1,8 @@
+# Python 3.12 venv on macOS (same interpreter as the other projects in this repo).
+numpy==2.5.4
+scipy==1.18.1
+pandas==3.0.6
+scikit-learn==1.9.1       # training only; boards run the exported JSON with numpy
+matplotlib==3.11.2        # confusion matrices, feature plots
+pyserial==3.5             # optional: tools/record.py --serial
+pytest==9.1.1

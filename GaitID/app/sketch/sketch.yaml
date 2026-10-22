@@ -1,0 +1,9 @@
+profiles:
+  default:
+    platforms:
+      - platform: arduino:zephyr
+    libraries:
+      - MsgPack (0.4.2)
+      - DebugLog (0.8.4)
+      - ArduinoGraphics (1.1.4)
+default_profile: default
