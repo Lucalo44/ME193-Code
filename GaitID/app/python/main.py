@@ -18,7 +18,7 @@ from gaitid import config as C
 from gaitid.model import Model
 
 # ---------------- settings ----------------
-STREAM_TO = None                  # laptop IP, e.g. "192.168.1.50" -> record mode; None = off
+STREAM_TO = "10.0.0.115"                  # laptop IP, e.g. "192.168.1.50" -> record mode; None = off
 MODEL = "model2_full.json"        # or "model1_peak.json" to run the one-axis model
 SMOOTH = 3                        # majority vote over the last N predictions
 # ------------------------------------------
@@ -37,6 +37,9 @@ last_shown = None
 
 def loop():
     global since_pred, last_shown
+    if not getattr(loop, "scanned", False):   # DEBUG: one-time I2C scan
+        loop.scanned = True
+        print("I2C scan:", Bridge.call("i2c_scan"))
     try:
         chunk = Bridge.call("get_imu")
     except Exception as e:

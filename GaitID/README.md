@@ -22,7 +22,7 @@ GaitID/
 ├── app/             UNO Q App Lab app (deploys to the board)
 │   ├── sketch/      STM32: samples IMU at 50 Hz, serves it over the Bridge, draws S/W/R/B on the matrix
 │   └── python/      Linux: streams samples to laptop and/or runs the model live
-├── tools/           record.py · train.py · evaluate.py · sync_app.py · make_synthetic.py
+├── tools/           record.py · train.py · evaluate.py · sync_app.py · make_synthetic.py · demo.py
 ├── data/raw/        your recordings:  <label>_<n>.csv   (label = still|walk|run|bike)
 ├── models/          trained model JSON + confusion matrices
 ├── tests/
@@ -52,6 +52,9 @@ pytest                            # sanity check
 5. **Run live:** set `STREAM_TO = None`, `MODEL = "model1_peak.json"` or `"model2_full.json"`,
    `python tools/sync_app.py`, redeploy. The LED matrix shows S / W / R / B.
 6. **Test generalization:** record a separate folder (e.g. `data/hip/`) and run `python tools/evaluate.py data/hip`.
+7. **Group demo:** with the board in record mode (`STREAM_TO` set), `python tools/demo.py` opens a window
+   with a stick figure that copies the detected activity and walks each groupmate through walk → run → bike
+   (30 s each, then a hand-off screen; Space continues). `--sim` fakes the activity with the S/W/R/B keys.
 
 ## Notes
 

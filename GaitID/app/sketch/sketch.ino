@@ -3,8 +3,8 @@
 // Linux drains the queue with Bridge.call("get_imu") and shows the predicted
 // activity with Bridge.call("show", "W").
 //
-// ASSUMPTION: the "5060" is an MPU-6050 (I2C 0x68) on the Qwiic connector (Wire1).
-// If yours is on the header pins use Wire; if it is a different chip, change
+// ASSUMPTION: the "5060" is an MPU-6050 (I2C 0x68) on the header SDA/SCL pins (Wire).
+// If yours is on the Qwiic connector use Wire1; if it is a different chip, change
 // imu_init() / imu_read() only -- everything else stays the same.
 
 #include <Arduino_RouterBridge.h>
@@ -13,7 +13,7 @@
 #include "ArduinoGraphics.h"      // must be included BEFORE Arduino_LED_Matrix.h
 #include "Arduino_LED_Matrix.h"
 
-#define IMU_WIRE   Wire1
+#define IMU_WIRE   Wire
 #define IMU_ADDR   0x68
 #define SAMPLE_HZ  50             // keep equal to FS in gaitid/config.py
 #define ACC_LSB_G  4096.0f        // +/-8 g
@@ -59,6 +59,24 @@ String get_imu() {
   return out;
 }
 
+// DEBUG: called from Linux, lists responding I2C addresses on both buses
+String i2c_scan() {
+  String out = "Wire:";
+  for (uint8_t a = 1; a < 127; a++) {
+    Wire.beginTransmission(a);
+    if (Wire.endTransmission() == 0) out += " 0x" + String(a, HEX);
+  }
+  Wire1.begin();
+  out += " | Wire1:";
+  for (uint8_t a = 1; a < 127; a++) {
+    Wire1.beginTransmission(a);
+    if (Wire1.endTransmission() == 0) out += " 0x" + String(a, HEX);
+  }
+  float v[6];
+  out += imu_read(v) ? " | imu_read OK az=" + String(v[2]) : " | imu_read FAILED";
+  return out;
+}
+
 // Called from Linux: shows one character (non-blocking, so sampling never stalls)
 void show(String s) {
   matrix.beginDraw();
@@ -77,6 +95,7 @@ void setup() {
   Bridge.begin();
   Bridge.provide("get_imu", get_imu);
   Bridge.provide("show", show);
+  Bridge.provide("i2c_scan", i2c_scan);   // DEBUG
   next_us = micros();
 }
 
