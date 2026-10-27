@@ -44,6 +44,9 @@ bool imu_read(float v[6]) {
     int16_t hi = IMU_WIRE.read();
     r[i] = (hi << 8) | IMU_WIRE.read();
   }
+  // A missing sensor can read back as all zeros instead of an error; a real
+  // accelerometer always feels ~1 g, so treat that as a failed read.
+  if (r[0] == 0 && r[1] == 0 && r[2] == 0) return false;
   v[0] = r[0] / ACC_LSB_G; v[1] = r[1] / ACC_LSB_G; v[2] = r[2] / ACC_LSB_G;  // r[3] is temperature
   v[3] = r[4] / GYR_LSB_DPS; v[4] = r[5] / GYR_LSB_DPS; v[5] = r[6] / GYR_LSB_DPS;
   return true;
@@ -72,6 +75,11 @@ String i2c_scan() {
     Wire1.beginTransmission(a);
     if (Wire1.endTransmission() == 0) out += " 0x" + String(a, HEX);
   }
+  IMU_WIRE.beginTransmission(IMU_ADDR);                    // WHO_AM_I: 0x68 on an MPU-6050
+  IMU_WIRE.write(0x75);
+  IMU_WIRE.endTransmission(false);
+  IMU_WIRE.requestFrom(IMU_ADDR, 1);
+  out += " | WHO_AM_I=0x" + String(IMU_WIRE.read(), HEX);
   float v[6];
   out += imu_read(v) ? " | imu_read OK az=" + String(v[2]) : " | imu_read FAILED";
   return out;

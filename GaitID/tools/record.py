@@ -76,6 +76,9 @@ def main():
         print("Stopped early.")
     if len(rows) < C.WINDOW:
         raise SystemExit("Too little data; nothing saved.")
+    if max(abs(v) for r in rows for v in r[1:4]) < 0.1:
+        raise SystemExit("Accelerometer read ~0 g the whole time (a real one always feels gravity): "
+                         "the sensor isn't answering. Check the wiring; nothing saved.")
     with open(path, "w") as f:
         f.write(",".join(C.COLUMNS) + "\n")
         f.writelines(",".join(f"{v:.5f}" for v in r) + "\n" for r in rows)

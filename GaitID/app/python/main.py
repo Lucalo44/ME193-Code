@@ -18,7 +18,7 @@ from gaitid import config as C
 from gaitid.model import Model
 
 # ---------------- settings ----------------
-STREAM_TO = "10.0.0.115"                  # laptop IP, e.g. "192.168.1.50" -> record mode; None = off
+STREAM_TO = "192.168.1.195"                  # laptop IP, e.g. "192.168.1.50" -> record mode; None = off
 MODEL = "model2_full.json"        # or "model1_peak.json" to run the one-axis model
 SMOOTH = 3                        # majority vote over the last N predictions
 # ------------------------------------------
