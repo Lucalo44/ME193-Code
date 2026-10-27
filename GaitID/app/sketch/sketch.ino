@@ -44,9 +44,9 @@ bool imu_read(float v[6]) {
     int16_t hi = IMU_WIRE.read();
     r[i] = (hi << 8) | IMU_WIRE.read();
   }
-  // A missing sensor can read back as all zeros instead of an error; a real
-  // accelerometer always feels ~1 g, so treat that as a failed read.
-  if (r[0] == 0 && r[1] == 0 && r[2] == 0) return false;
+  // All zeros = the MPU-6050 is asleep (it powers up that way, e.g. after a loose
+  // wire) or missing. A real accelerometer always feels ~1 g, so re-wake and skip.
+  if (r[0] == 0 && r[1] == 0 && r[2] == 0) { imu_init(); return false; }
   v[0] = r[0] / ACC_LSB_G; v[1] = r[1] / ACC_LSB_G; v[2] = r[2] / ACC_LSB_G;  // r[3] is temperature
   v[3] = r[4] / GYR_LSB_DPS; v[4] = r[5] / GYR_LSB_DPS; v[5] = r[6] / GYR_LSB_DPS;
   return true;
