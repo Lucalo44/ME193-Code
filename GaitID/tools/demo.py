@@ -241,15 +241,23 @@ class Demo:
 
     def on_key(self, event):
         if event.key in (" ", "enter") and self.mode != "active":
-            self.stage = self.stage + 1 if self.mode == "handoff" else 0
-            self.progress, self.mode = 0.0, "active"
+            self.advance()
         else:
             self.det.key(event.key)
+
+    def advance(self):
+        """Space on the hand-off screen: next groupmate (or start over after the last)."""
+        self.stage = self.stage + 1 if self.mode == "handoff" else 0
+        self.progress, self.mode = 0.0, "active"
 
     def tick(self, _):
         now = time.monotonic()
         dt = min(now - self.t_last, 0.1)
         self.t_last = now
+        self.step(dt)
+
+    def step(self, dt):
+        """Advance the demo by dt seconds and redraw (tools/record_demo.py calls this directly)."""
         label = self.det.poll()
         if self.mode == "active" and label == STAGES[self.stage]:
             self.progress = min(self.progress + dt, self.goal)

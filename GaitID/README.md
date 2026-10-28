@@ -22,7 +22,7 @@ GaitID/
 ├── app/             UNO Q App Lab app (deploys to the board)
 │   ├── sketch/      STM32: samples IMU at 50 Hz, serves it over the Bridge, draws S/W/R/B on the matrix
 │   └── python/      Linux: streams samples to laptop and/or runs the model live
-├── tools/           record.py · train.py · evaluate.py · sync_app.py · make_synthetic.py · demo.py
+├── tools/           record.py · train.py · evaluate.py · sync_app.py · make_synthetic.py · demo.py · record_demo.py · plot_models.py
 ├── data/raw/        your recordings:  <label>_<n>.csv   (label = still|walk|run|bike)
 ├── models/          trained model JSON + confusion matrices
 ├── tests/

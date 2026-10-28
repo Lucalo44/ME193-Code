@@ -5,4 +5,5 @@ pandas==3.0.6
 scikit-learn==1.9.1       # training only; boards run the exported JSON with numpy
 matplotlib==3.11.2        # confusion matrices, feature plots
 pyserial==3.5             # optional: tools/record.py --serial
+imageio-ffmpeg==0.6.0     # tools/record_demo.py: bundled ffmpeg for the demo video
 pytest==9.1.1
