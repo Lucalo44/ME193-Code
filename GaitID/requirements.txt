@@ -6,4 +6,7 @@ scikit-learn==1.9.1       # training only; boards run the exported JSON with num
 matplotlib==3.11.2        # confusion matrices, feature plots
 pyserial==3.5             # optional: tools/record.py --serial
 imageio-ffmpeg==0.6.0     # tools/record_demo.py: bundled ffmpeg for the demo video
+torch==2.15.0             # stepcount: the step-counting neural net
+legoeducation==1.1.1      # stepcount: LEGO Double Motor IMU over BLE (same pin as PingPong)
+bleak==3.0.2
 pytest==9.1.1

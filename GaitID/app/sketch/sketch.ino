@@ -1,7 +1,8 @@
 // UNO Q - microcontroller (STM32) side
 // Samples the 6-axis IMU at SAMPLE_HZ and queues the readings for Linux.
 // Linux drains the queue with Bridge.call("get_imu") and shows the predicted
-// activity with Bridge.call("show", "W").
+// activity with Bridge.call("show", "W") or the step count with
+// Bridge.call("show_count", "412").
 //
 // ASSUMPTION: the "5060" is an MPU-6050 (I2C 0x68) on the header SDA/SCL pins (Wire).
 // If yours is on the Qwiic connector use Wire1; if it is a different chip, change
@@ -96,14 +97,30 @@ void show(String s) {
   matrix.endDraw();
 }
 
+// Called from Linux: shows up to 3 characters in the small 4x6 font (the step count)
+void show_count(String s) {
+  matrix.beginDraw();
+  matrix.noStroke();                       // blank the old count with a black rectangle
+  matrix.fill(0, 0, 0);                    // (matrix.clear() inside a draw froze the MCU)
+  matrix.rect(0, 0, matrix.width(), matrix.height());
+  matrix.noFill();
+  matrix.stroke(0xFFFFFFFF);
+  matrix.textFont(Font_4x6);
+  matrix.beginText(0, 1, 0xFFFFFF);
+  matrix.print(s.c_str());
+  matrix.endText();
+  matrix.endDraw();
+}
+
 void setup() {
   k_mutex_init(&q_lock);
   matrix.begin();
-  imu_init();
-  Bridge.begin();
+  Bridge.begin();                          // before the sensor: a stuck I2C bus must not silence the Bridge
   Bridge.provide("get_imu", get_imu);
   Bridge.provide("show", show);
+  Bridge.provide("show_count", show_count);
   Bridge.provide("i2c_scan", i2c_scan);   // DEBUG
+  imu_init();
   next_us = micros();
 }
 

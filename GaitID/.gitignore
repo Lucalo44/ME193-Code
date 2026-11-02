@@ -1,3 +1,6 @@
 data/synthetic/
 app/python/gaitid/
 app/python/models/
+stepcount/data/synthetic/
+stepcount/models/*_synthetic.pt
+app/python/stepcount_board.py
