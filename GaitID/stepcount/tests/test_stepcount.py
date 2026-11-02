@@ -46,9 +46,12 @@ def test_labels_find_the_true_steps(tmp_path, activity):
     t, true = take(activity, seed=3, tmp=str(tmp_path))
     item = T.prepare(t)
     assert len(item["step_idx"]) == len(true)
-    # labels sit at mid-swing, a steady offset before each strike: the offset must not wander
-    d = np.sort(item["step_idx"] / C.FS) - np.sort(true)
-    assert np.percentile(d, 75) - np.percentile(d, 25) < 0.06
+    # labels sit at mid-swing: each one should come a steady 0.1-0.4 s before the strike that follows it
+    found = F.take_grid(t)[0] + item["step_idx"] / C.FS
+    nxt = np.searchsorted(true, found)
+    d = true[nxt[nxt < len(true)]] - found[nxt < len(true)]
+    assert len(set(nxt)) >= len(true) - 1                       # one label per step
+    assert 0.1 < np.median(d) < 0.4 and np.percentile(d, 75) - np.percentile(d, 25) < 0.06
 
 
 def test_labels_fill_in_the_other_foot(tmp_path):

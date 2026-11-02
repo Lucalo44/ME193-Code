@@ -62,7 +62,8 @@ def make_take(activity, seconds=45.0, seed=0):
                 burst = a * np.exp(-d / 0.04) * np.cos(2 * np.pi * 15 * d)    # ~15 Hz ring, 40 ms decay
                 acc[m, 2] += burst
                 acc[m, 0] += 0.5 * burst
-        for a, b in zip(own[:-1], own[1:]):
+        swing_from = np.concatenate([[own[0] - np.median(np.diff(own))], own]) if len(own) > 1 else own
+        for a, b in zip(swing_from[:-1], swing_from[1:]):      # every strike follows a swing, the first too
             m = (fine >= a) & (fine < b)
             ph = (fine[m] - a) / (b - a)                  # 0 = this foot's strike, 1 = its next one
             stance, sw = ph < 0.6, ph >= 0.6

@@ -1,0 +1,13 @@
+{
+ "activity": "walk",
+ "steps": 110,
+ "seconds": 60.07,
+ "sensors": [
+  "lego",
+  "mpu"
+ ],
+ "placement": {
+  "mpu": "right ankle",
+  "lego": "left ankle"
+ }
+}
