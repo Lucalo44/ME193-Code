@@ -1,0 +1,3 @@
+torch>=2.2
+numpy
+opencv-python  # use opencv-python-headless on the UNO Q
