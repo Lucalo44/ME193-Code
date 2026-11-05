@@ -9,12 +9,17 @@ _clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
 _kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (C.CREASE_KERNEL, C.CREASE_KERNEL))
 
 
-def open_camera(index=C.CAM_INDEX):
+def open_camera(index=None):
+    """Opens the given index, else the one saved by camera_picker.py, else CAM_INDEX."""
+    if index is None:
+        from camera_picker import saved_camera
+        index = saved_camera()
+        index = C.CAM_INDEX if index is None else index
     cap = cv2.VideoCapture(index)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, C.FRAME_W)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, C.FRAME_H)
     if not cap.isOpened():
-        raise SystemExit(f"Could not open camera {index}. Try a different CAM_INDEX in config.py.")
+        raise SystemExit(f"Could not open camera {index}. Run camera_picker.py to choose another.")
     return cap
 
 

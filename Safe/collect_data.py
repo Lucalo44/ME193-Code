@@ -3,6 +3,7 @@
     python3 collect_data.py --task gesture     # finger counts: keys 0-5 pick the label (0 = none)
     python3 collect_data.py --task owner       # palm ID: m = me, n = not_me (friends' hands)
 
+A camera picker window opens first: click the USB webcam. (--camera N skips it.)
 SPACE starts/stops recording (each start is a new session), q quits.
 Saves every --every'th frame to data/<task>/<label>/.
 Tips:
@@ -17,6 +18,7 @@ import time
 import cv2
 
 import config as C
+from camera_picker import pick_camera
 from preprocess import crease_preview, crop_roi, open_camera, read_frame, roi_box
 
 KEYS = {
@@ -34,7 +36,12 @@ def main():
     ap.add_argument("--task", choices=["gesture", "owner"], default="gesture")
     ap.add_argument("--every", type=int, default=3, help="save every Nth frame (default 3, ~10 fps)")
     ap.add_argument("--max", type=int, default=400, help="stop a session after this many images")
+    ap.add_argument("--camera", type=int, help="camera index; skips the picker window")
     a = ap.parse_args()
+
+    cam = a.camera if a.camera is not None else pick_camera()
+    if cam is None:
+        raise SystemExit("No camera selected.")
 
     for c in C.CLASSES[a.task]:
         (C.DATA_DIR / a.task / c).mkdir(parents=True, exist_ok=True)
@@ -43,7 +50,7 @@ def main():
     counts = count(a.task)
     recording, session, n_session, frame_i = False, "", 0, 0
 
-    cap = open_camera()
+    cap = open_camera(cam)
     print(__doc__)
     while True:
         frame = read_frame(cap)

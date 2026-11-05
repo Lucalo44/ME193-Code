@@ -7,7 +7,8 @@ MODEL_DIR = HERE / "models"         # models/<task>.pt
 PASSWORD_FILE = HERE / "password.json"
 
 # ---------------- camera ----------------
-CAM_INDEX = 0                       # USB camera index (0 = first camera)
+CAM_INDEX = 0                       # fallback only; camera_picker.py saves the real choice
+CAMERA_FILE = HERE / "camera.json"  # written by camera_picker.py
 FRAME_W, FRAME_H = 640, 480
 MIRROR = True                       # flip left/right; applied identically in collect + run
 
@@ -28,10 +29,12 @@ CREASE_KERNEL = 9                   # black-hat kernel (px at PALM_SIZE); ~2x a 
 # ---------------- lock behavior ----------------
 CODE_LENGTH = 3
 CONF_THRESH = 0.80                  # gesture softmax needed for a frame to count
-STABLE_FRAMES = 12                  # same digit this many frames in a row = accepted (~0.4 s)
-RELEASE_FRAMES = 6                  # "none" frames needed before the next digit (allows repeats)
+HOLD_S = 3.0                        # hold a digit in the box this long to confirm it
+GRACE_S = 0.35                      # dropouts/misreads shorter than this don't reset the hold
+RELEASE_S = 0.3                     # box must read "none" this long before the next digit (allows repeats)
+CONFIRM_FLASH_S = 0.6               # confirmed digit flashes green on the dial this long
 OWNER_THRESH = 0.85                 # mean P(me) over a digit's frames needed to pass
-ENTRY_TIMEOUT_S = 20                # time to enter all three digits after the button press
+ENTRY_TIMEOUT_S = 30                # time to enter all three digits after the button press
 UNLOCK_HOLD_S = 6                   # door stays open this long, then relocks
 DENIED_SHOW_S = 2
 MAX_FAILS = 3                       # this many wrong attempts in a row...

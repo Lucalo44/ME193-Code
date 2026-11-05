@@ -93,6 +93,18 @@ def main():
     for c, row in zip(classes, conf):
         print(f"{c:>7} " + " ".join(f"{v:7d}" for v in row.tolist()))
 
+    # Per-session accuracy: one session far below the rest usually means the net learned
+    # that session's background/lighting instead of the hand. Record that label again elsewhere.
+    print("\nval accuracy per recording session:")
+    pred = probs.argmax(1)
+    by_session = {}
+    for (path, y), q in zip(val_items, pred.tolist()):
+        key = (classes[y], path.stem.split("_")[0])
+        hit, n = by_session.get(key, (0, 0))
+        by_session[key] = (hit + (q == y), n + 1)
+    for (name, sess), (hit, n) in sorted(by_session.items()):
+        print(f"  {name:>7}  session {sess}  {hit / n:6.1%}  ({n} imgs)" + ("   <-- check this one" if hit / n < 0.6 else ""))
+
     if a.task == "owner":
         p_me = probs[:, classes.index("me")]
         is_me = labels == classes.index("me")

@@ -11,13 +11,15 @@ There are two small CNNs, both defined in [models.py](models.py):
 1. The gesture net takes a 96px RGB crop and outputs `none / 1 / 2 / 3 / 4 / 5`. The `none` class matters more than it looks. It is how the safe knows your hand has left the box between digits, which in turn is what lets a code like 3-3-1 work.
 2. The owner net decides `me / not_me` from the palm's crease lines. A raw webcam image is mostly lighting and skin tone, which says nothing useful about whose hand it is. To get around that, the crop is converted to gray and equalized with CLAHE. A morphological black-hat then keeps only the dark features narrower than a 9px kernel, and that is roughly what a crease is. The net sees the equalized gray and this crease map as two channels. Of note, the owner data is never mirrored during augmentation, since a flipped palm is effectively someone else's palm.
 
-[run_safe.py](run_safe.py) turns the noisy per-frame predictions into digits. A digit only counts after 12 confident frames in a row (~0.4s), and the box then has to read `none` for 6 frames before the next digit is accepted. With owner check on, P(me) is averaged over each digit's frames, and all three digits have to clear 0.85. Three wrong attempts in a row lock the keypad for 30s. Every one of these numbers lives in [config.py](config.py).
+[run_safe.py](run_safe.py) turns the noisy per-frame predictions into digits. A digit only counts once it has been held in the box for 3s. I timed this by the clock rather than by frame count, since the laptop and the UNO Q won't run at the same frame rate. Over 3s the classifier is bound to flicker, so misreads shorter than 0.35s don't reset the hold. To show the hold, a ring around the safe's dial fills as you hold, with the digit and a countdown in the middle, and it flashes green on confirm. After that, the box has to read `none` for 0.3s before the next digit is accepted. With owner check on, P(me) is averaged over each digit's frames, and all three digits have to clear 0.85. Three wrong attempts in a row lock the keypad for 30s. Every one of these numbers lives in [config.py](config.py).
 
 ## Running it
 
 ```bash
 pip install -r requirements.txt
 ```
+
+Of note, OpenCV on macOS only knows cameras by index, and that order shuffles when a USB webcam or an iPhone is connected. To deal with this, [camera_picker.py](camera_picker.py) opens a window with a live tile from every camera it finds. You click the USB webcam, and the choice is saved to `camera.json` so the safe reuses the camera the nets were trained on.
 
 1. Set the code with [set_password.py](set_password.py), e.g. `python3 set_password.py 4 2 5`. Only a salted hash is stored, in a git-ignored `password.json`.
 2. Gesture-only safe:
