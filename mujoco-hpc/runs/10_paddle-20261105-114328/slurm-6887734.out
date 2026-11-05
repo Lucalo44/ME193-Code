@@ -1,0 +1,43 @@
+paddle held still: apexes [0.8, 0.68, 0.63, 0.59, 0.57] m ...
+
+iter  1: best    7.57  mean   -4.35  params [trigger 0.052 m, speed 0.69 m/s, gain 2.12]
+iter  2: best    8.86  mean    2.60  params [trigger 0.037 m, speed 0.66 m/s, gain 2.21]
+iter  3: best    8.80  mean    4.47  params [trigger 0.014 m, speed 0.65 m/s, gain 1.92]
+iter  4: best    9.09  mean    5.19  params [trigger 0.009 m, speed 0.65 m/s, gain 1.67]
+iter  5: best    9.08  mean    4.90  params [trigger 0.008 m, speed 0.59 m/s, gain 1.50]
+iter  6: best    9.54  mean    5.27  params [trigger 0.007 m, speed 0.60 m/s, gain 1.71]
+iter  7: best    9.26  mean    6.69  params [trigger 0.007 m, speed 0.58 m/s, gain 1.91]
+iter  8: best    9.27  mean    7.24  params [trigger 0.007 m, speed 0.55 m/s, gain 1.93]
+iter  9: best    9.40  mean    7.61  params [trigger 0.007 m, speed 0.53 m/s, gain 1.96]
+iter 10: best    9.48  mean    8.55  params [trigger 0.008 m, speed 0.56 m/s, gain 2.13]
+iter 11: best    9.60  mean    8.67  params [trigger 0.008 m, speed 0.56 m/s, gain 2.13]
+iter 12: best    9.43  mean    8.60  params [trigger 0.008 m, speed 0.57 m/s, gain 2.09]
+iter 13: best    9.54  mean    8.55  params [trigger 0.009 m, speed 0.57 m/s, gain 2.10]
+iter 14: best    9.55  mean    8.40  params [trigger 0.009 m, speed 0.57 m/s, gain 2.15]
+iter 15: best    9.64  mean    8.73  params [trigger 0.008 m, speed 0.57 m/s, gain 2.05]
+iter 16: best    9.67  mean    8.49  params [trigger 0.008 m, speed 0.57 m/s, gain 2.06]
+iter 17: best    9.63  mean    8.64  params [trigger 0.008 m, speed 0.57 m/s, gain 2.03]
+iter 18: best    9.65  mean    8.86  params [trigger 0.008 m, speed 0.57 m/s, gain 2.10]
+iter 19: best    9.59  mean    8.45  params [trigger 0.008 m, speed 0.57 m/s, gain 2.08]
+iter 20: best    9.45  mean    8.47  params [trigger 0.008 m, speed 0.57 m/s, gain 2.12]
+iter 21: best    9.64  mean    8.82  params [trigger 0.008 m, speed 0.57 m/s, gain 2.10]
+iter 22: best    9.59  mean    8.54  params [trigger 0.008 m, speed 0.57 m/s, gain 2.08]
+iter 23: best    9.70  mean    8.59  params [trigger 0.008 m, speed 0.57 m/s, gain 2.07]
+iter 24: best    9.65  mean    8.74  params [trigger 0.008 m, speed 0.56 m/s, gain 2.09]
+iter 25: best    9.71  mean    8.46  params [trigger 0.008 m, speed 0.57 m/s, gain 2.09]
+
+best params: trigger 0.009 m, speed 0.57 m/s, gain 2.07
+
+score 9.71 = energy 10.00 + height -0.12 + movement -0.16
+paddle travel 0.33 m, 10 bounces
+  bounce  1: apex 1.203 m  (err   0.3 cm)  energy 1.00
+  bounce  2: apex 1.200 m  (err   0.0 cm)  energy 1.00
+  bounce  3: apex 1.195 m  (err   0.5 cm)  energy 1.00
+  bounce  4: apex 1.200 m  (err   0.0 cm)  energy 1.00
+  bounce  5: apex 1.195 m  (err   0.5 cm)  energy 1.00
+  bounce  6: apex 1.199 m  (err   0.1 cm)  energy 1.00
+  bounce  7: apex 1.199 m  (err   0.1 cm)  energy 1.00
+  bounce  8: apex 1.201 m  (err   0.1 cm)  energy 1.00
+  bounce  9: apex 1.194 m  (err   0.6 cm)  energy 1.00
+  bounce 10: apex 1.203 m  (err   0.3 cm)  energy 1.00
+wrote paddle.mp4: 241 frames
