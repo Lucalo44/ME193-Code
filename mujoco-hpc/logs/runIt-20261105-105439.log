@@ -1,0 +1,4 @@
+runIt on MacBook-Pro-226.local, python 3.14.7, target llodew01@login-prod.pax.tufts.edu, dir ~/mujoco-hpc
+Opening SSH connection to llodew01@login-prod.pax.tufts.edu. Answer any password / Duo prompt here:
+$ ssh -fN (interactive)
+FAILED: could not log in. Off campus? Connect the Tufts VPN. Check HPC_USER / HPC_HOST in config.sh.

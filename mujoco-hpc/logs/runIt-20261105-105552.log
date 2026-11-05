@@ -1,0 +1,51 @@
+runIt on MacBook-Pro-226.local, python 3.14.7, target llodew01@login-prod.pax.tufts.edu, dir ~/mujoco-hpc
+Opening SSH connection to llodew01@login-prod.pax.tufts.edu. Answer any password / Duo prompt here:
+$ ssh -fN (interactive)
+connected
+
+$ ssh -o ControlMaster=no -o BatchMode=yes -o ControlPath=/Users/lucalo/.ssh/sockets/%r@%h llodew01@login-prod.pax.tufts.edu 'bash -lc '"'"'test -x ~/mujoco-env/bin/python'"'"''
+[exit 0]
+copying to ~/mujoco-hpc/runs/08_demo-20261105-105552
+
+$ ssh -o ControlMaster=no -o BatchMode=yes -o ControlPath=/Users/lucalo/.ssh/sockets/%r@%h llodew01@login-prod.pax.tufts.edu 'bash -lc '"'"'mkdir -p ~/mujoco-hpc/runs/08_demo-20261105-105552'"'"''
+[exit 0]
+
+$ rsync -az -e 'ssh -o ControlMaster=no -o BatchMode=yes -o ControlPath=/Users/lucalo/.ssh/sockets/%r@%h' /var/folders/13/90s3bnhn0kb90rnnpg1nz08m0000gn/T/tmpbs5sgbv1/08_demo.py /var/folders/13/90s3bnhn0kb90rnnpg1nz08m0000gn/T/tmpbs5sgbv1/job.sbatch 'llodew01@login-prod.pax.tufts.edu:~/mujoco-hpc/runs/08_demo-20261105-105552/'
+[exit 0]
+
+$ ssh -o ControlMaster=no -o BatchMode=yes -o ControlPath=/Users/lucalo/.ssh/sockets/%r@%h llodew01@login-prod.pax.tufts.edu 'bash -lc '"'"'cd ~/mujoco-hpc/runs/08_demo-20261105-105552 && sbatch --parsable  job.sbatch'"'"''
+6886389
+[exit 0]
+submitted job 6886389
+
+$ ssh -o ControlMaster=no -o BatchMode=yes -o ControlPath=/Users/lucalo/.ssh/sockets/%r@%h llodew01@login-prod.pax.tufts.edu 'bash -lc '"'"'squeue -h -j 6886389 -o "%T|%R"'"'"''
+RUNNING|pax004
+[exit 0]
+  job 6886389: RUNNING (pax004)
+
+$ ssh -o ControlMaster=no -o BatchMode=yes -o ControlPath=/Users/lucalo/.ssh/sockets/%r@%h llodew01@login-prod.pax.tufts.edu 'bash -lc '"'"'squeue -h -j 6886389 -o "%T|%R"'"'"''
+RUNNING|pax004
+[exit 0]
+
+$ ssh -o ControlMaster=no -o BatchMode=yes -o ControlPath=/Users/lucalo/.ssh/sockets/%r@%h llodew01@login-prod.pax.tufts.edu 'bash -lc '"'"'squeue -h -j 6886389 -o "%T|%R"'"'"''
+slurm_load_jobs error: Invalid job id specified
+[exit 1]
+
+$ ssh -o ControlMaster=no -o BatchMode=yes -o ControlPath=/Users/lucalo/.ssh/sockets/%r@%h llodew01@login-prod.pax.tufts.edu 'bash -lc '"'"'sacct -j 6886389 -X -n -P -o State,ExitCode,Elapsed,NodeList'"'"''
+COMPLETED|0:0|00:00:11|pax004
+[exit 0]
+  job 6886389 finished: COMPLETED (exit 0:0, 00:00:11, node pax004)
+
+$ ssh -o ControlMaster=no -o BatchMode=yes -o ControlPath=/Users/lucalo/.ssh/sockets/%r@%h llodew01@login-prod.pax.tufts.edu 'bash -lc '"'"'cat ~/mujoco-hpc/runs/08_demo-20261105-105552/slurm-6886389.out'"'"''
+wrote bounce.mp4: 121 frames, 4 s of simulation
+[exit 0]
+--- ~/mujoco-hpc/runs/08_demo-20261105-105552/slurm-6886389.out ---
+wrote bounce.mp4: 121 frames, 4 s of simulation
+
+--- end ---
+
+$ rsync -az -e 'ssh -o ControlMaster=no -o BatchMode=yes -o ControlPath=/Users/lucalo/.ssh/sockets/%r@%h' 'llodew01@login-prod.pax.tufts.edu:~/mujoco-hpc/runs/08_demo-20261105-105552/' /Users/lucalo/GitHub/ME193-Code/mujoco-hpc/runs/08_demo-20261105-105552/
+[exit 0]
+copied back to /Users/lucalo/GitHub/ME193-Code/mujoco-hpc/runs/08_demo-20261105-105552:
+  bounce.mp4  (23 kB)
+  slurm-6886389.out  (0 kB)
