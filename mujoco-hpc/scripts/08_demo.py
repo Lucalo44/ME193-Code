@@ -21,10 +21,11 @@ XML = """
 
     <geom name="floor" type="plane" size="5 5 .1" rgba=".3 .4 .5 1"/>
 
-    <body name="ball" pos="0 0 1.5">
+    <body name="box" pos="0 0 1.5">
       <freejoint/>
       <!-- solref = "-stiffness -damping" of the contact. Less damping = bouncier. -->
-      <geom type="sphere" size=".1" rgba="1 .3 .2 1" solref="-20000 -10"/>
+      <!-- After: A black cube -->
+      <geom name="box" type="box" size="0.1 0.1 0.1" mass="1.0" rgba="1 .8 .1 1" solref="-20000 -10"/>
     </body>
   </worldbody>
 </mujoco>
