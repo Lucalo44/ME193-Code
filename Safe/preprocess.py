@@ -1,5 +1,9 @@
 """Camera -> crop -> network input. Shared by collect_data.py, train.py and run_safe.py so the
 nets see exactly the same pixels at training time and at the safe."""
+import sys
+import threading
+import time
+
 import cv2
 import numpy as np
 
@@ -15,7 +19,15 @@ def open_camera(index=None):
         from camera_picker import saved_camera
         index = saved_camera()
         index = C.CAM_INDEX if index is None else index
-    cap = cv2.VideoCapture(index)
+    if sys.platform.startswith("linux"):
+        # UNO Q: talk V4L2 directly (OpenCV otherwise picks GStreamer, which queues frames),
+        # ask for MJPG so USB bandwidth allows 30 fps at 640x480, and keep only one buffer.
+        cap = cv2.VideoCapture(index, cv2.CAP_V4L2)
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        cap.set(cv2.CAP_PROP_FPS, 30)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    else:
+        cap = cv2.VideoCapture(index)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, C.FRAME_W)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, C.FRAME_H)
     if not cap.isOpened():
@@ -29,6 +41,56 @@ def read_frame(cap):
         return None
     frame = cv2.resize(frame, (C.FRAME_W, C.FRAME_H))
     return cv2.flip(frame, 1) if C.MIRROR else frame
+
+
+class CameraGrabber:
+    """Reads the camera on its own thread and keeps only the newest frame.
+
+    Without this, the camera's buffer fills while the nets are busy, and every read hands back
+    a frame from a few hundred ms ago, then jumps. With it, the nets and the live view always
+    get the current frame, and the camera never waits on anything.
+    """
+
+    def __init__(self, cap):
+        self.cap, self.frame, self.seq, self.alive = cap, None, 0, True
+        self.cond = threading.Condition()
+        self.thread = threading.Thread(target=self._run, daemon=True)
+        self.thread.start()
+
+    def _run(self):
+        fails = 0
+        while self.alive:
+            frame = read_frame(self.cap)
+            if frame is None:
+                fails += 1
+                if fails > 50:                     # ~ camera unplugged
+                    break
+                time.sleep(0.02)
+                continue
+            fails = 0
+            with self.cond:
+                self.frame, self.seq = frame, self.seq + 1
+                self.cond.notify_all()
+        self.alive = False
+        with self.cond:
+            self.cond.notify_all()
+
+    def read(self, last_seq, timeout=2.0):
+        """Waits for a frame newer than last_seq. Returns (seq, frame), or (seq, None) if the
+        camera died."""
+        with self.cond:
+            self.cond.wait_for(lambda: self.seq != last_seq or not self.alive, timeout=timeout)
+            if self.seq == last_seq:
+                return last_seq, None
+            return self.seq, self.frame
+
+    def latest(self):
+        return self.seq, self.frame
+
+    def release(self):
+        self.alive = False
+        self.thread.join(timeout=1)
+        self.cap.release()
 
 
 def roi_box(h, w):

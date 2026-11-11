@@ -2,10 +2,12 @@
 
     python3 train.py --task gesture
     python3 train.py --task owner --epochs 40
+    python3 train.py --task voice
+    python3 train.py --task speaker
 
 Saves the best-on-validation weights to models/<task>.pt and prints a confusion matrix.
-For the owner net it also prints how often a not_me hand would clear OWNER_THRESH
-(the false-accept rate, which is the number that matters for a lock).
+For the owner/speaker nets it also prints how often a not_me hand/voice would clear the
+threshold (the false-accept rate, which is the number that matters for a lock).
 """
 import argparse
 import time
@@ -36,7 +38,7 @@ def evaluate(model, loader, device, n_classes):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--task", choices=["gesture", "owner"], default="gesture")
+    ap.add_argument("--task", choices=list(C.CLASSES), default="gesture")
     ap.add_argument("--epochs", type=int, default=30)
     ap.add_argument("--batch", type=int, default=64)
     ap.add_argument("--lr", type=float, default=1e-3)
@@ -47,7 +49,8 @@ def main():
     print("images per class:", counts)
     missing = [c for c, n in counts.items() if n == 0]
     if missing:
-        raise SystemExit(f"No images for {missing}. Record them with collect_data.py --task {a.task}.")
+        tool = "collect_voice.py" if a.task in C.AUDIO_TASKS else "collect_data.py"
+        raise SystemExit(f"No data for {missing}. Record it with {tool} --task {a.task}.")
     print(f"train {len(train_items)}  val {len(val_items)}")
 
     device = models.pick_device()
@@ -103,15 +106,18 @@ def main():
         hit, n = by_session.get(key, (0, 0))
         by_session[key] = (hit + (q == y), n + 1)
     for (name, sess), (hit, n) in sorted(by_session.items()):
-        print(f"  {name:>7}  session {sess}  {hit / n:6.1%}  ({n} imgs)" + ("   <-- check this one" if hit / n < 0.6 else ""))
+        print(f"  {name:>7}  session {sess}  {hit / n:6.1%}  ({n} items)" + ("   <-- check this one" if hit / n < 0.6 else ""))
 
-    if a.task == "owner":
+    if "me" in classes:
+        thresh, name = (C.OWNER_THRESH, "OWNER_THRESH") if a.task == "owner" else (C.SPEAKER_THRESH, "SPEAKER_THRESH")
         p_me = probs[:, classes.index("me")]
         is_me = labels == classes.index("me")
-        far = (p_me[~is_me] >= C.OWNER_THRESH).float().mean().item() if (~is_me).any() else float("nan")
-        frr = (p_me[is_me] < C.OWNER_THRESH).float().mean().item() if is_me.any() else float("nan")
-        print(f"\nper-frame at OWNER_THRESH={C.OWNER_THRESH}: false accept {far:.1%}, false reject {frr:.1%}")
-        print("(the safe averages P(me) over each digit's frames, so the real rates are lower)")
+        far = (p_me[~is_me] >= thresh).float().mean().item() if (~is_me).any() else float("nan")
+        frr = (p_me[is_me] < thresh).float().mean().item() if is_me.any() else float("nan")
+        unit = "frame" if a.task == "owner" else "clip"
+        print(f"\nper-{unit} at {name}={thresh}: false accept {far:.1%}, false reject {frr:.1%}")
+        if a.task == "owner":
+            print("(the safe averages P(me) over each digit's frames, so the real rates are lower)")
 
 
 if __name__ == "__main__":

@@ -48,6 +48,18 @@ def probe(max_index):
     return caps
 
 
+def first_working_camera(max_index=10):
+    """Lowest index that actually returns a frame (for the headless UNO Q, where there is no
+    picker window and video device numbers don't match the laptop's)."""
+    for i in range(max_index):
+        cap = cv2.VideoCapture(i)
+        ok = cap.isOpened() and cap.read()[0]
+        cap.release()
+        if ok:
+            return i
+    return None
+
+
 def _tile(frame, index, hover, current):
     t = np.zeros((TILE_H, TILE_W, 3), np.uint8)
     if frame is not None:

@@ -46,7 +46,7 @@ def _draw_hold_ring(p, hold):
     if hold["flash"] is not None:
         cv2.ellipse(p, DIAL, (RING_R, RING_R), 0, 0, 360, GREEN, 7, cv2.LINE_AA)
         _text_at(p, str(hold["flash"]), DIAL[1] + 14, 1.6, GREEN, 3)
-        _text_at(p, "OK", DIAL[1] + 36, 0.5, GREEN, 1)
+        _text_at(p, hold.get("flash_text", "OK"), DIAL[1] + 36, 0.5, GREEN, 1)
     elif hold["release"]:
         _text_at(p, "remove", DIAL[1] - 2, 0.5, AMBER, 1)
         _text_at(p, "hand", DIAL[1] + 16, 0.5, AMBER, 1)

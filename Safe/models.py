@@ -2,7 +2,9 @@
 
 GestureNet: RGB hand crop -> none / 1 / 2 / 3 / 4 / 5 fingers.
 PalmNet:    [equalized gray, crease map] -> not_me / me.
-Both are the same small conv stack so they run at camera rate on a laptop CPU or the UNO Q.
+VoiceNet:   log-mel spectrogram of a 1 s clip -> none / "one" .. "five".
+SpeakerNet: same input -> not_me / me.
+All four are the same small conv stack so they run at camera rate on a laptop CPU or the UNO Q.
 """
 import torch
 import torch.nn as nn
@@ -37,6 +39,9 @@ def build(task):
     n = len(C.CLASSES[task])
     if task == "gesture":
         return SmallCNN(3, n, widths=(16, 32, 64, 128))
+    if task in C.AUDIO_TASKS:
+        # 1 x 40 mel bands x 98 frames; four poolings -> 2 x 6 before the average
+        return SmallCNN(1, n, widths=(16, 32, 64, 128), dropout=0.3 if task == "voice" else 0.4)
     # one extra stage: the palm input is bigger and the creases are fine detail
     return SmallCNN(2, n, widths=(16, 32, 64, 128, 128), dropout=0.4)
 

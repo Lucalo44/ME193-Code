@@ -30,6 +30,19 @@ Of note, OpenCV on macOS only knows cameras by index, and that order shuffles wh
    1. Record with `python3 collect_data.py --task owner`. Use `m` for my hand and `n` for anyone else's. Keep the palm facing the camera while cycling through 1–5. The more different `not_me` hands, the stricter the check gets.
    2. Train with `python3 train.py --task owner`. Read the printed false-accept rate, since that is the number that matters for a lock.
    3. Run `python3 run_safe.py --owner-check`, or press `o` in the window to toggle the check on and off live.
-4. On the UNO Q, `python3 run_safe.py --hardware unoq --headless` sends the button, LEDs and bolt through the Bridge via [safe_io.py](safe_io.py). The sketch side (`button_pressed`, `set_leds`, `set_bolt`) is not written yet, and neither is the actual safe.
+4. On the UNO Q, the same code runs headless as the `safe` app in [ArduinoUNOq/safe](../ArduinoUNOq/safe/README.md). That README has the button and servo wiring. [sync_to_unoq.py](sync_to_unoq.py) copies this folder's code, nets and code file into the app, and `tools/deploy.py safe` puts it on the board. The start button, servo bolt and LED matrix go through the Bridge via [safe_io.py](safe_io.py).
+
+## Voice
+
+With the hand pipeline working, I added a voice side built the same way. [mic_picker.py](mic_picker.py) does for microphones what the camera picker does, showing a live level meter per input so I can talk and click whichever bar moves. Unlike cameras, mics report their names, so the choice is saved by name and survives the USB webcam being replugged.
+
+[collect_voice.py](collect_voice.py) cuts a 1s clip every time my voice crosses a trigger level, starting 0.2s before the word. The `none` label instead grabs a clip every second regardless, which is how silence, typing and other words get recorded. [audio.py](audio.py) turns each clip into a 40-band log-mel spectrogram. I wrote the STFT and mel filterbank in numpy rather than pulling in librosa, in keeping with building this from the ground up. Each band's mean is subtracted per clip, which strips out the fixed coloring of whichever mic recorded it. The spectrogram (40 × 98) then goes into the same small CNN as the hand.
+
+There are two tasks here, mirroring the hand:
+
+1. `voice` recognizes the spoken words "one" through "five" plus `none`.
+2. `speaker` decides `me / not_me`, the audio twin of the palm-crease check. Training never speeds up these clips, since that shifts pitch, and pitch is part of who is talking (the same reason palms are never mirrored).
+
+Training reuses [train.py](train.py) and the per-session split. Augmentation shifts the clip in time, changes the gain, and mixes in real background from the `none` recordings at 3–20dB SNR. It then blanks a random frequency band and time stretch (SpecAugment). [live_voice.py](live_voice.py) is the test bench: speak a digit and it shows the spectrogram, every class's probability, and P(me). With both halves working, the code became a mix of the two: hand 1, say "two", hand 5 (`set_password.py h1 v2 h5`). Specifically, every step takes either a hand or a voice, and only the full sequence is checked at the end. That way the screen never hints which step is meant to be spoken, so the hand/voice pattern is part of the secret. Holding up 1-2-5 by hand gets you the same "ACCESS DENIED" as a wrong number.
 
 `data/` is git-ignored, since it is a pile of pictures of my hand.

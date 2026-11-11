@@ -4,3 +4,4 @@ password.json
 __pycache__/
 venv/
 camera.json
+mic.json
