@@ -39,7 +39,7 @@ def level_db(x):
 
 
 def write_wav(path, x):
-    with wave.open(str(path), "wb") as w:
+    with wave.open(path if hasattr(path, "write") else str(path), "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(C.SAMPLE_RATE)
@@ -47,7 +47,7 @@ def write_wav(path, x):
 
 
 def read_wav(path):
-    with wave.open(str(path), "rb") as w:
+    with wave.open(path if hasattr(path, "read") else str(path), "rb") as w:
         sr, ch = w.getframerate(), w.getnchannels()
         x = np.frombuffer(w.readframes(w.getnframes()), "<i2").astype(np.float32) / 32768
     if ch > 1:

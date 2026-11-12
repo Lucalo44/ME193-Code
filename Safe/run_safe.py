@@ -138,6 +138,50 @@ def predict(model, array):
     return model(torch.from_numpy(array)[None]).softmax(1)[0].numpy()
 
 
+class PresenceGate:
+    """Is anything in the box, compared with the empty background?
+
+    Works on a 32x32 blurred grayscale copy of the crop with its mean removed (so auto-exposure
+    shifts don't count). The background is learned from the first frames and keeps blending in
+    while the box reads empty. If the box reads occupied for PRESENCE_RESET_S while staying
+    still (camera bumped, a box left in view), that becomes the new background.
+    """
+
+    def __init__(self):
+        self.bg, self.prev, self.t_occupied, self.frac = None, None, None, 0.0
+        self.t_start = None
+
+    @staticmethod
+    def _small(crop):
+        g = cv2.cvtColor(cv2.resize(crop, (32, 32), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2GRAY)
+        g = cv2.GaussianBlur(g.astype(np.float32), (3, 3), 0)
+        return g - g.mean()
+
+    def update(self, crop, now):
+        g = self._small(crop)
+        if self.t_start is None:
+            self.t_start = now
+        if self.bg is None or now - self.t_start < C.PRESENCE_WARMUP_S:
+            self.bg, self.prev = g, g              # camera exposure is still settling: keep the newest
+            return False
+        self.frac = float((np.abs(g - self.bg) > C.PRESENCE_PIX).mean())
+        # "moving" = a real change between frames (a hand), not dim-light sensor noise
+        moving = float((np.abs(g - self.prev) > C.PRESENCE_PIX).mean()) > C.PRESENCE_MOVE_FRAC
+        self.prev = g
+        present = self.frac > C.PRESENCE_FRAC
+        if not present:
+            self.bg += C.PRESENCE_LEARN * (g - self.bg)
+            self.t_occupied = None
+        else:
+            if moving or self.t_occupied is None:
+                self.t_occupied = now
+            elif now - self.t_occupied > C.PRESENCE_RESET_S:
+                self.bg, self.t_occupied = g.copy(), None     # the scene itself changed
+                print("[presence] background re-learned")
+                return False
+        return present
+
+
 class VoiceWorker:
     """Classifies voice clips on its own thread, so a ~160 ms clip on the UNO Q never stalls
     the camera loop (which is what made hand holds stutter). Drops clips if it falls behind."""
@@ -196,7 +240,7 @@ def draw_camera(frame, crop, label, conf, owner_p, hold, state, owner_mode):
     return view
 
 
-def main():
+def _main(cleanup):
     ap = argparse.ArgumentParser()
     ap.add_argument("--owner-check", action="store_true", help="require the palm-crease owner net to say 'me'")
     ap.add_argument("--hardware", choices=["virtual", "unoq"], default="virtual")
@@ -239,6 +283,7 @@ def main():
             if mic_index is None:
                 raise RuntimeError("no usable microphone (run mic_picker.py, or pass --mic)")
             mic = MicStream(mic_index)
+            cleanup.append(mic.close)
             trigger = ClipTrigger(mic)
             voice = VoiceWorker(voice_net, speaker_net)
             print(f"Voice on: {mic.name}" + ("" if speaker_net else "  (no speaker.pt, so owner check skips voice steps)"))
@@ -247,9 +292,12 @@ def main():
             voice_net = speaker_net = mic = trigger = voice = None
     heard, t_heard = None, -1e9                   # last spoken step, for the UI
     t_step = -1e9                                 # when the last step (either kind) was confirmed
+    t_active = -1e9                               # last sign of someone entering (hold building, voice clip)
 
     safe = UnoQSafe() if a.hardware == "unoq" else VirtualSafe()
     reader = CodeReader()
+    gate = PresenceGate() if C.PRESENCE_GATE else None
+    presence_n = loops_n = 0
     entered, owner_scores, fails = [], [], 0
     if a.start_open:                              # OPEN -press-> IDLE (locked) -press-> ARMED
         safe.unlock()
@@ -281,6 +329,7 @@ def main():
         if cam is None:
             raise SystemExit("No camera selected.")
     grabber = CameraGrabber(open_camera(cam))
+    cleanup.append(grabber.release)
 
     # The latest results of the loop, for whoever draws the view (local window or stream thread).
     snap = {"label": "none", "conf": 0.0, "owner_p": None, "hold": None, "state": state,
@@ -304,11 +353,18 @@ def main():
         panel = ui.draw_panel(safe, sp["status"], owner_mode, owner_net is not None, sp["hold"])
         return np.hstack([view, panel])
 
+    last_clip = [0, None]
     streamer = None
     if a.stream_port:
         from stream import FrameStreamer
         streamer = FrameStreamer(a.stream_port, render=render, on_press=safe.press,
-                                 state=lambda: {"state": state, "status": status, "steps": len(entered)})
+                                 state=lambda: {"state": state, "status": status, "steps": len(entered)},
+                                 raw=lambda: (lambda sf: (sf[0], crop_roi(sf[1]) if sf[1] is not None else None))(grabber.latest()),
+                                 audio=None if mic is None else {
+                                     "clip": lambda: (last_clip[0], last_clip[1]),
+                                     "noise": lambda: mic.latest(C.CLIP_S),
+                                     "level": lambda: (mic.level_db(), trigger.threshold)})
+        cleanup.append(streamer.close)
 
     win = "Hand Safe"
     if not a.headless:
@@ -328,14 +384,22 @@ def main():
             worst_gap = max(worst_gap, t0 - t_prev)
         t_prev = t0
         crop = crop_roi(frame)
-        probs = predict(gesture_net, gesture_array(crop))
-        label, conf = GESTURES[int(probs.argmax())], float(probs.max())
+        present = gate.update(crop, t0) if gate else True
+        if present:
+            probs = predict(gesture_net, gesture_array(crop))
+            label, conf = GESTURES[int(probs.argmax())], float(probs.max())
+        else:
+            label, conf = "none", 1.0              # box matches the empty background
+        presence_n += present
+        loops_n += 1
         owner_p = None
         if owner_mode and label != "none":
             owner_p = float(predict(owner_net, palm_array(crop))[ME])
 
         now = time.time()
         clip = trigger.poll(now) if trigger else None
+        if clip is not None:
+            last_clip[0], last_clip[1] = last_clip[0] + 1, clip   # served to collect_voice.py --board
         if clip is not None and state == "ARMED":
             voice.submit(clip, owner_mode, now)   # classified on the voice thread
         pressed = safe.button_pressed()
@@ -352,7 +416,11 @@ def main():
             digit = reader.update(label, conf, owner_p, now) if len(entered) < C.CODE_LENGTH else None
             if digit is not None:
                 step = ("h", digit, reader.last_owner)
+            if reader.hold_info(now)["label"]:
+                t_active = now                    # a hold is building: the user is mid-entry
             for t_clip, vp, me_p in (voice.results() if voice else []):
+                if t_clip >= t_state:
+                    t_active = now                # they spoke (even if it wasn't understood)
                 if step is not None or t_clip < t_state or len(entered) >= C.CODE_LENGTH:
                     continue                      # one step per loop; ignore clips from before arming
                 word, vconf = WORDS[int(vp.argmax())], float(vp.max())
@@ -385,7 +453,7 @@ def main():
                     why = "wrong code" if not code_ok else "hand not recognized"
                     print(f"  denied: {why} ({fails}/{C.MAX_FAILS})")
                     go("DENIED", "ACCESS DENIED", "denied", C.CODE_LENGTH)
-            elif len(entered) < C.CODE_LENGTH and now - t_state > C.ENTRY_TIMEOUT_S:
+            elif len(entered) < C.CODE_LENGTH and now - max(t_state, t_step, t_active) > C.ENTRY_TIMEOUT_S:
                 go("IDLE", "Timed out. Press the button", "off")
         else:
             if voice:
@@ -419,10 +487,18 @@ def main():
                 line += (f", mic floor {trigger.floor if trigger.floor is not None else float('nan'):.0f} dB "
                          f"-> trigger {trigger.threshold:.0f} dB, {trigger.clips} clips")
                 trigger.clips = 0
+            if getattr(safe, "_t_fail", None) is not None:
+                line += f", BRIDGE DOWN {now - safe._t_fail:.0f}s"
+            elif getattr(safe, "errors", 0):
+                line += f", bridge errors {safe.errors}"
+            if getattr(safe, "errors", 0):
+                safe.errors = 0
+            if gate:
+                line += f", box occupied {presence_n / max(1, loops_n):.0%} (last {gate.frac:.0%} changed)"
             if votes:
                 line += ", armed votes " + " ".join(f"{k}:{v}" for k, v in votes.most_common(4))
             print(line)
-            t_perf, cam_seq0, worst_gap, votes = now, seq, 0.0, Counter()
+            t_perf, cam_seq0, worst_gap, votes, presence_n, loops_n = now, seq, 0.0, Counter(), 0, 0
 
         if a.headless:
             continue
@@ -444,12 +520,24 @@ def main():
 
     safe.lock()
     safe.set_leds("off")
-    if mic is not None:
-        mic.close()
-    if streamer is not None:
-        streamer.close()
-    grabber.release()
-    cv2.destroyAllWindows()
+
+
+def main():
+    """Runs the safe; whatever stops it (q, an error, a lost camera), the camera, mic and stream
+    port are released, so the UNO Q's automatic restart can open them again."""
+    cleanup = []
+    try:
+        _main(cleanup)
+    finally:
+        for close in reversed(cleanup):
+            try:
+                close()
+            except Exception as e:
+                print("cleanup:", e)
+        try:
+            cv2.destroyAllWindows()
+        except cv2.error:                         # headless OpenCV on the UNO Q has no windows
+            pass
 
 
 if __name__ == "__main__":

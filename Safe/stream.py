@@ -4,6 +4,10 @@ laptop can watch the UNO Q's camera. Stdlib only.
     GET /         a tiny page with the stream and a "press button" link (any browser)
     GET /stream   multipart/x-mixed-replace JPEG stream (view_safe.py reads this)
     GET /press    presses the safe's button, same as the physical one
+    GET /crop     the raw box crop only (no overlays), for collect_data.py --board
+    GET /clip?after=N   newest voice clip the board's trigger cut, as WAV, if its number is > N
+                        (204 if none). Headers X-Seq, X-Level, X-Trigger. For collect_voice.py --board
+    GET /noise    the board mic's last 1 s as WAV (background "none" clips)
     GET /state    {"state": "OPEN" | "IDLE" | "ARMED" | "DENIED" | "LOCKOUT", "status": ..., "steps": n}
 
 The view is drawn and JPEG-encoded on the streamer's own thread, from the newest camera
@@ -11,6 +15,7 @@ frame and the safe's latest state (a render() callback from run_safe.py). So the
 at camera speed instead of waiting on the nets, and the nets never wait on the stream.
 Nothing is drawn or encoded while no viewer is connected.
 """
+import io
 import json
 import threading
 import time
@@ -28,8 +33,9 @@ PAGE = b"""<!doctype html><title>Hand Safe</title>
 
 
 class FrameStreamer:
-    def __init__(self, port, render, on_press=None, state=None):
-        self.render, self.on_press, self.state = render, on_press, state
+    def __init__(self, port, render, on_press=None, state=None, raw=None, audio=None):
+        self.render, self.on_press, self.state, self.raw = render, on_press, state, raw
+        self.audio = audio      # {"clip": () -> (seq, clip), "noise": () -> clip, "level": () -> (dB, trigger dB)}
         self.running = True
         self.jpeg, self.seq = None, 0
         self.cond = threading.Condition()
@@ -44,6 +50,10 @@ class FrameStreamer:
             def do_GET(self):
                 if self.path.startswith("/stream"):
                     streamer._serve_stream(self)
+                elif self.path.startswith("/crop") and streamer.raw:
+                    streamer._serve_raw(self)
+                elif self.path.startswith(("/clip", "/noise")) and streamer.audio:
+                    streamer._serve_audio(self)
                 elif self.path.startswith("/state"):
                     info = streamer.state() if streamer.state else {}
                     self._reply(json.dumps(info).encode(), "application/json")
@@ -113,6 +123,54 @@ class FrameStreamer:
             with self.cond:
                 self.clients -= 1
             print(f"[stream] viewer left ({self.clients} watching)")
+
+    def _serve_raw(self, h):
+        """Raw crops at camera rate, encoded on this client's own thread (data collection)."""
+        h.send_response(200)
+        h.send_header("Content-Type", "multipart/x-mixed-replace; boundary=" + BOUNDARY.decode())
+        h.send_header("Cache-Control", "no-cache")
+        h.end_headers()
+        print("[stream] data collection connected")
+        last = None
+        try:
+            while self.running:
+                seq, crop = self.raw()
+                if crop is None or seq == last:
+                    time.sleep(0.01)
+                    continue
+                last = seq
+                ok, buf = cv2.imencode(".jpg", crop, [cv2.IMWRITE_JPEG_QUALITY, 92])
+                jpeg = buf.tobytes()
+                h.wfile.write(b"--" + BOUNDARY + b"\r\nContent-Type: image/jpeg\r\n"
+                              + f"Content-Length: {len(jpeg)}\r\n\r\n".encode() + jpeg + b"\r\n")
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            pass
+        print("[stream] data collection left")
+
+    def _serve_audio(self, h):
+        from urllib.parse import parse_qs, urlparse
+        from audio import write_wav
+        level, trig = self.audio["level"]()
+        if h.path.startswith("/noise"):
+            seq, clip = -1, self.audio["noise"]()
+        else:
+            after = int(parse_qs(urlparse(h.path).query).get("after", ["-1"])[0])
+            seq, clip = self.audio["clip"]()
+            if clip is None or seq <= after:
+                clip = None
+        body = b""
+        if clip is not None:
+            f = io.BytesIO()
+            write_wav(f, clip)
+            body = f.getvalue()
+        h.send_response(200 if body else 204)
+        h.send_header("Content-Type", "audio/wav")
+        h.send_header("Content-Length", str(len(body)))
+        h.send_header("X-Seq", str(seq))
+        h.send_header("X-Level", f"{level:.1f}")
+        h.send_header("X-Trigger", f"{trig:.1f}")
+        h.end_headers()
+        h.wfile.write(body)
 
     def close(self):
         self.running = False

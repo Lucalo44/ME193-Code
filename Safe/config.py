@@ -44,6 +44,18 @@ TRIGGER_COOLDOWN_S = 0.25           # ignore the tail of a word after a clip is 
 VOICE_CONF = 0.70                   # live_voice.py shows "?" below this
 SPEAKER_THRESH = 0.85               # P(me) needed for the speaker check
 
+# ---------------- presence gate ----------------
+# The model has never seen most backgrounds, and on the safe's mounted camera it read the empty
+# box as "5". The gate compares the box to a learned empty background first: if not enough of
+# it changed, the frame is "none" and the model isn't even run.
+PRESENCE_GATE = True
+PRESENCE_PIX = 25                   # a 32x32 gray pixel "changed" if it moved this much (0-255)
+PRESENCE_FRAC = 0.12                # ...and the box holds something if this share of pixels changed
+PRESENCE_LEARN = 0.05               # background update rate while the box is empty
+PRESENCE_RESET_S = 20               # "occupied" this long without a hand moving = new background
+PRESENCE_MOVE_FRAC = 0.25           # share of pixels changing frame-to-frame that counts as movement
+PRESENCE_WARMUP_S = 3               # ignore the first seconds after start (auto-exposure settling)
+
 # ---------------- lock behavior ----------------
 CODE_LENGTH = 3
 VOTE_CONF = 0.50                    # a frame votes for its top label when it's at least this sure
@@ -53,7 +65,8 @@ GRACE_S = 0.8                       # no digit votes for this long = hand gone, 
 RELEASE_S = 0.5                     # no digit votes for this long before the next digit (allows repeats)
 CONFIRM_FLASH_S = 0.6               # confirmed digit flashes green on the dial this long
 OWNER_THRESH = 0.85                 # mean P(me) over a digit's frames needed to pass
-ENTRY_TIMEOUT_S = 30                # time to enter all three digits after the button press
+ENTRY_TIMEOUT_S = 30                # give up after this long with NO activity (resets on every
+                                    # confirmed digit, hold in progress, or spoken clip)
 GRANTED_SHOW_S = 3                  # check mark on the matrix after a correct code, then the open padlock
 DENIED_SHOW_S = 2
 MAX_FAILS = 3                       # this many wrong attempts in a row...

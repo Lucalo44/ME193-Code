@@ -96,27 +96,103 @@ def matrix_frame(mode, digits, hold, t):
 
 
 class UnoQSafe(VirtualSafe):
-    """Mirrors every call to the board, and keeps the virtual state so the UI still works."""
+    """Mirrors every call to the board, and keeps the virtual state so the UI still works.
+
+    All Bridge traffic runs on one background thread, so the camera loop never waits on the
+    microcontroller. The Linux <-> STM32 link can corrupt a message (a flipped bit once turned
+    "button_pressed" into "button_`ressed"), and right after a flash the STM32 needs a few
+    seconds before it answers. So the thread:
+      * stays quiet for STARTUP_QUIET_S, then probes until the board answers;
+      * polls the button at 10 Hz (the sketch latches presses, so none are missed);
+      * keeps the bolt's *desired* state and resends it until the board confirms it;
+      * sends only the newest LED matrix frame;
+      * backs off to one probe per second while the link is down.
+    """
+
+    BUTTON_POLL_S = 0.1
+    RETRY_S = 1.0
+    STARTUP_QUIET_S = 5.0
 
     def __init__(self):
         super().__init__()
+        import threading
         from arduino.app_utils import Bridge, Frame   # only exist on the board
         self.bridge, self.Frame = Bridge, Frame
-        self._last = None
+        self._lock = threading.Lock()
+        self._hw_pressed = False
+        self._bolt_want, self._bolt_sent = None, None
+        self._frame_want, self._frame_sent = None, None
+        self._t_fail, self._warned = None, False
+        self.errors, self._first_err = 0, ""
+        self.link_up = False
+        threading.Thread(target=self._worker, daemon=True).start()
 
+    # ---- called from the safe loop: never blocks ----
     def button_pressed(self):
-        return super().button_pressed() or int(self.bridge.call("button_pressed") or 0) == 1
+        with self._lock:
+            hw, self._hw_pressed = self._hw_pressed, False
+        return super().button_pressed() or hw
 
     def unlock(self):
         super().unlock()
-        self.bridge.call("set_bolt", 0)
+        with self._lock:
+            self._bolt_want, self._bolt_sent = 0, None
 
     def lock(self):
         super().lock()
-        self.bridge.call("set_bolt", 1)
+        with self._lock:
+            self._bolt_want, self._bolt_sent = 1, None
 
     def tick(self, now=None, hold=None):
         f = matrix_frame(self.leds, self.digits, hold, time.time() if now is None else now)
-        if self._last is None or not np.array_equal(f, self._last):   # only send changes
-            self.bridge.call("draw", self.Frame(f).to_board_bytes())
-            self._last = f
+        with self._lock:
+            self._frame_want = f
+
+    # ---- the Bridge thread ----
+    def _call(self, name, *args, timeout=1.5):
+        try:
+            out = self.bridge.call(name, *args, timeout=timeout)
+        except Exception as e:                      # RpcError, TimeoutError, connection loss
+            now = time.time()
+            self.link_up = False
+            if self._t_fail is None:
+                self._t_fail, self._first_err = now, f"{name}: {e}"
+                self.errors += 1
+            elif not self._warned and now - self._t_fail > 15:
+                self._warned = True
+                print("[bridge] the microcontroller has not answered for 15 s. If its red LED is "
+                      "blinking, power-cycle the board (unplug ~5 s).")
+            raise
+        if self._t_fail is not None:
+            down = time.time() - self._t_fail
+            if down > 1.0:                          # one-off bit errors are only counted
+                print(f"[bridge] link back after {down:.1f} s (first error: {self._first_err})")
+            self._t_fail, self._warned = None, False
+        self.link_up = True
+        return out
+
+    def _worker(self):
+        time.sleep(self.STARTUP_QUIET_S)            # let a freshly flashed STM32 finish booting
+        print("[bridge] connecting to the microcontroller")
+        while True:
+            t0 = time.time()
+            try:
+                if int(self._call("button_pressed") or 0) == 1:
+                    with self._lock:
+                        self._hw_pressed = True
+                with self._lock:
+                    bolt = self._bolt_want if self._bolt_sent != self._bolt_want else None
+                    frame = self._frame_want
+                    send_frame = frame is not None and (self._frame_sent is None or not np.array_equal(frame, self._frame_sent))
+                if bolt is not None:
+                    self._call("set_bolt", bolt, timeout=3)
+                    with self._lock:
+                        if self._bolt_want == bolt:
+                            self._bolt_sent = bolt
+                if send_frame:
+                    self._call("draw", self.Frame(frame).to_board_bytes())
+                    self._frame_sent = frame
+                time.sleep(max(0.0, self.BUTTON_POLL_S - (time.time() - t0)))
+            except Exception:
+                self._frame_sent = None             # resend the matrix once the link is back
+                time.sleep(self.RETRY_S)            # link down: one probe per second
