@@ -1,0 +1,41 @@
+iter  1: best   -3.11  mean  -11.29  [trigger 0.061, e_hat 0.713, speed_bias -0.107, tilt_scale 0.899]
+iter  2: best    6.34  mean   -8.09  [trigger 0.056, e_hat 0.718, speed_bias -0.152, tilt_scale 0.986]
+iter  3: best    5.75  mean   -6.27  [trigger 0.055, e_hat 0.748, speed_bias -0.013, tilt_scale 0.973]
+iter  4: best    7.68  mean   -0.87  [trigger 0.065, e_hat 0.741, speed_bias -0.035, tilt_scale 0.995]
+iter  5: best    8.28  mean    4.07  [trigger 0.066, e_hat 0.740, speed_bias -0.044, tilt_scale 0.995]
+iter  6: best    7.80  mean    4.77  [trigger 0.065, e_hat 0.739, speed_bias -0.053, tilt_scale 0.999]
+iter  7: best    8.67  mean    6.00  [trigger 0.062, e_hat 0.736, speed_bias -0.059, tilt_scale 0.993]
+iter  8: best    8.14  mean    7.12  [trigger 0.063, e_hat 0.736, speed_bias -0.066, tilt_scale 0.994]
+iter  9: best    8.30  mean    7.35  [trigger 0.065, e_hat 0.738, speed_bias -0.062, tilt_scale 0.990]
+iter 10: best    8.48  mean    7.31  [trigger 0.066, e_hat 0.739, speed_bias -0.060, tilt_scale 0.983]
+iter 11: best    8.43  mean    6.95  [trigger 0.065, e_hat 0.737, speed_bias -0.058, tilt_scale 0.987]
+iter 12: best    8.57  mean    7.13  [trigger 0.063, e_hat 0.737, speed_bias -0.051, tilt_scale 0.987]
+iter 13: best    8.42  mean    7.24  [trigger 0.065, e_hat 0.736, speed_bias -0.055, tilt_scale 0.988]
+iter 14: best    8.76  mean    7.58  [trigger 0.067, e_hat 0.735, speed_bias -0.057, tilt_scale 0.993]
+iter 15: best    8.55  mean    6.70  [trigger 0.066, e_hat 0.733, speed_bias -0.059, tilt_scale 0.989]
+iter 16: best    8.93  mean    6.83  [trigger 0.067, e_hat 0.734, speed_bias -0.059, tilt_scale 0.981]
+iter 17: best    8.52  mean    7.11  [trigger 0.066, e_hat 0.733, speed_bias -0.060, tilt_scale 0.981]
+iter 18: best    8.44  mean    7.41  [trigger 0.064, e_hat 0.735, speed_bias -0.061, tilt_scale 0.983]
+iter 19: best    8.63  mean    7.36  [trigger 0.064, e_hat 0.734, speed_bias -0.059, tilt_scale 0.984]
+iter 20: best    8.51  mean    6.95  [trigger 0.064, e_hat 0.735, speed_bias -0.058, tilt_scale 0.987]
+iter 21: best    8.59  mean    7.17  [trigger 0.061, e_hat 0.736, speed_bias -0.057, tilt_scale 0.987]
+iter 22: best    8.85  mean    7.08  [trigger 0.061, e_hat 0.736, speed_bias -0.055, tilt_scale 0.984]
+iter 23: best    8.59  mean    7.14  [trigger 0.060, e_hat 0.739, speed_bias -0.056, tilt_scale 0.985]
+iter 24: best    8.42  mean    7.46  [trigger 0.060, e_hat 0.738, speed_bias -0.052, tilt_scale 0.987]
+iter 25: best    8.46  mean    7.69  [trigger 0.059, e_hat 0.736, speed_bias -0.055, tilt_scale 0.985]
+
+best params: trigger 0.061, e_hat 0.733, speed_bias -0.061, tilt_scale 0.989
+
+score 8.93 = energy 9.98 + height -0.33 + landing -0.46 + movement -0.26
+paddle travel 0.53 m, 10 hits
+  hit  1 (L): apex 1.222 m (err   2.2 cm)  landed  0.0 cm off center  energy 1.00
+  hit  2 (R): apex 1.185 m (err   1.5 cm)  landed  4.5 cm off center  energy 0.99
+  hit  3 (L): apex 1.201 m (err   0.1 cm)  landed  0.5 cm off center  energy 1.00
+  hit  4 (R): apex 1.204 m (err   0.4 cm)  landed  0.8 cm off center  energy 1.00
+  hit  5 (L): apex 1.201 m (err   0.1 cm)  landed  0.5 cm off center  energy 1.00
+  hit  6 (R): apex 1.205 m (err   0.5 cm)  landed  0.1 cm off center  energy 1.00
+  hit  7 (L): apex 1.196 m (err   0.4 cm)  landed  1.3 cm off center  energy 1.00
+  hit  8 (R): apex 1.206 m (err   0.6 cm)  landed  0.1 cm off center  energy 1.00
+  hit  9 (L): apex 1.196 m (err   0.4 cm)  landed  1.1 cm off center  energy 1.00
+  hit 10 (R): apex 1.203 m (err   0.3 cm)  landed  0.3 cm off center  energy 1.00
+wrote two_paddles.mp4: 241 frames
