@@ -160,7 +160,12 @@ def main():
                     cv2.putText(img, "connecting...", (20, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
                 cv2.imshow(win, img)
                 k = cv2.waitKey(30) & 0xFF
-                if k == ord("q"):
+                if k in (ord("q"), 27):          # q or Esc quits
+                    raise KeyboardInterrupt
+                try:                              # the window's close button quits too
+                    if cv2.getWindowProperty(win, cv2.WND_PROP_VISIBLE) < 1:
+                        raise KeyboardInterrupt
+                except cv2.error:
                     raise KeyboardInterrupt
                 if k == ord(" "):
                     threading.Thread(target=press, daemon=True).start()
