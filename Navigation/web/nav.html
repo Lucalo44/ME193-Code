@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1220">
+<title>Campus Navigator</title>
+<style>
+  :root {
+    --bg: #0b1220; --panel: #131c2e; --ink: #eef2f8; --muted: #8a97ad; --line: #24304a;
+    --go: #1f8f5f; --now: #e8a317; --rec: #d64545; --accent: #3b82f6; --ref: #4b5875;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font: 16px/1.3 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; min-height: 100dvh; }
+  #banner { background: var(--go); padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top));
+    display: flex; gap: 14px; align-items: center; transition: background .25s; }
+  #banner.now { background: var(--now); color: #1b1300; }
+  #banner.rec { background: var(--rec); }
+  #banner.idle { background: var(--panel); }
+  #arrow { width: 64px; height: 64px; flex: none; }
+  #primary { font-size: 26px; font-weight: 700; }
+  #secondary { font-size: 15px; opacity: .85; margin-top: 2px; }
+  #mapwrap { position: relative; flex: 1; min-height: 200px; }
+  canvas#map { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #chip { position: absolute; top: 10px; left: 10px; background: rgba(19,28,46,.9); border: 1px solid var(--line);
+    border-radius: 999px; padding: 6px 12px; font-size: 14px; }
+  #sheet { background: var(--panel); border-top: 1px solid var(--line); padding: 12px 16px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+  #eta { display: flex; justify-content: space-between; align-items: baseline; }
+  #eta b { font-size: 22px; }
+  #eta span { color: var(--muted); font-size: 14px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; margin: 10px 0 12px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; }
+  button { flex: 1; min-width: 30%; border: 0; border-radius: 12px; padding: 16px 8px; font-size: 17px;
+    font-weight: 600; color: var(--ink); background: #22304d; }
+  button:active { transform: scale(.97); }
+  button.primary { background: var(--accent); }
+  button.danger { background: var(--rec); }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+  button.tap { padding: 22px 8px; font-size: 19px; }
+  select { width: 100%; padding: 12px; border-radius: 10px; background: #0f1729; color: var(--ink);
+    border: 1px solid var(--line); font-size: 16px; margin-bottom: 10px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
+  #taps { color: var(--muted); font-size: 13px; margin-top: 8px; min-height: 1em; }
+  #arrived { position: fixed; inset: 0; background: rgba(11,18,32,.92); display: none; align-items: center;
+    justify-content: center; flex-direction: column; gap: 16px; text-align: center; padding: 24px; }
+  #arrived h2 { font-size: 30px; margin: 0; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="banner" class="idle">
+  <svg id="arrow" viewBox="0 0 64 64" aria-hidden="true"></svg>
+  <div><div id="primary">Connecting…</div><div id="secondary"></div></div>
+</div>
+
+<div id="mapwrap">
+  <canvas id="map"></canvas>
+  <div id="chip">—</div>
+</div>
+
+<div id="sheet">
+  <div id="eta"><b id="eta-time">—</b><span id="eta-rest"></span></div>
+  <div class="bar"><div id="progress"></div></div>
+
+  <div id="idle-ui">
+    <select id="person"></select>
+    <div class="row">
+      <button class="primary" onclick="start('navigate')">Navigate</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button onclick="start('record')">Record demo</button>
+      <button onclick="start('dagger')">DAgger walk</button>
+    </div>
+    <p class="hint" id="saved"></p>
+  </div>
+
+  <div id="tap-ui" class="hidden">
+    <div class="row">
+      <button class="tap" onclick="tap('left')">⬅ Left</button>
+      <button class="tap" onclick="tap('right')">Right ➡</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button onclick="tap('stairs_start')">Stairs start</button>
+      <button onclick="tap('stairs_end')">Stairs end</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button id="wrong" class="hidden" onclick="tap('wrong')">✗ Wrong</button>
+      <button class="primary" onclick="tap('arrive')">Arrived</button>
+    </div>
+    <div id="taps"></div>
+  </div>
+
+  <div class="row" id="stop-ui" style="margin-top:10px">
+    <button class="danger" onclick="stop(false)">Stop &amp; save</button>
+    <button class="ghost" id="discard" onclick="stop(true)">Discard</button>
+  </div>
+</div>
+
+<div id="arrived">
+  <h2>You've arrived</h2>
+  <div id="arrived-sub" style="color:var(--muted)"></div>
+  <button class="primary" style="flex:none;padding:16px 40px" onclick="stop(false)">Done</button>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let S = null, busy = false;
+
+const ARROWS = {
+  straight: '<path d="M32 6 L48 26 H37 V58 H27 V26 H16 Z" fill="currentColor"/>',
+  left: '<path d="M8 26 L28 10 V20 H44 Q54 20 54 30 V58 H44 V32 Q44 30 42 30 H28 V42 Z" fill="currentColor"/>',
+  right: '<path d="M56 26 L36 10 V20 H20 Q10 20 10 30 V58 H20 V32 Q20 30 22 30 H36 V42 Z" fill="currentColor"/>',
+  stairs: '<path d="M6 54 H20 V42 H32 V30 H44 V18 H58 V26 H52 V38 H40 V50 H28 V62 H6 Z" fill="currentColor"/>',
+  arrive: '<circle cx="32" cy="26" r="16" fill="none" stroke="currentColor" stroke-width="7"/><path d="M32 42 L32 60" stroke="currentColor" stroke-width="7"/>',
+  record: '<circle cx="32" cy="32" r="18" fill="currentColor"/>',
+  idle: '<circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="5"/><path d="M32 16 L40 36 L32 31 L24 36 Z" fill="currentColor"/>',
+};
+
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
+  return r.json();
+}
+function start(mode) { api('/api/start', {mode, person: $('person').value}).then(render); }
+function tap(action) { if (navigator.vibrate) navigator.vibrate(40); api('/api/tap', {action}).then(render); }
+function stop(discard) { if (discard && !confirm('Discard this walk?')) return; api('/api/stop', {discard}).then(render); }
+
+function fmtTime(s) {
+  if (s == null) return '—';
+  const m = Math.floor(s / 60), r = Math.round(s % 60);
+  return m ? `${m} min` : `${r} s`;
+}
+
+function render(s) {
+  S = s;
+  const ins = s.instruction, mode = s.mode;
+  const banner = $('banner');
+  banner.className = mode === 'idle' ? 'idle' : mode === 'record' ? 'rec' : ins.now ? 'now' : '';
+  const icon = mode === 'record' ? 'record' : mode === 'idle' ? 'idle' : (ins.maneuver || 'straight');
+  $('arrow').innerHTML = ARROWS[icon] || ARROWS.straight;
+  $('primary').textContent = ins.primary;
+  $('secondary').textContent = ins.secondary || '';
+
+  $('chip').textContent = `${s.movement} · ${s.steps} steps`;
+  $('eta-time').textContent = mode === 'record' ? `${s.metres} m walked` : fmtTime(s.eta_s);
+  $('eta-rest').textContent = mode === 'record' ? `${s.steps} steps` : `${s.remaining_m} m · ${s.route.split('->').pop().trim()}`;
+  $('progress').style.width = (100 * (s.progress || 0)).toFixed(1) + '%';
+
+  const sel = $('person');
+  if (!sel.options.length) s.people.forEach(p => sel.add(new Option(p, p)));
+  $('idle-ui').classList.toggle('hidden', mode !== 'idle');
+  $('tap-ui').classList.toggle('hidden', !(mode === 'record' || mode === 'dagger'));
+  $('wrong').classList.toggle('hidden', mode !== 'dagger');
+  $('stop-ui').classList.toggle('hidden', mode === 'idle');
+  $('discard').classList.toggle('hidden', mode === 'navigate');
+  $('taps').textContent = s.taps.length ? 'Tapped: ' + s.taps.map(t => `${t.action}@${t.step}`).join(', ') : '';
+  $('saved').textContent = s.last_saved ? 'Saved: ' + s.last_saved.split('/').slice(-2).join('/') : '';
+  $('arrived').style.display = s.arrived && mode !== 'idle' ? 'flex' : 'none';
+  $('arrived-sub').textContent = `${s.steps} steps · ${s.metres} m`;
+  drawMap(s);
+}
+
+function drawMap(s) {
+  const c = $('map'), dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth, h = c.clientHeight;
+  if (c.width !== w * dpr) { c.width = w * dpr; c.height = h * dpr; }
+  const g = c.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  const pts = (s.trail || []), ref = (s.reference || []);
+  const all = pts.concat(ref, [[0, 0]]);
+  let x0 = Math.min(...all.map(p => p[0])), x1 = Math.max(...all.map(p => p[0]));
+  let y0 = Math.min(...all.map(p => p[1])), y1 = Math.max(...all.map(p => p[1]));
+  const span = Math.max(x1 - x0, y1 - y0, 20), pad = 30;
+  const sc = Math.min(w - 2 * pad, h - 2 * pad) / span;
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  // walk start points up the screen: rotate so +x (initial heading) is up
+  const P = p => [w / 2 - (p[1] - cy) * sc, h / 2 - (p[0] - cx) * sc];
+  const line = (arr, color, width, dash) => {
+    if (arr.length < 2) return;
+    g.beginPath(); g.setLineDash(dash || []); g.strokeStyle = color; g.lineWidth = width;
+    g.lineJoin = g.lineCap = 'round';
+    arr.forEach((p, i) => { const q = P(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); });
+    g.stroke(); g.setLineDash([]);
+  };
+  line(ref, getComputedStyle(document.body).getPropertyValue('--ref'), 10);
+  line(pts, '#3b82f6', 6);
+  const start = P([0, 0]);
+  g.fillStyle = '#8a97ad'; g.beginPath(); g.arc(start[0], start[1], 6, 0, 7); g.fill();
+  if (ref.length) { const e = P(ref[ref.length - 1]); g.fillStyle = '#1f8f5f'; g.beginPath(); g.arc(e[0], e[1], 9, 0, 7); g.fill(); }
+  if (pts.length) {
+    const q = P(pts[pts.length - 1]);
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(q[0], q[1], 10, 0, 7); g.fill();
+    g.fillStyle = '#3b82f6'; g.beginPath(); g.arc(q[0], q[1], 7, 0, 7); g.fill();
+  }
+}
+
+async function poll() {
+  if (!busy) {
+    busy = true;
+    try { render(await api('/api/state')); } catch (e) { $('primary').textContent = 'Lost connection…'; }
+    busy = false;
+  }
+  setTimeout(poll, 400);
+}
+window.addEventListener('resize', () => S && drawMap(S));
+poll();
+</script>
+</body>
+</html>

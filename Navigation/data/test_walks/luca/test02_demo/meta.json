@@ -1,0 +1,1 @@
+{"person": "luca", "mode": "demo", "route": "Classroom -> Makerspace", "started": "synthetic-2", "fs": 50, "synthetic": true, "true_turns": [{"t": 26.35, "action": "left"}, {"t": 58.01000000000001, "action": "right"}, {"t": 91.30000000000001, "action": "left"}, {"t": 109.24000000000001, "action": "right"}]}

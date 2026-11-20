@@ -1,0 +1,27 @@
+[
+ {
+  "t": 30.080023192378196,
+  "action": "left",
+  "source": "tap"
+ },
+ {
+  "t": 56.123751259488394,
+  "action": "right",
+  "source": "tap"
+ },
+ {
+  "t": 85.32773812769659,
+  "action": "left",
+  "source": "tap"
+ },
+ {
+  "t": 100.51656505617764,
+  "action": "right",
+  "source": "tap"
+ },
+ {
+  "t": 109.00800512204364,
+  "action": "arrive",
+  "source": "tap"
+ }
+]

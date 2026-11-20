@@ -1,0 +1,4 @@
+# laptop: training + tools (the board needs numpy only)
+numpy
+torch
+matplotlib

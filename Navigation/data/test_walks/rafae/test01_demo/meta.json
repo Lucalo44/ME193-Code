@@ -1,0 +1,1 @@
+{"person": "rafae", "mode": "demo", "route": "Classroom -> Makerspace", "started": "synthetic-1", "fs": 50, "synthetic": true, "true_turns": [{"t": 26.47, "action": "left"}, {"t": 53.33999999999999, "action": "right"}, {"t": 85.01, "action": "left"}, {"t": 102.5, "action": "right"}]}
