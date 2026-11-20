@@ -1,0 +1,6 @@
+name: Campus Navigator
+description: "Classroom -> Makerspace: step counter + IMU behavior-cloned navigation (no GPS/Wi-Fi)"
+ports:
+  - 8080
+bricks: []
+icon: 🧭

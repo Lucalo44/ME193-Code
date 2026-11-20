@@ -1,11 +1,15 @@
-"""Copy what the board needs into the UNO Q app (ArduinoUNOq/navigation/python/), then deploy.
+"""Assemble the UNO Q app in ArduinoUNOq/navigation/ and optionally deploy it.
+
+The app's own files (app.yaml, sketch/, python/main.py) live in Navigation/app/; this copies
+them plus nav/, gaitid/, web/, config.py and models/ into ArduinoUNOq/navigation/, which is the
+folder ArduinoUNOq/tools/deploy.py pushes to the board.
 
     python3 tools/sync_app.py                    # copy only
     python3 tools/sync_app.py --deploy           # ...and deploy (rebuilds + reflashes the STM32)
     python3 tools/sync_app.py --restart-python   # ...copy and restart only the Python side
 
-Navigation/ stays the one place to edit and train; the app folder only holds copies
-(git-ignored there). Re-run after every retrain. --restart-python is enough when only Python
+Navigation/ stays the one place to edit and train; ArduinoUNOq/navigation/ only holds copies.
+Re-run after every retrain. --restart-python is enough when only Python
 files or models changed.
 """
 import argparse
@@ -28,9 +32,12 @@ def main():
     ap.add_argument("--restart-python", action="store_true")
     a = ap.parse_args()
 
+    shutil.copytree(HERE / "app", APP, dirs_exist_ok=True,
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     for d in DIRS:
         shutil.rmtree(DEST / d, ignore_errors=True)
-        shutil.copytree(HERE / d, DEST / d, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        shutil.copytree(HERE / d, DEST / d,                    # training.py needs torch: laptop only
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "training.py"))
     for f in FILES:
         shutil.copy2(HERE / f, DEST / f)
     (DEST / "models").mkdir(exist_ok=True)
