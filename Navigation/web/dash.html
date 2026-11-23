@@ -5,31 +5,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Navigator Dashboard</title>
 <style>
-  :root { --bg:#0b1220; --panel:#131c2e; --ink:#eef2f8; --muted:#8a97ad; --line:#24304a;
-    --c1:#3b82f6; --c2:#e8a317; --c3:#22b07d; --neg:#d64545; --pos:#22b07d; }
+  /* same palette and lettering as the phone page (web/nav.html) */
+  :root { --bg:#14122b; --panel:#1c1a3a; --ink:#f6f1ff; --muted:#a29dcc; --line:#35326a; --track:#131129;
+    --c1:#2ce5d0; --c2:#ff9a3d; --c3:#ff3d9a; --neg:#ff4757; --pos:#2ce5d0;
+    --display:"Avenir Next Condensed", "DIN Condensed", "Arial Narrow", Impact, sans-serif; }
   * { box-sizing: border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.35 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; }
-  header { display:flex; gap:16px; align-items:baseline; padding:12px 16px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
-  header h1 { font-size:18px; margin:0; }
-  header .pill { background:var(--panel); border:1px solid var(--line); border-radius:999px; padding:3px 10px; color:var(--muted); }
-  header .pill b { color:var(--ink); }
+  .disp, header h1, .card h2, #decision-big, header .pill b { font-family:var(--display); font-weight:800; font-style:italic; text-transform:uppercase; letter-spacing:.03em; }
+  header { display:flex; gap:10px; align-items:center; padding:14px 18px 22px; flex-wrap:wrap;
+    background:linear-gradient(100deg, #b3206c, #ff3d9a 45%, #ff9a3d); clip-path:polygon(0 0, 100% 0, 100% 78%, 0 100%); margin-bottom:-6px; }
+  header h1 { font-size:28px; line-height:1; margin:0 10px 0 0; }
+  header .pill { background:rgba(20,18,43,.82); border-radius:8px; padding:4px 10px; color:var(--muted); font-size:12px; }
+  header .pill b { color:var(--ink); font-size:16px; margin-left:4px; }
+  #h-conn.live { color:var(--c1); } #h-conn.down { color:#fff; background:var(--neg); }
   main { display:grid; gap:12px; padding:12px; grid-template-columns: repeat(12, 1fr); }
   .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 12px; min-width:0; }
-  .card h2 { font-size:13px; font-weight:600; color:var(--muted); margin:0 0 6px; text-transform:uppercase; letter-spacing:.04em; }
+  .card h2 { font-size:16px; color:var(--ink); margin:0 0 6px; }
+  .card h2 small { font:400 12px/1 -apple-system, system-ui, sans-serif; font-style:normal; text-transform:none; letter-spacing:0; color:var(--muted); margin-left:6px; }
   .w4 { grid-column: span 4; } .w5 { grid-column: span 5; } .w6 { grid-column: span 6; } .w7 { grid-column: span 7; } .w8 { grid-column: span 8; } .w12 { grid-column: span 12; }
   @media (max-width: 1000px) { .w4,.w5,.w6,.w7,.w8 { grid-column: span 12; } }
   canvas { width:100%; display:block; }
-  .legend { display:flex; gap:12px; color:var(--muted); font-size:12px; margin-top:4px; }
+  .legend { display:flex; gap:12px; flex-wrap:wrap; color:var(--muted); font-size:12px; margin-top:4px; }
   .legend i { display:inline-block; width:10px; height:3px; vertical-align:middle; margin-right:4px; }
-  .bars .b { display:grid; grid-template-columns: 90px 1fr 52px; gap:8px; align-items:center; margin:5px 0; }
-  .bars .track { height:14px; background:#0f1729; border-radius:4px; overflow:hidden; }
-  .bars .fill { height:100%; background:var(--c1); transition:width .2s; }
-  .bars .b.win .fill { background:var(--c2); }
+  .bars .b { display:grid; grid-template-columns: 90px 1fr 52px; gap:8px; align-items:center; margin:6px 0; }
+  .bars .track { height:12px; background:var(--track); transform:skewX(-18deg); overflow:hidden; }
+  .bars .fill { height:100%; background:#4a4690; transition:width .2s; }
+  .bars .b.win .fill { background:linear-gradient(90deg, #ff3d9a, #ff9a3d); }
   .bars .b.win span:first-child { color:var(--ink); font-weight:600; }
   .bars span { color:var(--muted); } .bars .v { text-align:right; color:var(--ink); font-variant-numeric:tabular-nums; }
-  #decision-big { font-size:26px; font-weight:700; margin:2px 0 8px; }
+  #decision-big { font-size:32px; line-height:1; margin:4px 0 10px; background:linear-gradient(100deg, #ff3d9a, #ff9a3d);
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
   table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
-  td { padding:2px 4px; border-bottom:1px solid #1a2438; white-space:nowrap; }
+  td { padding:2px 4px; border-bottom:1px solid #26244f; white-space:nowrap; }
   td.name { color:var(--muted); } td.val { text-align:right; width:70px; }
   td.contrib { width:45%; }
   .cbar { position:relative; height:12px; }
@@ -40,7 +47,7 @@
 </head>
 <body>
 <header>
-  <h1>Campus Navigator · live</h1>
+  <h1>Campus Navigator</h1>
   <span class="pill">mode <b id="h-mode">—</b></span>
   <span class="pill">steps <b id="h-steps">0</b></span>
   <span class="pill">heading <b id="h-heading">0°</b></span>
@@ -49,26 +56,26 @@
   <span class="pill" id="h-conn">connecting…</span>
 </header>
 <main>
-  <section class="card w6"><h2>Accelerometer (g), last 10 s</h2><canvas id="acc" height="170"></canvas>
+  <section class="card w6"><h2>Accelerometer <small>g, last 10 s</small></h2><canvas id="acc" height="170"></canvas>
     <div class="legend"><span><i style="background:var(--c1)"></i>ax</span><span><i style="background:var(--c2)"></i>ay</span><span><i style="background:var(--c3)"></i>az</span></div></section>
-  <section class="card w6"><h2>Gyroscope (deg/s), last 10 s</h2><canvas id="gyr" height="170"></canvas>
+  <section class="card w6"><h2>Gyroscope <small>deg/s, last 10 s</small></h2><canvas id="gyr" height="170"></canvas>
     <div class="legend"><span><i style="background:var(--c1)"></i>gx</span><span><i style="background:var(--c2)"></i>gy</span><span><i style="background:var(--c3)"></i>gz</span><span>· ticks = steps detected by StepNet</span></div></section>
 
-  <section class="card w4"><h2>Movement prediction</h2><div class="bars" id="movement"></div>
+  <section class="card w4"><h2>Movement</h2><div class="bars" id="movement"></div>
     <canvas id="movehist" height="44"></canvas>
     <div class="note">Still / walking / running from the GaitID classifier; stairs from the per-step stairs model.</div></section>
-  <section class="card w4"><h2>Navigator decision</h2>
+  <section class="card w4"><h2>Next move</h2>
     <div id="decision-big">—</div>
     <div class="bars" id="maneuvers"></div>
     <div class="note" id="decision-note"></div></section>
-  <section class="card w4"><h2>Dead-reckoned path</h2><canvas id="map" height="230"></canvas>
-    <div class="legend"><span><i style="background:#4b5875"></i>reference demo</span><span><i style="background:var(--c1)"></i>this walk</span><span><i style="background:var(--c2)"></i>detected turns</span></div></section>
+  <section class="card w4"><h2>Path <small>dead-reckoned from steps and heading</small></h2><canvas id="map" height="230"></canvas>
+    <div class="legend"><span><i style="background:#ff3d9a"></i>reference demo</span><span><i style="background:var(--c1)"></i>this walk</span><span><i style="background:var(--c2)"></i>detected turns</span></div></section>
 
-  <section class="card w7"><h2>Heading and predicted distance to next maneuver, per step</h2><canvas id="steps" height="210"></canvas>
+  <section class="card w7"><h2>Heading and distance to the next move <small>per step</small></h2><canvas id="steps" height="210"></canvas>
     <div class="legend"><span><i style="background:var(--c1)"></i>heading (deg)</span><span><i style="background:var(--c2)"></i>predicted steps to next maneuver</span><span><i style="background:var(--c3)"></i>taps</span></div></section>
-  <section class="card w5"><h2>Why: what the policy sees (inputs → contribution)</h2>
+  <section class="card w5"><h2>Why <small>what the policy sees, and how each input pushed</small></h2>
     <table id="features"></table>
-    <div class="note">Contribution = gradient × input of the winning maneuver's score. Green pushes toward it, red away.</div></section>
+    <div class="note">Contribution = gradient × input of the winning maneuver's score. Teal pushes toward it, red away.</div></section>
 </main>
 
 <script>
@@ -100,7 +107,7 @@ function lineChart(id, cols, colors, opts = {}) {
   g.fillStyle = css('--muted'); g.font = '11px system-ui';
   g.fillText(hi.toFixed(1), 2, 11); g.fillText(lo.toFixed(1), 2, h - 2);
   if (opts.steps) {
-    g.strokeStyle = 'rgba(232,163,23,.35)';
+    g.strokeStyle = 'rgba(255,154,61,.4)';
     for (const s of STEPS) if (s.t >= t0) { g.beginPath(); g.moveTo(X(s.t), 0); g.lineTo(X(s.t), h); g.stroke(); }
   }
   cols.forEach((c, k) => {
@@ -115,7 +122,7 @@ function bars(id, labels, values, win) {
     `<div class="b ${i === win ? 'win' : ''}"><span>${l}</span><div class="track"><div class="fill" style="width:${(100 * values[i]).toFixed(1)}%"></div></div><span class="v">${(100 * values[i]).toFixed(0)}%</span></div>`).join('');
 }
 
-const MOVE_COL = ['#8a97ad', '#3b82f6', '#e8a317', '#a855f7'];
+const MOVE_COL = ['#4a4690', '#2ce5d0', '#ff9a3d', '#ff3d9a'];
 function moveHistory() {
   const [g, w, h] = setupCanvas($('movehist'));
   g.clearRect(0, 0, w, h);
@@ -142,7 +149,7 @@ function stepChart() {
   g.textAlign = 'right'; g.fillText(`${dhi.toFixed(0)} steps`, w - 2, 11); g.textAlign = 'left';
   // turns
   for (const r of recs) if (r.state.turned) {
-    g.fillStyle = 'rgba(232,163,23,.25)'; g.fillRect(X(r.i) - 2, 0, 4, h);
+    g.fillStyle = 'rgba(255,154,61,.28)'; g.fillRect(X(r.i) - 2, 0, 4, h);
   }
   // taps (from phone state)
   if (STATE) for (const t of STATE.taps) if (t.step >= i0) {
@@ -168,7 +175,7 @@ function mapChart() {
   const P = p => [w / 2 - (p[1] - cy) * sc, h / 2 - (p[0] - cx) * sc];
   const line = (arr, col, lw) => { if (arr.length < 2) return; g.strokeStyle = col; g.lineWidth = lw; g.lineJoin = 'round'; g.beginPath();
     arr.forEach((p, i) => { const q = P(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); }); g.stroke(); };
-  line(ref, '#4b5875', 6); line(pts, css('--c1'), 3);
+  line(ref, 'rgba(255,61,154,.55)', 6); line(pts, css('--c1'), 3);
   for (const r of STEPS) if (r.state.turned) { const q = P([r.state.x, r.state.y]); g.fillStyle = css('--c2'); g.beginPath(); g.arc(q[0], q[1], 4, 0, 7); g.fill(); }
   if (pts.length) { const q = P(pts[pts.length - 1]); g.fillStyle = '#fff'; g.beginPath(); g.arc(q[0], q[1], 5, 0, 7); g.fill(); }
 }
@@ -212,12 +219,12 @@ async function tick() {
     for (const s of live.steps) { STEPS.push(s); lastStep = s.i; }
     while (STEPS.length > 1500) STEPS.shift();
     STATE = st;
-    $('h-conn').textContent = 'live';
+    $('h-conn').textContent = 'live'; $('h-conn').className = 'pill live';
     lineChart('acc', [2, 3, 4], ['--c1', '--c2', '--c3'], {minSpan: 0.5});
     lineChart('gyr', [5, 6, 7], ['--c1', '--c2', '--c3'], {minSpan: 20, steps: true});
     renderState(); moveHistory(); stepChart(); mapChart();
     featureTable(STEPS[STEPS.length - 1]);
-  } catch (e) { $('h-conn').textContent = 'disconnected'; }
+  } catch (e) { $('h-conn').textContent = 'lost the board'; $('h-conn').className = 'pill down'; }
   setTimeout(tick, 250);
 }
 
