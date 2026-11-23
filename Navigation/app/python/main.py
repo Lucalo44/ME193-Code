@@ -29,7 +29,7 @@ last_icon, last_icon_t, errors = None, 0.0, 0
 
 def show(icon):
     try:
-        Bridge.call("draw", frame(icon))
+        Bridge.call("draw", bytes(frame(icon)))    # the sketch takes bytes, not a list
     except Exception as e:
         print("draw failed:", e)
 

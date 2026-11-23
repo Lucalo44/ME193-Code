@@ -2,113 +2,165 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b1220">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#14122b">
 <title>Campus Navigator</title>
 <style>
   :root {
-    --bg: #0b1220; --panel: #131c2e; --ink: #eef2f8; --muted: #8a97ad; --line: #24304a;
-    --go: #1f8f5f; --now: #e8a317; --rec: #d64545; --accent: #3b82f6; --ref: #4b5875;
+    --night: #14122b; --panel: #1c1a3a; --line: #35326a; --ink: #f6f1ff; --muted: #a29dcc;
+    --pink: #ff3d9a; --orange: #ff9a3d; --teal: #2ce5d0; --red: #ff4757;
+    --display: "Avenir Next Condensed", "DIN Condensed", "Arial Narrow", Impact, sans-serif;
+    --body: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
-    font: 16px/1.3 -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; }
-  body { display: flex; flex-direction: column; min-height: 100dvh; }
-  #banner { background: var(--go); padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top));
-    display: flex; gap: 14px; align-items: center; transition: background .25s; }
-  #banner.now { background: var(--now); color: #1b1300; }
-  #banner.rec { background: var(--rec); }
-  #banner.idle { background: var(--panel); }
-  #arrow { width: 64px; height: 64px; flex: none; }
-  #primary { font-size: 26px; font-weight: 700; }
-  #secondary { font-size: 15px; opacity: .85; margin-top: 2px; }
-  #mapwrap { position: relative; flex: 1; min-height: 200px; }
-  canvas#map { position: absolute; inset: 0; width: 100%; height: 100%; }
-  #chip { position: absolute; top: 10px; left: 10px; background: rgba(19,28,46,.9); border: 1px solid var(--line);
-    border-radius: 999px; padding: 6px 12px; font-size: 14px; }
-  #sheet { background: var(--panel); border-top: 1px solid var(--line); padding: 12px 16px;
-    padding-bottom: max(14px, env(safe-area-inset-bottom)); }
-  #eta { display: flex; justify-content: space-between; align-items: baseline; }
-  #eta b { font-size: 22px; }
-  #eta span { color: var(--muted); font-size: 14px; }
-  .bar { height: 6px; background: var(--line); border-radius: 3px; margin: 10px 0 12px; overflow: hidden; }
-  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .3s; }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; }
-  button { flex: 1; min-width: 30%; border: 0; border-radius: 12px; padding: 16px 8px; font-size: 17px;
-    font-weight: 600; color: var(--ink); background: #22304d; }
-  button:active { transform: scale(.97); }
-  button.primary { background: var(--accent); }
-  button.danger { background: var(--rec); }
+  html, body { margin: 0; height: 100%; background: var(--night); color: var(--ink); font: 15px/1.3 var(--body);
+    overscroll-behavior: none; }
+  body { display: flex; flex-direction: column; height: 100dvh; }
+  .disp { font-family: var(--display); font-weight: 800; font-style: italic; text-transform: uppercase; letter-spacing: .02em; }
+
+  /* ---- objective strip ---- */
+  #objective { position: relative; z-index: 2; display: flex; gap: 12px; align-items: center;
+    padding: max(12px, env(safe-area-inset-top)) 16px 20px;
+    background: linear-gradient(100deg, #2a2760, #1c1a3a); clip-path: polygon(0 0, 100% 0, 100% 82%, 0 100%);
+    margin-bottom: -14px; transition: background .25s; }
+  #objective.go { background: linear-gradient(100deg, #b3206c, #ff3d9a 55%, #ff9a3d); }
+  #objective.now { background: linear-gradient(100deg, #ff7a1a, #ffb03d); color: #24100a; animation: pulse .7s ease-in-out infinite alternate; }
+  #objective.rec { background: linear-gradient(100deg, #8f1d2c, #ff4757); }
+  #objective.lost { background: #3a2030; }
+  @keyframes pulse { to { filter: brightness(1.18); } }
+  #arrow { width: 54px; height: 54px; flex: none; }
+  #primary { font-size: 30px; line-height: 1; }
+  #secondary { font-size: 14px; opacity: .9; margin-top: 4px; }
+
+  /* ---- map ---- */
+  #mapwrap { position: relative; flex: 1; min-height: 180px; overflow: hidden; }
+  #map { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  #mapwrap::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(ellipse at 50% 58%, transparent 45%, rgba(10, 8, 28, .75)); }
+  .hud { position: absolute; z-index: 1; background: rgba(20, 18, 43, .82); border: 1px solid var(--line);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  #north { top: 24px; left: 12px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; }
+  #north svg { width: 26px; height: 26px; }
+  #view { top: 24px; right: 12px; border-radius: 10px; padding: 9px 12px; font-size: 14px; color: var(--ink); }
+  #chip { bottom: 10px; left: 12px; border-radius: 8px; padding: 5px 10px; font-size: 14px; }
+  #chip b { color: var(--teal); }
+  #osm { position: absolute; z-index: 1; right: 8px; bottom: 6px; font-size: 10px; color: var(--muted); opacity: .8; }
+  #toast { position: absolute; z-index: 1; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(.9); opacity: 0;
+    font-size: 34px; color: var(--teal); text-shadow: 0 2px 14px #000; pointer-events: none; transition: opacity .15s, transform .15s; }
+  #toast.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  #cross { position: absolute; z-index: 1; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px; pointer-events: none; }
+
+  /* ---- bottom sheet ---- */
+  #sheet { position: relative; z-index: 2; background: var(--panel); border-top: 2px solid var(--line);
+    padding: 12px 14px max(14px, env(safe-area-inset-bottom)); }
+  #stats { display: flex; gap: 14px; align-items: flex-end; }
+  .stat b { display: block; font-size: 26px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+  #status { margin-left: auto; text-align: right; font-size: 12px; color: var(--muted); max-width: 46%; }
+  #bar { display: flex; gap: 3px; margin: 10px 0 12px; }
+  #bar i { flex: 1; height: 7px; background: #2b2857; transform: skewX(-18deg); }
+  #bar i.on { background: var(--teal); box-shadow: 0 0 8px rgba(44, 229, 208, .6); }
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  button { font: inherit; border: 0; border-radius: 10px; color: var(--ink); background: #2b2857; touch-action: manipulation; }
+  button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  #sheet button { flex: 1; padding: 15px 8px; font-size: 20px; }
+  #sheet button:active { transform: scale(.97); filter: brightness(1.2); }
+  #sheet button small { display: block; font: 400 12px/1.2 var(--body); text-transform: none; letter-spacing: 0; opacity: .8; margin-top: 3px; }
+  button.go { background: linear-gradient(100deg, #d42a80, #ff3d9a 60%, #ff9a3d); }
+  button.go:disabled { background: #2b2857; color: var(--muted); }
+  button.stop { background: var(--red); }
   button.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); }
-  button.tap { padding: 22px 8px; font-size: 19px; }
-  select { width: 100%; padding: 12px; border-radius: 10px; background: #0f1729; color: var(--ink);
-    border: 1px solid var(--line); font-size: 16px; margin-bottom: 10px; }
-  .hint { color: var(--muted); font-size: 13px; margin: 8px 0 0; }
-  #taps { color: var(--muted); font-size: 13px; margin-top: 8px; min-height: 1em; }
-  #arrived { position: fixed; inset: 0; background: rgba(11,18,32,.92); display: none; align-items: center;
-    justify-content: center; flex-direction: column; gap: 16px; text-align: center; padding: 24px; }
-  #arrived h2 { font-size: 30px; margin: 0; }
+  #sheet button.turn { padding: 26px 8px; font-size: 30px; background: #33307a; }
+  #sheet button.active { background: var(--orange); color: #24100a; }
+  #who { display: flex; background: #131129; border-radius: 10px; padding: 3px; }
+  #who button { padding: 9px; font-size: 17px; background: transparent; color: var(--muted); }
+  #who button.sel { background: #35326a; color: var(--ink); }
+  .label { font-size: 11px; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; margin: 2px 0 5px; }
+  .hint { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
+  #sheet button.link { flex: none; background: none; color: var(--teal); padding: 8px 0 0; font: 14px var(--body); text-transform: none; }
+
+  /* ---- arrived ---- */
+  #arrived { position: fixed; inset: 0; z-index: 5; display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; text-align: center; padding: 24px; background: rgba(12, 10, 32, .93); }
+  #arrived h2 { margin: 0; font-size: 62px; line-height: .95; background: linear-gradient(100deg, #ff3d9a, #ff9a3d);
+    -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #arrived p { margin: 0; color: var(--muted); }
+  #arrived button { padding: 15px 44px; font-size: 22px; }
   .hidden { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { #objective.now { animation: none; } }
 </style>
 </head>
 <body>
-<div id="banner" class="idle">
+<div id="objective">
   <svg id="arrow" viewBox="0 0 64 64" aria-hidden="true"></svg>
-  <div><div id="primary">Connecting…</div><div id="secondary"></div></div>
+  <div><div id="primary" class="disp">Connecting</div><div id="secondary"></div></div>
 </div>
 
 <div id="mapwrap">
   <canvas id="map"></canvas>
-  <div id="chip">—</div>
+  <div id="north" class="hud" aria-label="North"><svg viewBox="0 0 26 26"><path d="M13 2 L18 14 H8 Z" fill="#ff3d9a"/><path d="M13 24 L8 14 H18 Z" fill="#6a66a8"/></svg></div>
+  <button id="view" class="hud disp" onclick="toggleView()">Whole map</button>
+  <div id="chip" class="hud"></div>
+  <div id="osm">© OpenStreetMap</div>
+  <div id="toast" class="disp"></div>
+  <svg id="cross" class="hidden" viewBox="0 0 64 64"><circle cx="32" cy="32" r="9" fill="none" stroke="#2ce5d0" stroke-width="3"/><path id="cross-arrow" d="M32 2 L40 20 H24 Z" fill="#2ce5d0"/></svg>
 </div>
 
 <div id="sheet">
-  <div id="eta"><b id="eta-time">—</b><span id="eta-rest"></span></div>
-  <div class="bar"><div id="progress"></div></div>
+  <div id="stats">
+    <div class="stat"><b id="s1" class="disp">0</b><span id="l1">steps</span></div>
+    <div class="stat"><b id="s2" class="disp">0 m</b><span id="l2">walked</span></div>
+    <div class="stat"><b id="s3" class="disp"></b><span id="l3"></span></div>
+    <div id="status"></div>
+  </div>
+  <div id="bar"></div>
 
   <div id="idle-ui">
-    <select id="person"></select>
+    <div class="label">Who is walking</div>
+    <div id="who"></div>
+    <div class="row"><button id="nav-btn" class="go disp" onclick="start('navigate')">Navigate<small id="nav-sub"></small></button></div>
     <div class="row">
-      <button class="primary" onclick="start('navigate')">Navigate</button>
+      <button class="disp" onclick="start('record')">Record demo<small>You walk, you tap the turns</small></button>
+      <button class="disp" onclick="start('dagger')">DAgger walk<small>It guides, you correct it</small></button>
     </div>
-    <div class="row" style="margin-top:8px">
-      <button onclick="start('record')">Record demo</button>
-      <button onclick="start('dagger')">DAgger walk</button>
-    </div>
+    <button class="link" onclick="setup(true)">Set where the walk starts on the map</button>
     <p class="hint" id="saved"></p>
   </div>
 
   <div id="tap-ui" class="hidden">
+    <div class="label" id="tap-label">Tap each one as you do it</div>
+    <div class="row"><button class="turn disp" onclick="tap('left')">◀ Left</button><button class="turn disp" onclick="tap('right')">Right ▶</button></div>
     <div class="row">
-      <button class="tap" onclick="tap('left')">⬅ Left</button>
-      <button class="tap" onclick="tap('right')">Right ➡</button>
+      <button id="stairs" class="disp" onclick="stairs()">Stairs start</button>
+      <button id="wrong" class="disp hidden" onclick="tap('wrong')">Wrong call</button>
+      <button class="go disp" onclick="tap('arrive')">Arrived</button>
     </div>
-    <div class="row" style="margin-top:8px">
-      <button onclick="tap('stairs_start')">Stairs start</button>
-      <button onclick="tap('stairs_end')">Stairs end</button>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <button id="wrong" class="hidden" onclick="tap('wrong')">✗ Wrong</button>
-      <button class="primary" onclick="tap('arrive')">Arrived</button>
-    </div>
-    <div id="taps"></div>
   </div>
 
-  <div class="row" id="stop-ui" style="margin-top:10px">
-    <button class="danger" onclick="stop(false)">Stop &amp; save</button>
-    <button class="ghost" id="discard" onclick="stop(true)">Discard</button>
+  <div class="row hidden" id="stop-ui">
+    <button class="stop disp" onclick="stop(false)">Stop and save</button>
+    <button class="ghost disp" id="discard" onclick="stop(true)">Discard</button>
+  </div>
+
+  <div id="setup-ui" class="hidden">
+    <p class="hint" style="margin:0 0 4px">Drag the map until the ring sits where the walk starts. Then turn the arrow to point the way you face on the first step.</p>
+    <div class="row"><button class="disp" onclick="turnStart(-15)">⟲ Turn</button><button class="disp" onclick="turnStart(15)">Turn ⟳</button></div>
+    <div class="row"><button class="go disp" onclick="setup(false, true)">Save start</button><button class="ghost disp" onclick="setup(false)">Cancel</button></div>
   </div>
 </div>
 
 <div id="arrived">
-  <h2>You've arrived</h2>
-  <div id="arrived-sub" style="color:var(--muted)"></div>
-  <button class="primary" style="flex:none;padding:16px 40px" onclick="stop(false)">Done</button>
+  <h2 class="disp">You made it</h2>
+  <p id="arrived-sub"></p>
+  <button class="go disp" onclick="stop(false)">Done</button>
 </div>
 
+<script src="/map.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-let S = null, busy = false;
+const STRIDE = 0.72;                    // metres per step, STRIDE_M in config.py (map drawing only)
+const RAD = Math.PI / 180;
+let S = null, busy = false, person = null, onStairs = false, view = 'follow', inSetup = false;
 
 const ARROWS = {
   straight: '<path d="M32 6 L48 26 H37 V58 H27 V26 H16 Z" fill="currentColor"/>',
@@ -120,93 +172,187 @@ const ARROWS = {
   idle: '<circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="5"/><path d="M32 16 L40 36 L32 31 L24 36 Z" fill="currentColor"/>',
 };
 
+// ---------------- board API ----------------
 async function api(path, body) {
   const r = await fetch(path, body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   return r.json();
 }
-function start(mode) { api('/api/start', {mode, person: $('person').value}).then(render); }
-function tap(action) { if (navigator.vibrate) navigator.vibrate(40); api('/api/tap', {action}).then(render); }
-function stop(discard) { if (discard && !confirm('Discard this walk?')) return; api('/api/stop', {discard}).then(render); }
-
-function fmtTime(s) {
-  if (s == null) return '—';
-  const m = Math.floor(s / 60), r = Math.round(s % 60);
-  return m ? `${m} min` : `${r} s`;
+function start(mode) { onStairs = false; view = 'follow'; api('/api/start', {mode, person}).then(render); }
+function tap(action, text) {
+  if (navigator.vibrate) navigator.vibrate(40);
+  toast(text || {left: 'Left', right: 'Right', arrive: 'Arrived', wrong: 'Marked wrong'}[action]);
+  api('/api/tap', {action}).then(render);
 }
+function stairs() { onStairs = !onStairs; tap(onStairs ? 'stairs_start' : 'stairs_end', onStairs ? 'Stairs start' : 'Stairs end'); }
+function stop(discard) { if (discard && !confirm('Discard this walk? It will not be saved.')) return; api('/api/stop', {discard}).then(render); }
+function toast(text) { const t = $('toast'); t.textContent = text + ' ✓'; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 900); }
+function fmtTime(s) { if (s == null) return '—'; const m = Math.floor(s / 60); return m ? `${m} min` : `${Math.round(s)} s`; }
 
 function render(s) {
   S = s;
-  const ins = s.instruction, mode = s.mode;
-  const banner = $('banner');
-  banner.className = mode === 'idle' ? 'idle' : mode === 'record' ? 'rec' : ins.now ? 'now' : '';
+  const ins = s.instruction, mode = s.mode, goal = s.route.split('->').pop().trim();
+  $('objective').className = mode === 'idle' ? '' : mode === 'record' ? 'rec' : ins.now ? 'now' : 'go';
   const icon = mode === 'record' ? 'record' : mode === 'idle' ? 'idle' : (ins.maneuver || 'straight');
   $('arrow').innerHTML = ARROWS[icon] || ARROWS.straight;
-  $('primary').textContent = ins.primary;
-  $('secondary').textContent = ins.secondary || '';
+  $('primary').textContent = inSetup ? 'Set the start' : mode === 'idle' ? `To the ${goal}` : mode === 'record' ? 'Recording' : ins.primary;
+  $('secondary').textContent = inSetup ? 'This only places your walk on the map' : mode === 'idle' ? s.route.replace('->', '→')
+    : mode === 'record' ? 'Walk the route and tap each turn' : (ins.secondary || '');
 
-  $('chip').textContent = `${s.movement} · ${s.steps} steps`;
-  $('eta-time').textContent = mode === 'record' ? `${s.metres} m walked` : fmtTime(s.eta_s);
-  $('eta-rest').textContent = mode === 'record' ? `${s.steps} steps` : `${s.remaining_m} m · ${s.route.split('->').pop().trim()}`;
-  $('progress').style.width = (100 * (s.progress || 0)).toFixed(1) + '%';
+  $('chip').innerHTML = `<b>${s.movement}</b> · heading ${Math.round(s.heading)}°`;
+  const nav = mode === 'navigate' || mode === 'dagger';
+  $('s1').textContent = s.steps; $('l1').textContent = 'steps';
+  $('s2').textContent = (nav ? s.remaining_m : s.metres) + ' m'; $('l2').textContent = nav ? 'to go' : 'walked';
+  $('s3').textContent = nav ? fmtTime(s.eta_s) : ''; $('l3').textContent = nav ? 'eta' : '';
+  $('status').textContent = mode === 'idle' ? (s.model ? 'Route trained and ready' : 'No route trained yet')
+    : mode === 'dagger' ? 'DAgger: tap what you really do' : mode === 'record' ? `${s.taps.length ? 'Last tap: ' + s.taps[s.taps.length - 1].action.replace('_', ' ') : 'No taps yet'}` : goal;
+  const bar = $('bar');
+  if (!bar.children.length) bar.innerHTML = '<i></i>'.repeat(14);
+  [...bar.children].forEach((el, i) => el.classList.toggle('on', i < Math.round(14 * (s.progress || 0))));
 
-  const sel = $('person');
-  if (!sel.options.length) s.people.forEach(p => sel.add(new Option(p, p)));
-  $('idle-ui').classList.toggle('hidden', mode !== 'idle');
-  $('tap-ui').classList.toggle('hidden', !(mode === 'record' || mode === 'dagger'));
+  const who = $('who');
+  if (!who.children.length) {
+    try { person = localStorage.getItem('nav-person'); } catch (e) {}
+    if (!s.people.includes(person)) person = s.person || s.people[0];
+    s.people.forEach(p => { const b = document.createElement('button'); b.className = 'disp'; b.textContent = p;
+      b.onclick = () => { person = p; try { localStorage.setItem('nav-person', p); } catch (e) {} sel(); }; who.append(b); });
+    const sel = () => [...who.children].forEach(b => b.classList.toggle('sel', b.textContent === person)); sel();
+  }
+  $('nav-btn').disabled = !s.model;
+  $('nav-sub').textContent = s.model ? `Guide me to the ${goal}` : 'Needs a trained route: record demo walks first';
+  const tapping = mode === 'record' || mode === 'dagger';
+  $('idle-ui').classList.toggle('hidden', mode !== 'idle' || inSetup);
+  $('setup-ui').classList.toggle('hidden', !inSetup);
+  $('tap-ui').classList.toggle('hidden', !tapping);
   $('wrong').classList.toggle('hidden', mode !== 'dagger');
+  $('stairs').textContent = onStairs ? 'Stairs end' : 'Stairs start';
+  $('stairs').classList.toggle('active', onStairs);
   $('stop-ui').classList.toggle('hidden', mode === 'idle');
   $('discard').classList.toggle('hidden', mode === 'navigate');
-  $('taps').textContent = s.taps.length ? 'Tapped: ' + s.taps.map(t => `${t.action}@${t.step}`).join(', ') : '';
-  $('saved').textContent = s.last_saved ? 'Saved: ' + s.last_saved.split('/').slice(-2).join('/') : '';
+  $('saved').textContent = s.last_saved ? 'Last walk saved: ' + s.last_saved.split('/').slice(-2).join('/') : '';
   $('arrived').style.display = s.arrived && mode !== 'idle' ? 'flex' : 'none';
-  $('arrived-sub').textContent = `${s.steps} steps · ${s.metres} m`;
-  drawMap(s);
+  $('arrived-sub').textContent = `${goal} · ${s.steps} steps · ${s.metres} m`;
+  $('view').textContent = view === 'follow' ? 'Whole map' : 'Follow me';
+  $('view').classList.toggle('hidden', inSetup || mode === 'idle');
 }
 
-function drawMap(s) {
-  const c = $('map'), dpr = window.devicePixelRatio || 1;
-  const w = c.clientWidth, h = c.clientHeight;
-  if (c.width !== w * dpr) { c.width = w * dpr; c.height = h * dpr; }
-  const g = c.getContext('2d');
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  g.clearRect(0, 0, w, h);
-  const pts = (s.trail || []), ref = (s.reference || []);
-  const all = pts.concat(ref, [[0, 0]]);
-  let x0 = Math.min(...all.map(p => p[0])), x1 = Math.max(...all.map(p => p[0]));
-  let y0 = Math.min(...all.map(p => p[1])), y1 = Math.max(...all.map(p => p[1]));
-  const span = Math.max(x1 - x0, y1 - y0, 20), pad = 30;
-  const sc = Math.min(w - 2 * pad, h - 2 * pad) / span;
-  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-  // walk start points up the screen: rotate so +x (initial heading) is up
-  const P = p => [w / 2 - (p[1] - cy) * sc, h / 2 - (p[0] - cx) * sc];
-  const line = (arr, color, width, dash) => {
-    if (arr.length < 2) return;
-    g.beginPath(); g.setLineDash(dash || []); g.strokeStyle = color; g.lineWidth = width;
-    g.lineJoin = g.lineCap = 'round';
-    arr.forEach((p, i) => { const q = P(p); i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1]); });
-    g.stroke(); g.setLineDash([]);
-  };
-  line(ref, getComputedStyle(document.body).getPropertyValue('--ref'), 10);
-  line(pts, '#3b82f6', 6);
-  const start = P([0, 0]);
-  g.fillStyle = '#8a97ad'; g.beginPath(); g.arc(start[0], start[1], 6, 0, 7); g.fill();
-  if (ref.length) { const e = P(ref[ref.length - 1]); g.fillStyle = '#1f8f5f'; g.beginPath(); g.arc(e[0], e[1], 9, 0, 7); g.fill(); }
-  if (pts.length) {
-    const q = P(pts[pts.length - 1]);
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(q[0], q[1], 10, 0, 7); g.fill();
-    g.fillStyle = '#3b82f6'; g.beginPath(); g.arc(q[0], q[1], 7, 0, 7); g.fill();
-  }
+// ---------------- map ----------------
+// The board only knows steps and turns from where the walk began. `anchor` says where on the real map
+// that beginning is (metres east/north of the map origin) and which compass way the first step faced.
+const M = window.CAMPUS;
+let anchor = {x: -3, y: -8, b: 0, set: false};
+try { anchor = Object.assign(anchor, JSON.parse(localStorage.getItem('nav-anchor') || '{}')); } catch (e) {}
+const cam = {x: 0, y: 0, b: 0, z: 1.2}, P = {};
+const poly = (path, p, close) => { path.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) path.lineTo(p[i], p[i + 1]); if (close) path.closePath(); };
+function build() {
+  for (const k of ['green', 'parking', 'block', 'ttc', 'major', 'street', 'service', 'walk', 'steps', 'rail']) P[k] = new Path2D();
+  M.green.forEach(p => poly(P.green, p, true)); M.parking.forEach(p => poly(P.parking, p, true));
+  M.buildings.forEach(b => poly(b.ttc ? P.ttc : P.block, b.p, true));
+  M.roads.forEach(r => poly(P[r.c], r.p)); M.rail.forEach(p => poly(P.rail, p));
+  M.labels = M.buildings.filter(b => b.n).map(b => {
+    let x = 0, y = 0, x0 = 1e9, x1 = -1e9; const n = b.p.length / 2;
+    for (let i = 0; i < b.p.length; i += 2) { x += b.p[i]; y += b.p[i + 1]; x0 = Math.min(x0, b.p[i]); x1 = Math.max(x1, b.p[i]); }
+    return {n: b.n.toUpperCase(), x: x / n, y: y / n, w: x1 - x0, ttc: b.ttc};
+  });
+  const longest = {};
+  M.roads.filter(r => r.n).forEach(r => { if (!longest[r.n] || r.p.length > longest[r.n].p.length) longest[r.n] = r; });
+  M.streets = Object.values(longest).map(r => { const i = (r.p.length >> 2) * 2; return {n: r.n.toUpperCase(), x: r.p[i], y: r.p[i + 1]}; });
 }
+const world = (pt, a = anchor) => {           // board (x forward, y left, in steps) -> metres east/north
+  const s = Math.sin(a.b * RAD), c = Math.cos(a.b * RAD);
+  return [a.x + STRIDE * (pt[0] * s - pt[1] * c), a.y + STRIDE * (pt[0] * c + pt[1] * s)];
+};
+function target(w, h) {
+  if (inSetup) return {x: cam.tx, y: cam.ty, b: 0, z: 3.2, px: w / 2, py: h / 2};
+  const trail = S && S.trail || [], here = world(trail.length ? trail[trail.length - 1] : [0, 0]);
+  if (view === 'follow' && S && S.mode !== 'idle')
+    return {x: here[0], y: here[1], b: anchor.b - S.heading, z: 4.2, px: w / 2, py: h * 0.62};
+  const pts = M.buildings.filter(b => b.ttc).flatMap(b => { const o = []; for (let i = 0; i < b.p.length; i += 2) o.push([b.p[i], b.p[i + 1]]); return o; })
+    .concat(trail.map(p => world(p)), (S && S.reference || []).map(p => world(p)), [here]);
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  return {x: (x0 + x1) / 2, y: (y0 + y1) / 2, b: 0, z: Math.min(w / (x1 - x0 + 60), h / (y1 - y0 + 60)), px: w / 2, py: h / 2};
+}
+let last = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const c = $('map'), dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (!w || !M) return;
+  if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+  const t = target(w, h), still = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const k = still || !last ? 1 : 1 - Math.exp(-(now - last) / 160); last = now;
+  cam.x += (t.x - cam.x) * k; cam.y += (t.y - cam.y) * k; cam.z += (t.z - cam.z) * k;
+  cam.b += (((t.b - cam.b) % 360 + 540) % 360 - 180) * k;
+  cam.px = t.px; cam.py = t.py;
+  const g = c.getContext('2d'), a = -cam.b * RAD;
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.fillStyle = '#14122b'; g.fillRect(0, 0, w, h);
+  g.translate(cam.px, cam.py); g.rotate(a); g.scale(cam.z, -cam.z); g.translate(-cam.x, -cam.y);
+  g.lineJoin = g.lineCap = 'round';
+  const stroke = (path, color, width, dash) => { g.strokeStyle = color; g.lineWidth = width; g.setLineDash(dash || []); g.stroke(path); g.setLineDash([]); };
+  g.fillStyle = '#17323a'; g.fill(P.green); g.fillStyle = '#1d1b40'; g.fill(P.parking);
+  stroke(P.service, '#3a3770', 4); stroke(P.street, '#0d0b20', 9.5); stroke(P.major, '#0d0b20', 13);
+  stroke(P.street, '#6d69a6', 7); stroke(P.major, '#9793c8', 10);
+  stroke(P.rail, '#c9c5f0', 1.6, [5, 4]);
+  stroke(P.walk, '#3f3b78', 1.1, [2.2, 1.8]); stroke(P.steps, '#7d79b8', 2.2, [0.5, 0.8]);
+  g.fillStyle = '#2a2750'; g.fill(P.block); stroke(P.block, '#413e7a', 0.6);
+  g.shadowColor = '#ff3d9a'; g.shadowBlur = 22; g.fillStyle = '#3a2f6e'; g.fill(P.ttc); g.shadowBlur = 0;
+  stroke(P.ttc, '#ff3d9a', Math.max(0.9, 2.2 / cam.z));
+
+  const line = (pts, color, width) => { if (pts.length < 2) return; const p = new Path2D(); poly(p, pts.flat()); stroke(p, color, width / cam.z); };
+  const ref = (S && S.reference || []).map(p => world(p)), trail = (S && S.trail || []).map(p => world(p));
+  line(ref, 'rgba(255,61,154,.35)', 11); line(ref, '#ff3d9a', 5);
+  line(trail, 'rgba(44,229,208,.28)', 10); line(trail, '#2ce5d0', 4);
+
+  // ---- screen-space layer: labels and blips stay upright ----
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const scr = p => { const dx = (p[0] - cam.x) * cam.z, dy = -(p[1] - cam.y) * cam.z;
+    return [cam.px + dx * Math.cos(a) - dy * Math.sin(a), cam.py + dx * Math.sin(a) + dy * Math.cos(a)]; };
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const text = (s, q, font, color) => { g.font = font; g.lineWidth = 3; g.strokeStyle = 'rgba(13,11,32,.85)'; g.strokeText(s, q[0], q[1]); g.fillStyle = color; g.fillText(s, q[0], q[1]); };
+  const F = getComputedStyle(document.body).getPropertyValue('--display');
+  if (cam.z > 1.6) M.streets.forEach(l => text(l.n, scr([l.x, l.y]), `italic 700 11px ${F}`, '#c9c5f0'));
+  M.labels.forEach(l => { if (l.ttc ? l.n.length > 9 || cam.z > 3 : l.w * cam.z > l.n.length * 6.5)
+    text(l.n, scr([l.x, l.y]), `italic 800 ${l.ttc ? 13 : 10.5}px ${F}`, l.ttc ? '#ffd0e6' : '#8f8bc0'); });
+  const blip = (q, r, color) => { g.beginPath(); g.arc(q[0], q[1], r, 0, 7); g.fillStyle = color; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#14122b'; g.stroke(); };
+  if (ref.length) { const q = scr(ref[ref.length - 1]), pulse = still ? 0 : (now % 1400) / 1400;
+    g.beginPath(); g.arc(q[0], q[1], 9 + 16 * pulse, 0, 7); g.strokeStyle = `rgba(255,61,154,${1 - pulse})`; g.lineWidth = 2; g.stroke(); blip(q, 8, '#ff3d9a'); }
+  blip(scr(world([0, 0])), 5, '#a29dcc');
+  const here = scr(trail.length ? trail[trail.length - 1] : world([0, 0]));
+  const facing = ((anchor.b - (S ? S.heading : 0)) - cam.b) * RAD;
+  if (!inSetup) { g.save(); g.translate(here[0], here[1]); g.rotate(facing);
+    g.beginPath(); g.moveTo(0, -15); g.lineTo(11, 12); g.lineTo(0, 6); g.lineTo(-11, 12); g.closePath();
+    g.shadowColor = '#2ce5d0'; g.shadowBlur = 14; g.fillStyle = '#fff'; g.fill(); g.shadowBlur = 0;
+    g.lineWidth = 2; g.strokeStyle = '#14122b'; g.stroke(); g.restore(); }
+  $('north').firstElementChild.style.transform = `rotate(${-cam.b}deg)`;
+  $('cross-arrow').setAttribute('transform', `rotate(${anchor.b} 32 32)`);
+}
+
+// ---------------- placing the start on the map ----------------
+let saved = null;
+function setup(on, keep) {
+  if (on) { saved = Object.assign({}, anchor); cam.tx = anchor.x; cam.ty = anchor.y; }
+  else if (keep) { anchor.set = true; try { localStorage.setItem('nav-anchor', JSON.stringify(anchor)); } catch (e) {} }
+  else anchor = saved;
+  inSetup = on; $('cross').classList.toggle('hidden', !on); if (S) render(S);
+}
+function turnStart(d) { anchor.b = (anchor.b + d + 360) % 360; }
+function toggleView() { view = view === 'follow' ? 'map' : 'follow'; if (S) render(S); }
+let drag = null;
+$('map').addEventListener('pointerdown', e => { if (inSetup) { drag = [e.clientX, e.clientY]; e.target.setPointerCapture(e.pointerId); } });
+$('map').addEventListener('pointermove', e => { if (!drag) return;
+  cam.tx -= (e.clientX - drag[0]) / cam.z; cam.ty += (e.clientY - drag[1]) / cam.z; drag = [e.clientX, e.clientY]; anchor.x = cam.tx; anchor.y = cam.ty; });
+$('map').addEventListener('pointerup', () => drag = null);
 
 async function poll() {
   if (!busy) {
     busy = true;
-    try { render(await api('/api/state')); } catch (e) { $('primary').textContent = 'Lost connection…'; }
+    try { render(await api('/api/state')); }
+    catch (e) { $('objective').className = 'lost'; $('primary').textContent = 'Lost the board'; $('secondary').textContent = 'Check this phone is on the same hotspot as the board'; }
     busy = false;
   }
   setTimeout(poll, 400);
 }
-window.addEventListener('resize', () => S && drawMap(S));
+if (M) { build(); requestAnimationFrame(frame); }
 poll();
 </script>
 </body>

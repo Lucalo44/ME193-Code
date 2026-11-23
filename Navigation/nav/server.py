@@ -19,7 +19,7 @@ import config as C
 from nav.activity import LABELS
 from nav.features import feature_names
 
-PAGES = {"/": "nav.html", "/dash": "dash.html"}
+PAGES = {"/": "nav.html", "/dash": "dash.html", "/map.js": "map.js"}     # map.js: tools/make_map.py
 
 
 def _json_default(o):
@@ -55,7 +55,8 @@ class NavServer:
                 q = parse_qs(u.query)
                 if u.path in PAGES:
                     f = web_dir / PAGES[u.path]
-                    return self._send(200, f.read_bytes(), "text/html; charset=utf-8")
+                    ctype = "text/javascript" if f.suffix == ".js" else "text/html"
+                    return self._send(200, f.read_bytes(), ctype + "; charset=utf-8")
                 if u.path == "/api/state":
                     return self._json(srv.session.state())
                 if u.path == "/api/live":
