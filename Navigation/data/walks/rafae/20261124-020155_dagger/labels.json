@@ -1,0 +1,56 @@
+{
+ "maneuvers": [
+  {
+   "step": 34,
+   "maneuver": "left",
+   "tapped_step": 33,
+   "how": "snapped to turn"
+  },
+  {
+   "step": 34,
+   "maneuver": "stairs",
+   "tapped_step": 36,
+   "how": "reaction shift"
+  },
+  {
+   "step": 62,
+   "maneuver": "left",
+   "tapped_step": 60,
+   "how": "snapped to turn"
+  },
+  {
+   "step": 66,
+   "maneuver": "left",
+   "tapped_step": 63,
+   "how": "moved by hand"
+  },
+  {
+   "step": 76,
+   "maneuver": "stairs",
+   "tapped_step": null,
+   "how": "added by hand"
+  },
+  {
+   "step": 77,
+   "maneuver": "left",
+   "tapped_step": 76,
+   "how": "snapped to turn"
+  },
+  {
+   "step": 88,
+   "maneuver": "arrive",
+   "tapped_step": null,
+   "how": "estimated: the walk was cut off before arriving (last left + 11 steps, as in the demos)"
+  }
+ ],
+ "stairs": [
+  [
+   34,
+   61
+  ],
+  [
+   76,
+   78
+  ]
+ ]
+}

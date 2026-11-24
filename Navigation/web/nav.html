@@ -208,7 +208,7 @@ function render(s) {
   $('s2').textContent = (nav ? s.remaining_m : s.metres) + ' m'; $('l2').textContent = nav ? 'to go' : 'walked';
   $('s3').textContent = nav ? fmtTime(s.eta_s) : ''; $('l3').textContent = nav ? 'eta' : '';
   $('status').textContent = mode === 'idle' ? (s.model ? 'Route trained and ready' : 'No route trained yet')
-    : mode === 'dagger' ? 'DAgger: tap what you really do' : mode === 'record' ? `${s.taps.length ? 'Last tap: ' + s.taps[s.taps.length - 1].action.replace('_', ' ') : 'No taps yet'}` : goal;
+    : mode === 'dagger' ? (s.arrived ? 'It thinks you arrived. Keep going and tap Arrived when you really do' : 'DAgger: tap what you really do') : mode === 'record' ? `${s.taps.length ? 'Last tap: ' + s.taps[s.taps.length - 1].action.replace('_', ' ') : 'No taps yet'}` : goal;
   const bar = $('bar');
   if (!bar.children.length) bar.innerHTML = '<i></i>'.repeat(14);
   [...bar.children].forEach((el, i) => el.classList.toggle('on', i < Math.round(14 * (s.progress || 0))));
@@ -233,7 +233,8 @@ function render(s) {
   $('stop-ui').classList.toggle('hidden', mode === 'idle');
   $('discard').classList.toggle('hidden', mode === 'navigate');
   $('saved').textContent = s.last_saved ? 'Last walk saved: ' + s.last_saved.split('/').slice(-2).join('/') : '';
-  $('arrived').style.display = s.arrived && mode !== 'idle' ? 'flex' : 'none';
+  // only Navigate ends on the navigator's word; in a DAgger walk you keep walking and tap Arrived yourself
+  $('arrived').style.display = s.arrived && mode === 'navigate' ? 'flex' : 'none';
   $('arrived-sub').textContent = `${goal} · ${s.steps} steps · ${s.metres} m`;
   $('view').textContent = view === 'follow' ? 'Whole map' : 'Follow me';
   $('view').classList.toggle('hidden', inSetup || mode === 'idle');

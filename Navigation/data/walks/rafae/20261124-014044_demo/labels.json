@@ -1,0 +1,56 @@
+{
+ "maneuvers": [
+  {
+   "step": 31,
+   "maneuver": "left",
+   "tapped_step": 30,
+   "how": "snapped to turn"
+  },
+  {
+   "step": 31,
+   "maneuver": "stairs",
+   "tapped_step": 33,
+   "how": "reaction shift"
+  },
+  {
+   "step": 58,
+   "maneuver": "left",
+   "tapped_step": 56,
+   "how": "snapped to turn"
+  },
+  {
+   "step": 61,
+   "maneuver": "left",
+   "tapped_step": 59,
+   "how": "moved by hand"
+  },
+  {
+   "step": 73,
+   "maneuver": "stairs",
+   "tapped_step": 75,
+   "how": "reaction shift"
+  },
+  {
+   "step": 74,
+   "maneuver": "left",
+   "tapped_step": 73,
+   "how": "snapped to turn"
+  },
+  {
+   "step": 85,
+   "maneuver": "arrive",
+   "tapped_step": 85,
+   "how": "tapped"
+  }
+ ],
+ "stairs": [
+  [
+   31,
+   53
+  ],
+  [
+   73,
+   75
+  ]
+ ]
+}

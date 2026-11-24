@@ -1,0 +1,37 @@
+[
+ {
+  "t": 205.204,
+  "action": "left",
+  "source": "correction"
+ },
+ {
+  "t": 207.944,
+  "action": "wrong",
+  "source": "correction"
+ },
+ {
+  "t": 210.104,
+  "action": "stairs_start",
+  "source": "correction"
+ },
+ {
+  "t": 228.704,
+  "action": "left",
+  "source": "correction"
+ },
+ {
+  "t": 232.885,
+  "action": "stairs_end",
+  "source": "correction"
+ },
+ {
+  "t": 234.544,
+  "action": "left",
+  "source": "correction"
+ },
+ {
+  "t": 245.944,
+  "action": "left",
+  "source": "correction"
+ }
+]

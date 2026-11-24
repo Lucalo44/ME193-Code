@@ -41,7 +41,8 @@ def prepare(walks, stairs=None, route_len=400.0):
         recs = replay(w["imu"], policy=_blank_policy(route_len), stairs=stairs or StairsClassifier(None))
         labels = w["labels"] or clean(recs, w["taps"])
         man, dist, st = targets(labels, len(recs))
-        n = len(man)
+        n = min(len(man), len(recs))       # a walk cut off before arriving has its arrive label past the last step
+        man, dist, st = man[:n], dist[:n], st[:n]
         out.append({"walk": w, "records": recs, "labels": labels, "n": n,
                     "X": np.array([r["obs"] for r in recs[:n]]).reshape(n, -1),
                     "SF": np.array([r["stairs_features"] for r in recs[:n]]).reshape(n, -1),

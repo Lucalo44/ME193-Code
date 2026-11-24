@@ -1,0 +1,47 @@
+[
+ {
+  "t": 136.584,
+  "action": "left",
+  "source": "tap"
+ },
+ {
+  "t": 145.604,
+  "action": "stairs_start",
+  "source": "tap"
+ },
+ {
+  "t": 164.084,
+  "action": "stairs_end",
+  "source": "tap"
+ },
+ {
+  "t": 165.864,
+  "action": "left",
+  "source": "tap"
+ },
+ {
+  "t": 169.265,
+  "action": "left",
+  "source": "tap"
+ },
+ {
+  "t": 179.004,
+  "action": "left",
+  "source": "tap"
+ },
+ {
+  "t": 182.084,
+  "action": "stairs_start",
+  "source": "tap"
+ },
+ {
+  "t": 186.384,
+  "action": "stairs_end",
+  "source": "tap"
+ },
+ {
+  "t": 193.584,
+  "action": "arrive",
+  "source": "tap"
+ }
+]
