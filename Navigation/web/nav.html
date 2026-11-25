@@ -47,11 +47,17 @@
   #zoom button + button { border-top: 1px solid var(--line); }
   #chip { bottom: 10px; left: 12px; border-radius: 8px; padding: 5px 10px; font-size: 14px; }
   #chip b { color: var(--teal); }
+  #radio { bottom: 26px; right: 12px; border-radius: 10px; display: flex; align-items: center; max-width: 62%; overflow: hidden; }
+  #radio button { background: transparent; border-radius: 0; width: 42px; height: 40px; font-size: 17px; flex: none; }
+  #radio button + button { border-left: 1px solid var(--line); }
+  #song { padding: 0 10px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+  #radio.on #song { color: var(--teal); }
   #osm { position: absolute; z-index: 1; right: 8px; bottom: 6px; font-size: 10px; color: var(--muted); opacity: .8; }
   #toast { position: absolute; z-index: 1; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(.9); opacity: 0;
     font-size: 34px; color: var(--teal); text-shadow: 0 2px 14px #000; pointer-events: none; transition: opacity .15s, transform .15s; }
   #toast.on { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  #cross { position: absolute; z-index: 1; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px; pointer-events: none; }
+  #floor { top: 74px; left: 12px; border-radius: 10px; padding: 7px 10px; font-size: 14px; color: var(--ink); text-align: center; line-height: 1.1; }
+  #floor small { display: block; font: 400 10px var(--body); letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
 
   /* ---- bottom sheet ---- */
   #sheet { position: relative; z-index: 2; background: var(--panel); border-top: 2px solid var(--line);
@@ -105,9 +111,10 @@
   <button id="view" class="hud disp" onclick="toggleView()">Whole map</button>
   <div id="zoom" class="hud"><button onclick="zoomBy(1.5)" aria-label="Zoom in">+</button><button onclick="zoomBy(1 / 1.5)" aria-label="Zoom out">−</button><button onclick="recentre()" aria-label="Recentre the map">⌖</button></div>
   <div id="chip" class="hud"></div>
+  <div id="radio" class="hud hidden"><span id="song" class="disp"></span><button id="play" onclick="playPause()" aria-label="Play or pause the music">▶</button><button onclick="nextSong()" aria-label="Skip to another song">⏭</button></div>
   <div id="osm">© OpenStreetMap</div>
   <div id="toast" class="disp"></div>
-  <svg id="cross" class="hidden" viewBox="0 0 64 64"><circle cx="32" cy="32" r="9" fill="none" stroke="#2ce5d0" stroke-width="3"/><path id="cross-arrow" d="M32 2 L40 20 H24 Z" fill="#2ce5d0"/></svg>
+  <button id="floor" class="hud disp" onclick="nextFloor()" aria-label="Change floor"></button>
 </div>
 
 <div id="sheet">
@@ -127,7 +134,6 @@
       <button class="disp" onclick="start('record')">Record demo<small>You walk, you tap the turns</small></button>
       <button class="disp" onclick="start('dagger')">DAgger walk<small>It guides, you correct it</small></button>
     </div>
-    <button class="link" onclick="setup(true)">Set where the walk starts on the map</button>
     <p class="hint" id="saved"></p>
   </div>
 
@@ -145,12 +151,6 @@
     <button class="stop disp" onclick="stop(false)">Stop and save</button>
     <button class="ghost disp" id="discard" onclick="stop(true)">Discard</button>
   </div>
-
-  <div id="setup-ui" class="hidden">
-    <p class="hint" style="margin:0 0 4px">Drag the map until the ring sits where the walk starts. Then turn the arrow to point the way you face on the first step.</p>
-    <div class="row"><button class="disp" onclick="turnStart(-15)">⟲ Turn</button><button class="disp" onclick="turnStart(15)">Turn ⟳</button></div>
-    <div class="row"><button class="go disp" onclick="setup(false, true)">Save start</button><button class="ghost disp" onclick="setup(false)">Cancel</button></div>
-  </div>
 </div>
 
 <div id="arrived">
@@ -160,11 +160,11 @@
 </div>
 
 <script src="/map.js"></script>
+<script src="/interior.js"></script>
 <script>
 const $ = id => document.getElementById(id);
-const STRIDE = 0.72;                    // metres per step, STRIDE_M in config.py (map drawing only)
 const RAD = Math.PI / 180;
-let S = null, busy = false, person = null, onStairs = false, view = 'follow', inSetup = false;
+let S = null, busy = false, person = null, onStairs = false, view = 'follow';
 
 const ARROWS = {
   straight: '<path d="M32 6 L48 26 H37 V58 H27 V26 H16 Z" fill="currentColor"/>',
@@ -181,7 +181,7 @@ async function api(path, body) {
   const r = await fetch(path, body === undefined ? {} : {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   return r.json();
 }
-function start(mode) { onStairs = false; view = 'follow'; api('/api/start', {mode, person}).then(render); }
+function start(mode) { onStairs = false; view = 'follow'; floorPick = null; api('/api/start', {mode, person}).then(render); }
 function tap(action, text) {
   if (navigator.vibrate) navigator.vibrate(40);
   toast(text || {left: 'Left', right: 'Right', arrive: 'Arrived', wrong: 'Marked wrong'}[action]);
@@ -198,11 +198,13 @@ function render(s) {
   $('objective').className = mode === 'idle' ? '' : mode === 'record' ? 'rec' : ins.now ? 'now' : 'go';
   const icon = mode === 'record' ? 'record' : mode === 'idle' ? 'idle' : (ins.maneuver || 'straight');
   $('arrow').innerHTML = ARROWS[icon] || ARROWS.straight;
-  $('primary').textContent = inSetup ? 'Set the start' : mode === 'idle' ? `To the ${goal}` : mode === 'record' ? 'Recording' : ins.primary;
-  $('secondary').textContent = inSetup ? 'This only places your walk on the map' : mode === 'idle' ? s.route.replace('->', '→')
+  $('primary').textContent = mode === 'idle' ? `To the ${goal}` : mode === 'record' ? 'Recording' : ins.primary;
+  $('secondary').textContent = mode === 'idle' ? s.route.replace('->', '→')
     : mode === 'record' ? 'Walk the route and tap each turn' : (ins.secondary || '');
 
   $('chip').innerHTML = `<b>${s.movement}</b> · heading ${Math.round(s.heading)}°`;
+  const f = shownFloor();
+  $('floor').innerHTML = `Floor ${f}<small>${floorPick ? 'tap for auto' : 'auto'}</small>`;
   const nav = mode === 'navigate' || mode === 'dagger';
   $('s1').textContent = s.steps; $('l1').textContent = 'steps';
   $('s2').textContent = (nav ? s.remaining_m : s.metres) + ' m'; $('l2').textContent = nav ? 'to go' : 'walked';
@@ -224,8 +226,7 @@ function render(s) {
   $('nav-btn').disabled = !s.model;
   $('nav-sub').textContent = s.model ? `Guide me to the ${goal}` : 'Needs a trained route: record demo walks first';
   const tapping = mode === 'record' || mode === 'dagger';
-  $('idle-ui').classList.toggle('hidden', mode !== 'idle' || inSetup);
-  $('setup-ui').classList.toggle('hidden', !inSetup);
+  $('idle-ui').classList.toggle('hidden', mode !== 'idle');
   $('tap-ui').classList.toggle('hidden', !tapping);
   $('wrong').classList.toggle('hidden', mode !== 'dagger');
   $('stairs').textContent = onStairs ? 'Stairs end' : 'Stairs start';
@@ -237,16 +238,17 @@ function render(s) {
   $('arrived').style.display = s.arrived && mode === 'navigate' ? 'flex' : 'none';
   $('arrived-sub').textContent = `${goal} · ${s.steps} steps · ${s.metres} m`;
   $('view').textContent = view === 'follow' ? 'Whole map' : 'Follow me';
-  $('view').classList.toggle('hidden', inSetup || mode === 'idle');
+  $('view').classList.toggle('hidden', mode === 'idle');
 }
 
 // ---------------- map ----------------
-// The board only knows steps and turns from where the walk began. `anchor` says where on the real map
-// that beginning is (metres east/north of the map origin) and which compass way the first step faced.
-const M = window.CAMPUS;
-let anchor = {x: -3, y: -8, b: 0, set: false};
-try { anchor = Object.assign(anchor, JSON.parse(localStorage.getItem('nav-anchor') || '{}')); } catch (e) {}
-const cam = {x: 0, y: 0, b: 0, z: 1.2}, P = {};
+// Outdoors: web/map.js (OpenStreetMap). Indoors: web/interior.js, the two floors traced from the
+// building's posted floor plans, with the walked route laid along the corridors. Indoors the board
+// can't know where you are on the plan, only how many steps you've taken, so the arrow rides along
+// the planned route by step count. The raw dead-reckoned path is on the dashboard.
+const M = window.CAMPUS, IN = window.INTERIOR, R = IN ? IN.route : [];
+const cam = {x: 0, y: 0, b: 0, z: 1.2}, P = {}, FP = {};
+let floorPick = null;                           // null = show the floor you're on
 const poly = (path, p, close) => { path.moveTo(p[0], p[1]); for (let i = 2; i < p.length; i += 2) path.lineTo(p[i], p[i + 1]); if (close) path.closePath(); };
 function build() {
   for (const k of ['green', 'parking', 'block', 'ttc', 'major', 'street', 'service', 'walk', 'steps', 'rail']) P[k] = new Path2D();
@@ -261,20 +263,27 @@ function build() {
   const longest = {};
   M.roads.filter(r => r.n).forEach(r => { if (!longest[r.n] || r.p.length > longest[r.n].p.length) longest[r.n] = r; });
   M.streets = Object.values(longest).map(r => { const i = (r.p.length >> 2) * 2; return {n: r.n.toUpperCase(), x: r.p[i], y: r.p[i + 1]}; });
+  for (const [f, F] of Object.entries(IN ? IN.floors : {})) {
+    FP[f] = {};
+    for (const k of ['slab', 'rooms', 'dest', 'cafe', 'stairs']) { FP[f][k] = new Path2D(); (F[k] || []).forEach(p => poly(FP[f][k], p, true)); }
+  }
 }
-const world = (pt, a = anchor) => {           // board (x forward, y left, in steps) -> metres east/north
-  const s = Math.sin(a.b * RAD), c = Math.cos(a.b * RAD);
-  return [a.x + STRIDE * (pt[0] * s - pt[1] * c), a.y + STRIDE * (pt[0] * c + pt[1] * s)];
-};
+// where a step count puts you on the route: position, floor and the compass way the corridor runs
+function along(step) {
+  if (!R.length) return {x: 0, y: 0, floor: '1', b: 0};
+  let i = 0; while (i < R.length - 2 && step > R[i + 1].step) i++;
+  const a = R[i], c = R[i + 1], t = Math.min(1, Math.max(0, (step - a.step) / (c.step - a.step)));
+  return {x: a.x + (c.x - a.x) * t, y: a.y + (c.y - a.y) * t, floor: t < 0.5 ? a.floor : c.floor,
+          b: Math.atan2(c.x - a.x, c.y - a.y) / RAD, i, t};
+}
+const stepNow = () => S && S.mode !== 'idle' ? S.steps : 0;
+const shownFloor = () => floorPick || along(stepNow()).floor;
+function nextFloor() { const here = along(stepNow()).floor; floorPick = floorPick ? null : (here === '1' ? '0' : '1'); if (S) render(S); }
 function target(w, h) {
-  const zf = zoom[viewKey()];
-  if (inSetup) return {x: cam.tx, y: cam.ty, b: 0, z: 3.2 * zf, px: w / 2, py: h / 2};
-  const trail = S && S.trail || [], here = world(trail.length ? trail[trail.length - 1] : [0, 0]);
-  if (view === 'follow' && S && S.mode !== 'idle')
-    return {x: here[0], y: here[1], b: anchor.b - S.heading, z: 4.2 * zf, px: w / 2, py: h * 0.62};
-  const pts = M.buildings.filter(b => b.ttc).flatMap(b => { const o = []; for (let i = 0; i < b.p.length; i += 2) o.push([b.p[i], b.p[i + 1]]); return o; })
-    .concat(trail.map(p => world(p)), (S && S.reference || []).map(p => world(p)), [here]);
-  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const zf = zoom[viewKey()], me = along(stepNow());
+  if (viewKey() === 'follow') return {x: me.x, y: me.y, b: me.b, z: 9 * zf, px: w / 2, py: h * 0.62};
+  const xs = [], ys = [];
+  M.buildings.filter(b => b.ttc).forEach(b => { for (let i = 0; i < b.p.length; i += 2) { xs.push(b.p[i]); ys.push(b.p[i + 1]); } });
   const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
   return {x: (x0 + x1) / 2 + pan.x, y: (y0 + y1) / 2 + pan.y, b: 0, z: zf * Math.min(w / (x1 - x0 + 60), h / (y1 - y0 + 60)), px: w / 2, py: h / 2};
 }
@@ -304,10 +313,28 @@ function frame(now) {
   g.shadowColor = '#ff3d9a'; g.shadowBlur = 22; g.fillStyle = '#3a2f6e'; g.fill(P.ttc); g.shadowBlur = 0;
   stroke(P.ttc, '#ff3d9a', Math.max(0.9, 2.2 / cam.z));
 
-  const line = (pts, color, width) => { if (pts.length < 2) return; const p = new Path2D(); poly(p, pts.flat()); stroke(p, color, width / cam.z); };
-  const ref = (S && S.reference || []).map(p => world(p)), trail = (S && S.trail || []).map(p => world(p));
-  line(ref, 'rgba(255,61,154,.35)', 11); line(ref, '#ff3d9a', 5);
-  line(trail, 'rgba(44,229,208,.28)', 10); line(trail, '#2ce5d0', 4);
+  // ---- indoors: fades in as you zoom into the building ----
+  const inside = Math.min(1, Math.max(0, (cam.z - 4.5) / 2)), floor = shownFloor(), F = FP[floor];
+  if (inside > 0 && F) {
+    g.globalAlpha = inside;
+    g.fillStyle = '#5b56a6'; g.fill(F.slab);     // its edge is where the photo was cropped, not a wall: no outline
+    g.fillStyle = '#211e49'; g.fill(F.rooms); stroke(F.rooms, '#8a86c8', 0.16);
+    g.fillStyle = '#1b6f78'; g.fill(F.stairs); stroke(F.stairs, '#2ce5d0', 0.2, [0.3, 0.3]);
+    g.fillStyle = '#8a4320'; g.fill(F.cafe); stroke(F.cafe, '#ff9a3d', 0.2);
+    g.shadowColor = '#ff3d9a'; g.shadowBlur = 16; g.fillStyle = '#6b1f58'; g.fill(F.dest); g.shadowBlur = 0; stroke(F.dest, '#ff3d9a', 0.25);
+    g.globalAlpha = 1;
+  }
+
+  // ---- the route: pink ahead, teal behind; legs on the other floor are faint ----
+  const me = along(stepNow());
+  const leg = (p, q, fl, color, width) => { g.globalAlpha = inside > 0 && fl !== floor ? 1 - 0.75 * inside : 1;
+    g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(q.x, q.y); g.strokeStyle = color; g.lineWidth = width / cam.z; g.stroke(); g.globalAlpha = 1; };
+  for (let i = 0; i < R.length - 1; i++) {
+    const p = R[i], q = R[i + 1], fl = p.floor === q.floor ? p.floor : floor;
+    const done = i < me.i ? 1 : i > me.i ? 0 : me.t, mid = {x: p.x + (q.x - p.x) * done, y: p.y + (q.y - p.y) * done};
+    if (done < 1) { leg(mid, q, fl, 'rgba(255,61,154,.35)', 11); leg(mid, q, fl, '#ff3d9a', 5); }
+    if (done > 0) { leg(p, mid, fl, 'rgba(44,229,208,.3)', 10); leg(p, mid, fl, '#2ce5d0', 4); }
+  }
 
   // ---- screen-space layer: labels and blips stay upright ----
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -315,40 +342,39 @@ function frame(now) {
     return [cam.px + dx * Math.cos(a) - dy * Math.sin(a), cam.py + dx * Math.sin(a) + dy * Math.cos(a)]; };
   g.textAlign = 'center'; g.textBaseline = 'middle';
   const text = (s, q, font, color) => { g.font = font; g.lineWidth = 3; g.strokeStyle = 'rgba(13,11,32,.85)'; g.strokeText(s, q[0], q[1]); g.fillStyle = color; g.fillText(s, q[0], q[1]); };
-  const F = getComputedStyle(document.body).getPropertyValue('--display');
-  if (cam.z > 1.6) M.streets.forEach(l => text(l.n, scr([l.x, l.y]), `italic 700 11px ${F}`, '#c9c5f0'));
-  M.labels.forEach(l => { if (l.ttc ? l.n.length > 9 || cam.z > 3 : l.w * cam.z > l.n.length * 6.5)
-    text(l.n, scr([l.x, l.y]), `italic 800 ${l.ttc ? 13 : 10.5}px ${F}`, l.ttc ? '#ffd0e6' : '#8f8bc0'); });
+  const DF = getComputedStyle(document.body).getPropertyValue('--display');
+  if (cam.z > 1.6 && inside < 1) M.streets.forEach(l => text(l.n, scr([l.x, l.y]), `italic 700 11px ${DF}`, '#c9c5f0'));
+  if (inside < 0.5) M.labels.forEach(l => { if (l.ttc ? l.n.length > 9 || cam.z > 3 : l.w * cam.z > l.n.length * 6.5)
+    text(l.n, scr([l.x, l.y]), `italic 800 ${l.ttc ? 13 : 10.5}px ${DF}`, l.ttc ? '#ffd0e6' : '#8f8bc0'); });
+  if (inside >= 0.5 && IN) IN.floors[floor].labels.forEach(l => {     // room numbers only once there is room for them
+    const named = /[a-z]{3}/i.test(l.n); if (!named && cam.z < 11) return;
+    const words = l.n.toUpperCase().split(' '), num = /^\d/.test(words[words.length - 1]) && words.length > 1 ? words.pop() : null;
+    const q = scr([l.x, l.y]), size = named ? 10.5 : 9.5;
+    text(words.join(' '), [q[0], q[1] - (num ? 6 : 0)], `italic 800 ${size}px ${DF}`, named ? '#ecd9ff' : '#a9a5dd');
+    if (num) text(num, [q[0], q[1] + 6], `italic 700 9.5px ${DF}`, '#a9a5dd'); });
   const blip = (q, r, color) => { g.beginPath(); g.arc(q[0], q[1], r, 0, 7); g.fillStyle = color; g.fill(); g.lineWidth = 2.5; g.strokeStyle = '#14122b'; g.stroke(); };
-  if (ref.length) { const q = scr(ref[ref.length - 1]), pulse = still ? 0 : (now % 1400) / 1400;
-    g.beginPath(); g.arc(q[0], q[1], 9 + 16 * pulse, 0, 7); g.strokeStyle = `rgba(255,61,154,${1 - pulse})`; g.lineWidth = 2; g.stroke(); blip(q, 8, '#ff3d9a'); }
-  blip(scr(world([0, 0])), 5, '#a29dcc');
-  const here = scr(trail.length ? trail[trail.length - 1] : world([0, 0]));
-  const facing = ((anchor.b - (S ? S.heading : 0)) - cam.b) * RAD;
-  if (!inSetup) { g.save(); g.translate(here[0], here[1]); g.rotate(facing);
-    g.beginPath(); g.moveTo(0, -15); g.lineTo(11, 12); g.lineTo(0, 6); g.lineTo(-11, 12); g.closePath();
-    g.shadowColor = '#2ce5d0'; g.shadowBlur = 14; g.fillStyle = '#fff'; g.fill(); g.shadowBlur = 0;
-    g.lineWidth = 2; g.strokeStyle = '#14122b'; g.stroke(); g.restore(); }
+  if (R.length) {
+    const end = R[R.length - 1], q = scr([end.x, end.y]), pulse = still ? 0 : (now % 1400) / 1400;
+    g.globalAlpha = inside > 0 && end.floor !== floor ? 0.3 : 1;
+    g.beginPath(); g.arc(q[0], q[1], 9 + 16 * pulse, 0, 7); g.strokeStyle = `rgba(255,61,154,${1 - pulse})`; g.lineWidth = 2; g.stroke(); blip(q, 8, '#ff3d9a');
+    g.globalAlpha = inside > 0 && R[0].floor !== floor ? 0.3 : 1; blip(scr([R[0].x, R[0].y]), 5, '#a29dcc');
+  }
+  g.globalAlpha = inside > 0 && me.floor !== floor ? 0.35 : 1;
+  const here = scr([me.x, me.y]);
+  g.save(); g.translate(here[0], here[1]); g.rotate((me.b - cam.b) * RAD);
+  g.beginPath(); g.moveTo(0, -15); g.lineTo(11, 12); g.lineTo(0, 6); g.lineTo(-11, 12); g.closePath();
+  g.shadowColor = '#2ce5d0'; g.shadowBlur = 14; g.fillStyle = '#fff'; g.fill(); g.shadowBlur = 0;
+  g.lineWidth = 2; g.strokeStyle = '#14122b'; g.stroke(); g.restore(); g.globalAlpha = 1;
   $('north').firstElementChild.style.transform = `rotate(${-cam.b}deg)`;
-  $('cross-arrow').setAttribute('transform', `rotate(${anchor.b} 32 32)`);
 }
-
-// ---------------- placing the start on the map ----------------
-let saved = null;
-function setup(on, keep) {
-  if (on) { saved = Object.assign({}, anchor); cam.tx = anchor.x; cam.ty = anchor.y; }
-  else if (keep) { anchor.set = true; try { localStorage.setItem('nav-anchor', JSON.stringify(anchor)); } catch (e) {} }
-  else anchor = saved;
-  inSetup = on; $('cross').classList.toggle('hidden', !on); if (S) render(S);
-}
-function turnStart(d) { anchor.b = (anchor.b + d + 360) % 360; }
 function toggleView() { view = view === 'follow' ? 'map' : 'follow'; recentre(); if (S) render(S); }
+
 // ---------------- zoom and pan ----------------
-// Pinch, scroll or the + and - buttons zoom. One finger drags the whole-map view (or the start ring in setup).
-// The follow view stays centred on you, so it zooms but does not pan.
-const zoom = {follow: 1, map: 1, setup: 1}, pan = {x: 0, y: 0}, touches = new Map();
-const viewKey = () => inSetup ? 'setup' : view === 'follow' && S && S.mode !== 'idle' ? 'follow' : 'map';
-function zoomBy(f) { const k = viewKey(); zoom[k] = Math.min(8, Math.max(0.35, zoom[k] * f)); }
+// Pinch, scroll or the + and - buttons zoom; zooming into the building brings up the floor plan.
+// One finger drags the whole-map view. The follow view stays centred on you, so it zooms but does not pan.
+const zoom = {follow: 1, map: 1}, pan = {x: 0, y: 0}, touches = new Map();
+const viewKey = () => view === 'follow' && S && S.mode !== 'idle' ? 'follow' : 'map';
+function zoomBy(f) { const k = viewKey(); zoom[k] = Math.min(k === 'map' ? 14 : 5, Math.max(0.2, zoom[k] * f)); }
 function recentre() { zoom[viewKey()] = 1; pan.x = pan.y = 0; }
 const spread = () => { const [a, b] = [...touches.values()]; return Math.hypot(a[0] - b[0], a[1] - b[1]); };
 const map = $('map');
@@ -358,13 +384,34 @@ map.addEventListener('pointermove', e => {
   const before = touches.size === 2 ? spread() : 0;
   touches.set(e.pointerId, [e.clientX, e.clientY]);
   if (touches.size === 2) { if (before > 0) zoomBy(spread() / before); return; }
-  const dx = (e.clientX - was[0]) / cam.z, dy = (e.clientY - was[1]) / cam.z;
-  if (inSetup) { cam.tx -= dx; cam.ty += dy; anchor.x = cam.tx; anchor.y = cam.ty; }
-  else if (viewKey() === 'map') { pan.x -= dx; pan.y += dy; }
+  if (viewKey() === 'map') { pan.x -= (e.clientX - was[0]) / cam.z; pan.y += (e.clientY - was[1]) / cam.z; }
 });
 const lift = e => touches.delete(e.pointerId);
 map.addEventListener('pointerup', lift); map.addEventListener('pointercancel', lift);
 map.addEventListener('wheel', e => { e.preventDefault(); zoomBy(Math.exp(-e.deltaY / 300)); }, {passive: false});
+
+// ---------------- radio ----------------
+// Plays the songs in web/music/ on the board in shuffled order: every song once, then a fresh shuffle.
+const audio = new Audio(); let songs = [], queue = [], current = null;
+const title = f => f.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ');
+function nextSong() {
+  if (!songs.length) return;
+  if (!queue.length) {
+    queue = songs.slice();
+    for (let i = queue.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [queue[i], queue[j]] = [queue[j], queue[i]]; }
+    if (queue.length > 1 && queue[queue.length - 1] === current) queue.unshift(queue.pop());   // no song twice in a row
+  }
+  current = queue.pop();
+  audio.src = '/music/' + encodeURIComponent(current);
+  $('song').textContent = title(current);
+  audio.play().catch(() => {});
+}
+function playPause() { if (!current) nextSong(); else if (audio.paused) audio.play().catch(() => {}); else audio.pause(); }
+audio.addEventListener('ended', nextSong);
+audio.addEventListener('error', () => { if (current) { $('song').textContent = "Can't play " + title(current); } });
+for (const ev of ['play', 'pause']) audio.addEventListener(ev, () => { $('play').textContent = audio.paused ? '▶' : '❚❚'; $('radio').classList.toggle('on', !audio.paused); });
+api('/api/music').then(list => { songs = list; $('radio').classList.toggle('hidden', !songs.length);
+  $('song').textContent = `Radio · ${songs.length} song${songs.length === 1 ? '' : 's'}`; }).catch(() => {});
 
 async function poll() {
   if (!busy) {

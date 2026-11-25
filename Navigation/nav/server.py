@@ -5,6 +5,8 @@
     GET  /api/state   phone state (instruction, progress, trail, taps)
     GET  /api/live?seq=N&step=M   new raw samples + step records (dashboard)
     GET  /api/meta    feature names, maneuvers, movement labels
+    GET  /api/music   the songs in web/music/ (the phone page's radio)
+    GET  /music/<file>   one song (supports Range, which phones need to play audio)
     POST /api/start   {"mode": "navigate"|"record"|"dagger", "person": "..."}
     POST /api/tap     {"action": "left"|"right"|"stairs_start"|"stairs_end"|"arrive"|"wrong"}
     POST /api/stop    {"discard": false}
@@ -13,13 +15,17 @@ import json
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 import config as C
 from nav.activity import LABELS
 from nav.features import feature_names
 
-PAGES = {"/": "nav.html", "/dash": "dash.html", "/map.js": "map.js"}     # map.js: tools/make_map.py
+PAGES = {"/": "nav.html", "/dash": "dash.html",
+         "/map.js": "map.js", "/interior.js": "interior.js"}      # made by tools/make_map.py, make_interior.py
+
+
+AUDIO = {".mp3": "audio/mpeg", ".m4a": "audio/mp4", ".wav": "audio/wav", ".ogg": "audio/ogg"}
 
 
 def _json_default(o):
@@ -47,6 +53,47 @@ class NavServer:
                 self.end_headers()
                 self.wfile.write(body)
 
+            def _songs(self):
+                d = web_dir / "music"
+                return sorted(f for f in d.iterdir() if f.suffix.lower() in AUDIO) if d.is_dir() else []
+
+            def _song(self, name):
+                f = next((s for s in self._songs() if s.name == name), None)     # only files listed in web/music
+                if f is None:
+                    return self._send(404, b"not found", "text/plain")
+                size, start, end = f.stat().st_size, 0, None
+                rng = self.headers.get("Range", "")
+                try:
+                    if rng.startswith("bytes="):
+                        a, b = rng[6:].split(",")[0].split("-")
+                        start, end = (int(a), int(b) if b else None) if a else (max(0, size - int(b)), None)
+                except ValueError:
+                    rng = ""
+                end = size - 1 if end is None or end >= size else end
+                if start > end:
+                    self.send_response(416)
+                    self.send_header("Content-Range", f"bytes */{size}")
+                    return self.end_headers()
+                self.send_response(206 if rng else 200)
+                self.send_header("Content-Type", AUDIO[f.suffix.lower()])
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("Content-Length", str(end - start + 1))
+                if rng:
+                    self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+                self.end_headers()
+                with f.open("rb") as fh:
+                    fh.seek(start)
+                    left = end - start + 1
+                    while left > 0:
+                        chunk = fh.read(min(65536, left))
+                        if not chunk:
+                            break
+                        try:
+                            self.wfile.write(chunk)
+                        except (BrokenPipeError, ConnectionResetError):   # the phone skipped to another song
+                            return
+                        left -= len(chunk)
+
             def _json(self, obj):
                 self._send(200, json.dumps(obj, default=_json_default).encode(), "application/json")
 
@@ -59,6 +106,10 @@ class NavServer:
                     return self._send(200, f.read_bytes(), ctype + "; charset=utf-8")
                 if u.path == "/api/state":
                     return self._json(srv.session.state())
+                if u.path == "/api/music":
+                    return self._json([s.name for s in self._songs()])
+                if u.path.startswith("/music/"):
+                    return self._song(unquote(u.path[len("/music/"):]))
                 if u.path == "/api/live":
                     return self._json(srv.session.live(int(q.get("seq", [0])[0]), int(q.get("step", [0])[0])))
                 if u.path == "/api/meta":
