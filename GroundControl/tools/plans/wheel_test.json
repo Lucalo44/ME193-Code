@@ -1,0 +1,4 @@
+{"steps": [{"skill": "drive", "args": {"speed": 50, "seconds": 1}},
+           {"skill": "drive", "args": {"speed": -50, "seconds": 1}},
+           {"skill": "turn_by", "args": {"degrees": 90}},
+           {"skill": "stop", "args": {}}]}

@@ -1,0 +1,8 @@
+name: Ground Control
+icon: 🕺
+description: "Voice/MQTT-commanded dancing robots. A local LLM on the UNO Q plans, deterministic code performs, and the dashboard shows the model thinking."
+ports: []
+bricks:
+  - arduino:web_ui
+  - arduino:llm:
+    model: llamacpp:Qwen3.5-0.8B-Q4_0

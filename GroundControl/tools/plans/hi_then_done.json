@@ -1,0 +1,3 @@
+{"think": "hand-written: the assignment example",
+ "steps": [{"skill": "matrix_text", "args": {"text": "Hi"}},
+           {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "I am done"}}]}

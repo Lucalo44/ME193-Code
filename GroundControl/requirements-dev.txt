@@ -1,0 +1,6 @@
+# Laptop-side only (the board's app image already has paho-mqtt 2.1.0, numpy, httpx).
+paho-mqtt==2.1.0          # tools/mqtt_cli.py, sim mode MQTT
+pytest==8.4.2             # tests/ against sim_hal + FakeLLM
+python-socketio==5.13.0   # devserver.py: same socket.io protocol as the WebUI brick
+uvicorn==0.35.0           # devserver.py ASGI server
+PyYAML==6.0.2             # tools/eval/commands.yaml

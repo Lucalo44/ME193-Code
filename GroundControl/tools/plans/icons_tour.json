@@ -1,0 +1,4 @@
+{"steps": [{"skill": "matrix_icon", "args": {"name": "heart"}}, {"skill": "wait", "args": {"seconds": 1}},
+           {"skill": "matrix_icon", "args": {"name": "smile"}}, {"skill": "wait", "args": {"seconds": 1}},
+           {"skill": "matrix_text", "args": {"text": "GROUND CONTROL"}},
+           {"skill": "matrix_icon", "args": {"name": "check"}}]}

@@ -1,0 +1,31 @@
+"""Ground Control on the UNO Q. Wiring only; everything lives in core.py.
+
+On the board: App Lab runs this with python/ as the working directory.
+On a laptop:  python3 devserver.py  (sim HAL + same dashboard)
+"""
+import sys
+import time
+
+from arduino.app_bricks.web_ui import WebUI
+from arduino.app_utils import App, Bridge
+
+import config
+from core import GroundControl
+from hal.bridge_hal import BridgeHal
+
+print(f"[gc] starting; llm={config.LLM_URL} model={config.LLM_MODEL} python={sys.version.split()[0]}",
+      flush=True)
+
+hal = BridgeHal(Bridge)
+print(f"[gc] Bridge ping: {'ok' if hal.connected else 'FAILED'}", flush=True)
+ui = WebUI()
+gc = GroundControl(hal, ui=ui)
+gc.start(warm=True)
+
+
+def heartbeat_loop():
+    gc.heartbeat()
+    time.sleep(config.HEARTBEAT_S)
+
+
+App.run(user_loop=heartbeat_loop)

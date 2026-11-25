@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ground Control</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header id="top">
+  <div class="brand"><span class="logo">◉</span> GROUND CONTROL <span class="sub">local LLM on the UNO Q</span></div>
+  <div id="state" class="pill IDLE">IDLE</div>
+  <div id="doing" class="doing">connecting…</div>
+  <div class="meta">
+    <label>model <select id="model"></select></label>
+    <label title="think field length (chars). 0 = no think">think <select id="think">
+      <option>0</option><option>30</option><option selected>60</option><option>90</option></select></label>
+    <span id="toks" class="kv">– tok/s</span>
+    <span id="queue" class="kv">queue 0</span>
+    <span class="dot" id="dot-mqtt" title="MQTT">MQTT</span>
+    <span class="dot" id="dot-llm" title="model warm">LLM</span>
+    <span class="dot" id="dot-lego" title="LEGO bot">LEGO</span>
+    <button id="explain-btn" class="ghost">How it works</button>
+    <button id="estop" class="estop">STOP</button>
+  </div>
+</header>
+
+<main>
+  <!-- ============ INPUT LANE ============ -->
+  <section class="lane" id="lane-input">
+    <h2><span class="num">1</span> Input <small>what the model reads</small></h2>
+    <div class="card" id="cmd-card">
+      <div class="cmd-head"><span id="cmd-src" class="badge">–</span><span id="cmd-id" class="muted"></span></div>
+      <div id="cmd-text" class="cmd-text muted">Send a command over MQTT (ME193/q/luca/cmd), by voice, or below.</div>
+    </div>
+    <div class="card grow">
+      <div class="card-head">
+        <span>Prompt as tokens</span>
+        <span id="prompt-stats" class="muted"></span>
+      </div>
+      <div class="legend" id="seg-legend"></div>
+      <div id="chips" class="chips"><div class="empty">The prompt appears here as the token chips the model actually reads.</div></div>
+    </div>
+    <form id="send-form" class="card send">
+      <input id="send-text" placeholder="e.g. dance 4 bars at 100 bpm, the lego bot mirrors you, then tell me 'bow complete' on luca" autocomplete="off">
+      <button type="submit">Send</button>
+      <div class="quick" id="quick"></div>
+    </form>
+  </section>
+
+  <!-- ============ THINKING LANE ============ -->
+  <section class="lane" id="lane-think">
+    <h2><span class="num">2</span> Thinking <small>what the model writes, token by token</small></h2>
+    <div class="card">
+      <div class="bubble" id="think-bubble"><span class="muted">The model first names the skills it will use (its "thought"), then writes the steps.</span></div>
+    </div>
+    <div class="card grow">
+      <div class="card-head"><span>Generated tokens <small class="muted">color = confidence · bar = top-5 alternatives · ⚑ = grammar overrode the model</small></span>
+        <span id="gen-stats" class="muted"></span></div>
+      <div id="stream" class="stream"><div class="empty">Tokens stream in at about 4 per second.</div></div>
+      <canvas id="entropy" height="54"></canvas>
+      <div class="muted tiny">uncertainty per token (entropy of the top-5, bits); spikes = the model was torn</div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span>Decisions <small class="muted">where the model picked a skill, move or mode</small></span></div>
+      <div id="decisions" class="decisions"><div class="empty">Each choice the model makes is listed with its runner-ups.</div></div>
+    </div>
+  </section>
+
+  <!-- ============ ACTION LANE ============ -->
+  <section class="lane" id="lane-action">
+    <h2><span class="num">3</span> Action <small>what the robots do</small></h2>
+    <div class="card">
+      <div class="card-head"><span>Plan</span><span id="plan-note" class="muted"></span></div>
+      <div id="plan" class="plan"><div class="empty">The JSON plan becomes a chain of skills that light up as they run.</div></div>
+    </div>
+    <div class="row">
+      <div class="card">
+        <div class="card-head"><span>LED matrix</span></div>
+        <canvas id="matrix" width="260" height="160"></canvas>
+      </div>
+      <div class="card grow">
+        <div class="card-head"><span>MQTT out</span></div>
+        <div id="mqtt-log" class="log"><div class="empty">Replies appear here.</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><span>Latency <small class="muted">per job: queue · prefill · decode · skills</small></span></div>
+      <canvas id="gantt" height="150"></canvas>
+    </div>
+  </section>
+</main>
+
+<!-- ============ DUET ============ -->
+<section id="duet">
+  <div class="duet-left card">
+    <div class="card-head"><span>Choreography <small class="muted">beat grid · blocks colored by mode · ticks = commanded vs actual</small></span>
+      <span id="sync-readout" class="sync">–</span></div>
+    <canvas id="timeline" height="150"></canvas>
+    <div class="legend" id="mode-legend"></div>
+  </div>
+  <div class="duet-right card">
+    <div class="card-head"><span>Stage</span><span id="perf-state" class="muted"></span></div>
+    <canvas id="stage" width="420" height="190"></canvas>
+  </div>
+</section>
+
+<!-- ============ EXPLAIN OVERLAY ============ -->
+<div id="explain" class="overlay hidden">
+  <div class="explain-grid">
+    <div class="ex">
+      <h3>Tokens, not words</h3>
+      <p>The model never sees letters. Text is cut into tokens (word pieces) and each one becomes an ID. "matrix_text" is two tokens; the whole fixed prompt is about 750.</p>
+      <div class="ex-chips"><span>mat</span><span>rix</span><span>_text</span><span>(</span><span>text</span><span>)</span></div>
+    </div>
+    <div class="ex">
+      <h3>The KV cache</h3>
+      <p>Reading the prompt (prefill) runs at about 11 tokens/s here, so 750 tokens would cost over a minute. The prompt starts with the same fixed text every time, so llama.cpp keeps its attention keys/values from the last request and only reads the new command: about 30 tokens, 3 seconds.</p>
+      <svg viewBox="0 0 300 40"><rect x="0" y="8" width="240" height="24" rx="4" class="svg-cached"/><rect x="242" y="8" width="56" height="24" rx="4" class="svg-new"/><text x="120" y="25" text-anchor="middle">reused from cache</text><text x="270" y="25" text-anchor="middle">new</text></svg>
+    </div>
+    <div class="ex">
+      <h3>4-bit weights (Q4_0)</h3>
+      <p>Qwen3.5-0.8B has 0.8 billion weights. Stored as 16-bit floats that's 1.6 GB; Q4_0 packs blocks of 32 weights into 4-bit integers with one scale each, so the whole model is 507 MB and fits next to everything else in the UNO Q's 4 GB.</p>
+    </div>
+    <div class="ex">
+      <h3>Why the JSON is always valid</h3>
+      <p>The plan's JSON schema is compiled into a grammar. At every step llama.cpp masks out tokens that would break it, so the model can only pick a real skill name, a legal icon, a bpm in range. ⚑ marks tokens where the model's favourite was masked.</p>
+    </div>
+    <div class="ex">
+      <h3>Two brains</h3>
+      <p>The LLM is a planner: about 10 to 20 seconds per command. It never drives in a loop. Timing-critical work (the beat clock, stopping, the watchdog) is deterministic code that reacts in milliseconds. "stop" never touches the model.</p>
+    </div>
+    <div class="ex">
+      <h3>The duet</h3>
+      <p>The model writes a short dance score (bpm, sections, moves, mode). A compiler turns it into timed keyframes, and a conductor fires them to both robots against one clock, early by each robot's measured latency. Then it measures how far off each move landed.</p>
+    </div>
+  </div>
+  <button id="explain-close" class="ghost">Close</button>
+</div>
+
+<div id="popover" class="popover hidden"></div>
+
+<script src="libs/socket.io.min.js"></script>
+<script src="viz/draw.js"></script>
+<script src="viz/duet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

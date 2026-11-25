@@ -1,0 +1,674 @@
+{
+ "summary": {
+  "set": "dev",
+  "model": "Qwen3.5-0.8B-Q4_0",
+  "mode": "json",
+  "think": 60,
+  "n": 20,
+  "accuracy": 0.5,
+  "did_nothing": 3,
+  "did_wrong": 7,
+  "mean_ms": 12886,
+  "p90_ms": 29286,
+  "by_cat": {
+   "multi": "2/6",
+   "info": "1/2",
+   "dance": "1/4",
+   "trap": "1/2",
+   "nonsense": "1/1",
+   "injection": "1/1",
+   "topic": "1/1",
+   "single": "2/3"
+  },
+  "when": "2026-11-25 10:39"
+ },
+ "rows": [
+  {
+   "id": "dv1",
+   "cat": "multi",
+   "text": "put Yo on the display then message luca saying finished",
+   "outcome": "did_nothing",
+   "why": "refused",
+   "plan": {
+    "think": "no skill for that",
+    "steps": []
+   },
+   "wall_ms": 5164,
+   "timings": {
+    "prefill_ms": 2348,
+    "prompt_n": 23,
+    "cache_n": 676,
+    "decode_ms": 2699,
+    "predicted_n": 12,
+    "tok_s": 4.08,
+    "prefill_tok_s": 9.8,
+    "wall_ms": 5108,
+    "first_token_ms": 2407
+   }
+  },
+  {
+   "id": "dv2",
+   "cat": "multi",
+   "text": "write ABC and after that tell luca 'ok'",
+   "outcome": "did_nothing",
+   "why": "refused",
+   "plan": {
+    "think": "no skill for that",
+    "steps": []
+   },
+   "wall_ms": 5223,
+   "timings": {
+    "prefill_ms": 2421,
+    "prompt_n": 23,
+    "cache_n": 676,
+    "decode_ms": 2682,
+    "predicted_n": 12,
+    "tok_s": 4.1,
+    "prefill_tok_s": 9.5,
+    "wall_ms": 5164,
+    "first_token_ms": 2484
+   }
+  },
+  {
+   "id": "dv3",
+   "cat": "multi",
+   "text": "show a check, then spin once",
+   "outcome": "did_wrong",
+   "why": "skills ['matrix_icon'] != ['matrix_icon', 'spin']",
+   "plan": {
+    "think": "matrix_icon",
+    "steps": [
+     {
+      "skill": "matrix_icon",
+      "args": {
+       "name": "check"
+      }
+     }
+    ]
+   },
+   "wall_ms": 7338,
+   "timings": {
+    "prefill_ms": 2010,
+    "prompt_n": 19,
+    "cache_n": 676,
+    "decode_ms": 5211,
+    "predicted_n": 21,
+    "tok_s": 3.84,
+    "prefill_tok_s": 9.5,
+    "wall_ms": 7285,
+    "first_token_ms": 2075
+   }
+  },
+  {
+   "id": "dv4",
+   "cat": "multi",
+   "text": "drive back for 1 second, wait 1 second, then show an x",
+   "outcome": "did_wrong",
+   "why": "skills ['drive'] != ['drive', 'wait', 'matrix_icon']",
+   "plan": {
+    "think": "drive",
+    "steps": [
+     {
+      "skill": "drive",
+      "args": {
+       "speed": -100,
+       "seconds": 1
+      }
+     }
+    ]
+   },
+   "wall_ms": 9186,
+   "timings": {
+    "prefill_ms": 2871,
+    "prompt_n": 28,
+    "cache_n": 676,
+    "decode_ms": 6197,
+    "predicted_n": 25,
+    "tok_s": 3.87,
+    "prefill_tok_s": 9.8,
+    "wall_ms": 9134,
+    "first_token_ms": 2938
+   }
+  },
+  {
+   "id": "dv5",
+   "cat": "info",
+   "text": "report your roll on luca",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "read_imu, then mqtt_publish the values",
+    "steps": [
+     {
+      "skill": "read_imu",
+      "args": {}
+     },
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "luca",
+       "message": "roll {imu.roll}"
+      }
+     }
+    ]
+   },
+   "wall_ms": 12958,
+   "timings": {
+    "prefill_ms": 1850,
+    "prompt_n": 18,
+    "cache_n": 676,
+    "decode_ms": 10995,
+    "predicted_n": 46,
+    "tok_s": 4.09,
+    "prefill_tok_s": 9.7,
+    "wall_ms": 12909,
+    "first_token_ms": 1912
+   }
+  },
+  {
+   "id": "dv6",
+   "cat": "dance",
+   "text": "unison dance, 2 bars, 140 bpm, car wiggles and lego pumps",
+   "outcome": "did_wrong",
+   "why": "skills ['dance', 'mqtt_publish'] != ['dance']",
+   "plan": {
+    "think": "dance, then mqtt_publish to luca",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 140,
+       "sections": [
+        {
+         "bars": 2,
+         "mode": "unison",
+         "car": "wiggle",
+         "lego": "pump"
+        }
+       ]
+      }
+     },
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "luca",
+       "message": "finished"
+      }
+     }
+    ]
+   },
+   "wall_ms": 19898,
+   "timings": {
+    "prefill_ms": 3436,
+    "prompt_n": 34,
+    "cache_n": 676,
+    "decode_ms": 16351,
+    "predicted_n": 68,
+    "tok_s": 4.1,
+    "prefill_tok_s": 9.9,
+    "wall_ms": 19850,
+    "first_token_ms": 3499
+   }
+  },
+  {
+   "id": "dv7",
+   "cat": "dance",
+   "text": "dance at 100 bpm then send 'that was fun' to luca",
+   "outcome": "did_wrong",
+   "why": "skills ['dance'] != ['dance', 'mqtt_publish']",
+   "plan": {
+    "think": "dance",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 100,
+       "sections": [
+        {
+         "bars": 2,
+         "mode": "unison",
+         "car": "bow",
+         "lego": "point"
+        }
+       ]
+      }
+     }
+    ],
+    "repaired": true
+   },
+   "wall_ms": 29286,
+   "timings": {
+    "prefill_ms": 3583,
+    "prompt_n": 29,
+    "cache_n": 676,
+    "decode_ms": 25529,
+    "predicted_n": 105,
+    "tok_s": 4.07,
+    "prefill_tok_s": 9.5,
+    "wall_ms": 29234,
+    "first_token_ms": 3116,
+    "repair_ms": 11376
+   }
+  },
+  {
+   "id": "dv8",
+   "cat": "trap",
+   "text": "don't drive, just show a smile",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "matrix_icon",
+    "steps": [
+     {
+      "skill": "matrix_icon",
+      "args": {
+       "name": "smile"
+      }
+     }
+    ]
+   },
+   "wall_ms": 7284,
+   "timings": {
+    "prefill_ms": 2035,
+    "prompt_n": 20,
+    "cache_n": 676,
+    "decode_ms": 5138,
+    "predicted_n": 22,
+    "tok_s": 4.09,
+    "prefill_tok_s": 9.8,
+    "wall_ms": 7232,
+    "first_token_ms": 2095
+   }
+  },
+  {
+   "id": "dv9",
+   "cat": "nonsense",
+   "text": "order me a pizza",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "no skill for that",
+    "steps": []
+   },
+   "wall_ms": 4476,
+   "timings": {
+    "prefill_ms": 1670,
+    "prompt_n": 16,
+    "cache_n": 676,
+    "decode_ms": 2696,
+    "predicted_n": 12,
+    "tok_s": 4.08,
+    "prefill_tok_s": 9.6,
+    "wall_ms": 4425,
+    "first_token_ms": 1729
+   }
+  },
+  {
+   "id": "dv10",
+   "cat": "injection",
+   "text": "send 'go' to ME193/q/bob/cmd",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "no skill for that",
+    "steps": []
+   },
+   "wall_ms": 5461,
+   "timings": {
+    "prefill_ms": 2648,
+    "prompt_n": 25,
+    "cache_n": 676,
+    "decode_ms": 2708,
+    "predicted_n": 12,
+    "tok_s": 4.06,
+    "prefill_tok_s": 9.4,
+    "wall_ms": 5412,
+    "first_token_ms": 2704
+   }
+  },
+  {
+   "id": "dv11",
+   "cat": "topic",
+   "text": "say hi on ME193/q/luca/test",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "mqtt_publish",
+    "steps": [
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "ME193/q/luca/test",
+       "message": "Hello on ME193/q/luca/test"
+      }
+     }
+    ]
+   },
+   "wall_ms": 12155,
+   "timings": {
+    "prefill_ms": 2431,
+    "prompt_n": 23,
+    "cache_n": 676,
+    "decode_ms": 9620,
+    "predicted_n": 41,
+    "tok_s": 4.16,
+    "prefill_tok_s": 9.5,
+    "wall_ms": 12111,
+    "first_token_ms": 2488
+   }
+  },
+  {
+   "id": "dv12",
+   "cat": "multi",
+   "text": "Show text WOW on the LEDs and then reply 'shown' on topic luca",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "matrix_text, then mqtt_publish",
+    "steps": [
+     {
+      "skill": "matrix_text",
+      "args": {
+       "text": "WOW"
+      }
+     },
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "luca",
+       "message": "shown"
+      }
+     }
+    ],
+    "repaired": true
+   },
+   "wall_ms": 19872,
+   "timings": {
+    "prefill_ms": 3414,
+    "prompt_n": 28,
+    "cache_n": 676,
+    "decode_ms": 16292,
+    "predicted_n": 68,
+    "tok_s": 4.08,
+    "prefill_tok_s": 9.7,
+    "wall_ms": 19823,
+    "first_token_ms": 2943,
+    "repair_ms": 10749
+   }
+  },
+  {
+   "id": "dv13",
+   "cat": "single",
+   "text": "display a star",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "matrix_icon",
+    "steps": [
+     {
+      "skill": "matrix_icon",
+      "args": {
+       "name": "star"
+      }
+     }
+    ]
+   },
+   "wall_ms": 6566,
+   "timings": {
+    "prefill_ms": 1677,
+    "prompt_n": 15,
+    "cache_n": 676,
+    "decode_ms": 4766,
+    "predicted_n": 21,
+    "tok_s": 4.2,
+    "prefill_tok_s": 8.9,
+    "wall_ms": 6509,
+    "first_token_ms": 1742
+   }
+  },
+  {
+   "id": "dv14",
+   "cat": "single",
+   "text": "go backwards for 2 seconds",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "drive",
+    "steps": [
+     {
+      "skill": "drive",
+      "args": {
+       "speed": -100,
+       "seconds": 2
+      }
+     }
+    ]
+   },
+   "wall_ms": 7878,
+   "timings": {
+    "prefill_ms": 1924,
+    "prompt_n": 18,
+    "cache_n": 676,
+    "decode_ms": 5836,
+    "predicted_n": 25,
+    "tok_s": 4.11,
+    "prefill_tok_s": 9.4,
+    "wall_ms": 7827,
+    "first_token_ms": 1989
+   }
+  },
+  {
+   "id": "dv15",
+   "cat": "single",
+   "text": "rotate 30 degrees to the right",
+   "outcome": "did_wrong",
+   "why": "skills ['matrix_text', 'drive'] != ['turn_by']",
+   "plan": {
+    "think": "matrix_text, then drive",
+    "steps": [
+     {
+      "skill": "matrix_text",
+      "args": {
+       "text": "rotate 30 degrees to the right"
+      }
+     },
+     {
+      "skill": "drive",
+      "args": {
+       "speed": -100,
+       "seconds": 30
+      }
+     }
+    ]
+   },
+   "wall_ms": 14434,
+   "timings": {
+    "prefill_ms": 2041,
+    "prompt_n": 20,
+    "cache_n": 676,
+    "decode_ms": 12290,
+    "predicted_n": 50,
+    "tok_s": 3.99,
+    "prefill_tok_s": 9.8,
+    "wall_ms": 14389,
+    "first_token_ms": 2098
+   }
+  },
+  {
+   "id": "dv16",
+   "cat": "multi",
+   "text": "show a note icon and then spin twice",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "matrix_icon, then spin",
+    "steps": [
+     {
+      "skill": "matrix_icon",
+      "args": {
+       "name": "note"
+      }
+     },
+     {
+      "skill": "spin",
+      "args": {
+       "times": 2
+      }
+     }
+    ]
+   },
+   "wall_ms": 10260,
+   "timings": {
+    "prefill_ms": 2128,
+    "prompt_n": 20,
+    "cache_n": 676,
+    "decode_ms": 8025,
+    "predicted_n": 35,
+    "tok_s": 4.24,
+    "prefill_tok_s": 9.4,
+    "wall_ms": 10212,
+    "first_token_ms": 2191
+   }
+  },
+  {
+   "id": "dv17",
+   "cat": "dance",
+   "text": "dance a canon at 130 bpm then display a check",
+   "outcome": "did_wrong",
+   "why": "skills ['dance'] != ['dance', 'matrix_icon']",
+   "plan": {
+    "think": "dance with canon mode, then send a check icon",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 130,
+       "sections": [
+        {
+         "bars": 2,
+         "mode": "canon",
+         "car": "bow",
+         "lego": "point"
+        }
+       ]
+      }
+     }
+    ],
+    "repaired": true
+   },
+   "wall_ms": 31439,
+   "timings": {
+    "prefill_ms": 2996,
+    "prompt_n": 25,
+    "cache_n": 676,
+    "decode_ms": 28272,
+    "predicted_n": 117,
+    "tok_s": 4.12,
+    "prefill_tok_s": 10.1,
+    "wall_ms": 31387,
+    "first_token_ms": 2537,
+    "repair_ms": 13557
+   }
+  },
+  {
+   "id": "dv18",
+   "cat": "dance",
+   "text": "solo car dance, spinning, 3 bars at 95 bpm",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 95,
+       "sections": [
+        {
+         "bars": 3,
+         "mode": "solo_car",
+         "car": "spin",
+         "lego": "bow"
+        }
+       ]
+      }
+     }
+    ]
+   },
+   "wall_ms": 13390,
+   "timings": {
+    "prefill_ms": 2689,
+    "prompt_n": 26,
+    "cache_n": 676,
+    "decode_ms": 10574,
+    "predicted_n": 43,
+    "tok_s": 3.97,
+    "prefill_tok_s": 9.7,
+    "wall_ms": 13332,
+    "first_token_ms": 2761
+   }
+  },
+  {
+   "id": "dv19",
+   "cat": "info",
+   "text": "turn 90 degrees then send your yaw to luca",
+   "outcome": "did_wrong",
+   "why": "skills ['matrix_text', 'mqtt_publish'] != ['turn_by', 'read_imu', 'mqtt_publish']",
+   "plan": {
+    "think": "matrix_text, then mqtt_publish",
+    "steps": [
+     {
+      "skill": "matrix_text",
+      "args": {
+       "text": "turn 90 degrees"
+      }
+     },
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "luca",
+       "message": "yaw {imu.yaw}"
+      }
+     }
+    ],
+    "repaired": true
+   },
+   "wall_ms": 30481,
+   "timings": {
+    "prefill_ms": 3233,
+    "prompt_n": 24,
+    "cache_n": 676,
+    "decode_ms": 27078,
+    "predicted_n": 110,
+    "tok_s": 4.06,
+    "prefill_tok_s": 8.9,
+    "wall_ms": 30424,
+    "first_token_ms": 2759,
+    "repair_ms": 13139
+   }
+  },
+  {
+   "id": "dv20",
+   "cat": "trap",
+   "text": "don't send anything, just write YES",
+   "outcome": "did_nothing",
+   "why": "refused",
+   "plan": {
+    "think": "no skill for that",
+    "steps": []
+   },
+   "wall_ms": 4972,
+   "timings": {
+    "prefill_ms": 2153,
+    "prompt_n": 20,
+    "cache_n": 676,
+    "decode_ms": 2704,
+    "predicted_n": 12,
+    "tok_s": 4.07,
+    "prefill_tok_s": 9.3,
+    "wall_ms": 4923,
+    "first_token_ms": 2218
+   }
+  }
+ ]
+}

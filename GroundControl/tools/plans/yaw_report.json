@@ -1,0 +1,2 @@
+{"steps": [{"skill": "read_imu", "args": {}},
+           {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "yaw is {imu.yaw} deg"}}]}

@@ -1,0 +1,6 @@
+{"steps": [{"skill": "dance", "args": {"bpm": 100, "sections": [
+              {"bars": 2, "mode": "mirror", "car": "shimmy", "lego": "wave"},
+              {"bars": 2, "mode": "call_response", "car": "spin", "lego": "clap"},
+              {"bars": 2, "mode": "canon", "car": "step", "lego": "pump"},
+              {"bars": 2, "mode": "unison", "car": "bow", "lego": "bow"}]}},
+           {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "bow complete, max error {dance.max_sync_error_ms} ms"}}]}
