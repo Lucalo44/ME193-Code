@@ -19,20 +19,24 @@ const Draw = (() => {
     const { ctx, w, h } = fit(canvas);
     ctx.clearRect(0, 0, w, h);
     const cols = 13, rows = 8;
+    ctx.fillStyle = css("--mx-bg");
+    ctx.fillRect(0, 0, w, h);
     const cell = Math.min(w / cols, h / rows);
+    const square = css("--mx-shape") === "square";
     const ox = (w - cell * cols) / 2, oy = (h - cell * rows) / 2;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         const v = (frame && frame[r * cols + c]) || 0;
         ctx.beginPath();
-        ctx.arc(ox + c * cell + cell / 2, oy + r * cell + cell / 2, cell * 0.36, 0, Math.PI * 2);
+        if (square) ctx.rect(ox + c * cell + cell * 0.14, oy + r * cell + cell * 0.14, cell * 0.72, cell * 0.72);
+        else ctx.arc(ox + c * cell + cell / 2, oy + r * cell + cell / 2, cell * 0.36, 0, Math.PI * 2);
         if (v > 0) {
           const a = 0.25 + 0.75 * (v / 7);
-          ctx.fillStyle = `rgba(255, 70, 70, ${a})`;
-          ctx.shadowColor = "rgba(255,60,60,0.9)";
-          ctx.shadowBlur = 8 * (v / 7);
+          ctx.fillStyle = `rgba(${css("--mx-on")}, ${a})`;
+          ctx.shadowColor = `rgba(${css("--mx-on")}, 0.9)`;
+          ctx.shadowBlur = +css("--mx-glow") * (v / 7);
         } else {
-          ctx.fillStyle = "#1a1f2b";
+          ctx.fillStyle = css("--mx-off");
           ctx.shadowBlur = 0;
         }
         ctx.fill();
@@ -44,7 +48,7 @@ const Draw = (() => {
   function entropy(canvas, tokens) {
     const { ctx, w, h } = fit(canvas);
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "#0e1522";
+    ctx.fillStyle = css("--cv-bg");
     ctx.fillRect(0, 0, w, h);
     if (!tokens.length) return;
     const n = Math.max(tokens.length, 60);
@@ -53,17 +57,17 @@ const Draw = (() => {
     tokens.forEach((t, i) => {
       const e = t.entropy == null ? 0 : t.entropy;
       const bh = Math.max(1, (e / maxH) * (h - 6));
-      ctx.fillStyle = t.decision ? css("--warn") : t.forced ? css("--bad") : e > 1 ? "#5fa8ff" : "#33507a";
+      ctx.fillStyle = t.decision ? css("--warn") : t.forced ? css("--bad") : e > 1 ? css("--ent-hi") : css("--ent-lo");
       ctx.fillRect(i * bw + 0.5, h - bh, Math.max(1, bw - 1), bh);
     });
   }
 
-  const SEG_COLORS = { queue: "#3a465e", prefill: "--seg-catalog", decode: "--accent", dance: "--m-canon" };
+  const SEG_COLORS = { queue: "--cv-shade", prefill: "--seg-catalog", decode: "--accent", dance: "--m-canon" };
 
   function gantt(canvas, jobs) {
     const { ctx, w, h } = fit(canvas);
     ctx.clearRect(0, 0, w, h);
-    ctx.font = "11px ui-monospace, Menlo, monospace";
+    ctx.font = `11px ${css("--cv-font")}`;
     if (!jobs.length) {
       ctx.fillStyle = css("--muted");
       ctx.fillText("Finished jobs appear here: where the time went, and the KV cache effect.", 6, 20);
@@ -74,7 +78,7 @@ const Draw = (() => {
     const left = 130, right = 52, rh = Math.min(22, (h - 18) / rows.length);
     const sx = (t) => left + (t / tmax) * (w - left - right);
     // axis
-    ctx.strokeStyle = "#24314a";
+    ctx.strokeStyle = css("--cv-grid");
     ctx.fillStyle = css("--muted");
     const span = w - left - right;
     const step = [1, 2, 5, 10, 20, 30, 60, 120, 300].find((s) => (s / tmax) * span >= 42) || 600;
@@ -94,7 +98,7 @@ const Draw = (() => {
         const x0 = sx(s.t0), x1 = Math.max(sx(s.t1), x0 + 2);
         ctx.fillRect(x0, y + 2, x1 - x0, rh - 6);
         if (x1 - x0 > 46) {
-          ctx.fillStyle = "#0a0e16";
+          ctx.fillStyle = css("--cv-on-block");
           ctx.fillText(s.name, x0 + 3, y + rh * 0.62);
         }
       });

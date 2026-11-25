@@ -107,13 +107,23 @@ At 3 to 4 tokens per second, the LLM can't keep time, so it never sends a motor 
 
 The 1.7B's eight mistakes are small but real: three plans tack on an extra `matrix_clear` or `wait`, one turns left instead of right, one invents a reply topic, and two injection attempts got planned instead of refused. The 0.8B refused all four injections, but its most common mistake (8 of 15) was an `mqtt_publish` nobody asked for. Either way, the topic whitelist means no plan in any run could actually publish to a `/cmd` topic.
 
-After adding the `answer` skill, I extended the set to 43 commands with a `question` category. The deployed planner scored **81% (35/43)**, answered all 5 questions, and still mixes up left and right now and then.
+After adding the `answer` skill, I extended the set to 43 commands with a `question` category. The deployed planner scored **81% (35/43)**, answered all 5 questions, and still mixes up left and right now and then. With `self_report`, `lookup`, `compute` and `memory` added, the set grew to 63 commands, and the planner scored **78% (49/63)**, with compute at 5/5. Each new skill makes a 1.7B model a little less sure where to send things, which is the price of a wider skill set.
 
 **Error.** With 39 commands, one command is 2.6 points, and in my dev runs, prompt variants moved accuracy by ±15 points on 20 commands. So differences smaller than about 10 points shouldn't be read as real. The "did wrong" count includes plans the topic whitelist would have blocked at execution. Those are counted as wrong because the model still chose them.
 
 For the 0.8B, I picked its best prompt by comparing configs on the held-out set, so its 62% is somewhat optimistic. The 1.7B ran the held-out set exactly once with a prompt tuned for the smaller model, so its 80% is the cleaner number.
 
 **Conclusions.** Model size beat every prompt trick I tried: doubling the parameters gained 18 points, more than all my prompt work on the 0.8B combined. One constrained JSON plan beats native tool calling (18 points better and 2.4x faster on the same model), because the tool loop pays a full round trip per call. A scratchpad is what makes multi-step plans possible (0/6 multi-step without one). 80% is still short of the 85% I was aiming for, so the fine-tune is the next step, and it works for either model.
+
+## Looks
+
+The dashboard has five themes, picked in its header or with `?theme=` in the URL. Every canvas (matrix, timeline, stage, charts) follows the theme too. Screenshots taken mid-dance are in [docs/themes/](docs/themes/).
+
+1. **Mission** (`mission`): the original dark control room.
+2. **HUD** (`hud`): a futuristic heads-up display. Hairlines, chamfered corners, cyan and amber, scanlines, and the choreography moved to the top as the hero.
+3. **Web 1.0** (`geocities`): a 1997 home page on a Windows 95 desktop, complete with a marquee and a hit counter.
+4. **Chart recorder** (`analog`): a lab instrument's paper log, with graph paper, typewriter text, ink, rubber-stamp status and an amber filament matrix.
+5. **Brutalist** (`brutalist`): a Swiss poster in black, off-white and one safety orange.
 
 ## Running it
 

@@ -23,6 +23,41 @@
   --m-solo_lego: #f5d547;
   --radius: 10px;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* canvas drawing (matrix, charts, timeline, stage): every theme sets these */
+  --cv-font: ui-monospace, Menlo, monospace;
+  --cv-bg: #0e1522;
+  --cv-grid: #1d2738;
+  --cv-grid-strong: #3a4a66;
+  --cv-shade: #151d2d;
+  --cv-ink: #e8eef9;
+  --cv-on-block: #0a0e16;
+  --cv-tick: #ffffffaa;
+  --cv-playhead: #ffffff;
+  --ent-lo: #33507a;
+  --ent-hi: #5fa8ff;
+  --mx-bg: #05070b;
+  --mx-on: 255, 70, 70;
+  --mx-off: #1a1f2b;
+  --mx-glow: 8;
+  --mx-shape: round;
+  --stage-bg: #0c121d;
+  --stage-grid: #1a2334;
+  --car-body: #1e3a5c;
+  --car-line: #5fd4ff;
+  --wheel-fwd: #3ddc97;
+  --wheel-back: #ff5c7a;
+  --wheel-idle: #55607a;
+  --lego-body: #3a2a10;
+  --lego-arm: #f5d547;
+  --conf-lo: #c0392b;
+  --conf-hi: #27ae60;
+  --conf-none: #2a3550;
+  --conf-alpha: 0.55;
+  --bar1: #3ddc97;
+  --bar2: #5fd4ff;
+  --bar3: #b08cff;
+  --bar4: #ffb020;
+  --bar5: #ff5c7a;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text);

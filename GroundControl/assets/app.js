@@ -8,6 +8,22 @@
   const S = { jobId: null, tokens: [], text: "", prompt: null, plan: null, steps: {}, history: [],
               status: {}, frame: new Array(104).fill(0), repair: null };
 
+  // ------------------------------------------------------------ themes
+  const THEMES = { mission: "Mission (dark)", hud: "HUD", geocities: "Web 1.0", analog: "Chart recorder", brutalist: "Brutalist" };
+  const themeSel = $("theme");
+  themeSel.innerHTML = Object.entries(THEMES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+  function setTheme(t) {
+    if (!THEMES[t]) t = "mission";
+    document.documentElement.dataset.theme = t;
+    themeSel.value = t;
+    try { localStorage.setItem("gc-theme", t); } catch (e) { /* private mode */ }
+    setTimeout(() => { Draw.gantt($("gantt"), S.history); Draw.entropy($("entropy"), S.tokens); }, 50);
+  }
+  let saved = null;
+  try { saved = localStorage.getItem("gc-theme"); } catch (e) { /* ignore */ }
+  setTheme(new URLSearchParams(location.search).get("theme") || saved || "mission");
+  themeSel.addEventListener("change", (e) => setTheme(e.target.value));
+
   const SEGS = ["system", "catalog", "rules", "examples", "command", "template"];
   $("seg-legend").innerHTML = SEGS.map((k) => `<span><i style="background:var(--seg-${k})"></i>${k}</span>`).join("") +
     `<span><i style="background:#1a2336;opacity:.4"></i>dimmed = reused from KV cache</span>`;
@@ -127,12 +143,16 @@
   }
 
   // ------------------------------------------------------------ thinking lane
+  // Confidence: blend the theme's --conf-lo -> --conf-hi (no fixed red/green).
+  const hex = (c) => { c = c.replace("#", ""); if (c.length === 3) c = [...c].map((x) => x + x).join("");
+    return [0, 2, 4].map((i) => parseInt(c.slice(i, i + 2), 16)); };
   function confColor(p) {
-    if (p == null) return "#2a3550";
-    const h = Math.round(p * 130);            // 0 = red, 130 = green
-    return `hsla(${h}, 70%, 45%, 0.55)`;
+    if (p == null) return Draw.css("--conf-none");
+    const a = hex(Draw.css("--conf-lo")), b = hex(Draw.css("--conf-hi"));
+    const m = a.map((v, i) => Math.round(v + (b[i] - v) * p));
+    return `rgba(${m.join(",")}, ${Draw.css("--conf-alpha")})`;
   }
-  const BAR = ["#3ddc97", "#5fd4ff", "#b08cff", "#ffb020", "#ff5c7a"];
+  const BAR = [1, 2, 3, 4, 5].map((i) => `var(--bar${i})`);
 
   function addToken(t) {
     if (t.id !== S.jobId) return;
@@ -312,10 +332,11 @@
 
   // ------------------------------------------------------------ render loop
   function frame() {
-    Draw.matrix($("matrix"), S.frame);
-    Duet.drawTimeline($("timeline"));
-    Duet.drawStage($("stage"));
-    $("sync-readout").textContent = Duet.readout();
+    // One broken panel must not freeze the others (or stop the loop).
+    for (const f of [() => Draw.matrix($("matrix"), S.frame), () => Duet.drawTimeline($("timeline")),
+                     () => Duet.drawStage($("stage")), () => { $("sync-readout").textContent = Duet.readout(); }]) {
+      try { f(); } catch (e) { console.error(e); }
+    }
     requestAnimationFrame(frame);
   }
   Draw.gantt($("gantt"), S.history);

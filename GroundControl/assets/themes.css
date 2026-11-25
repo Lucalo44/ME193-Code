@@ -1,0 +1,318 @@
+/* Ground Control themes. "mission" is styles.css itself; these override it.
+   Pick one in the header, or open the dashboard with ?theme=hud|geocities|analog|brutalist.
+   Every theme sets the canvas tokens (--cv-*, --mx-*, --stage-*, ...) so the
+   matrix, charts, choreography timeline and stage follow along. */
+
+/* =====================================================================
+   HUD: futuristic heads-up display. Hairlines, chamfered corners,
+   cyan + amber on near-black, scanlines, choreography as the hero.
+   ===================================================================== */
+[data-theme="hud"] {
+  --bg: #01060b; --panel: rgba(0, 229, 255, 0.035); --panel-2: rgba(0, 229, 255, 0.07);
+  --line: #0e7f94; --text: #d8fbff; --muted: #5aa9b8; --accent: #00e5ff;
+  --ok: #7cf9ff; --warn: #ffb300; --bad: #ff7a1a;
+  --seg-system: #4dd0e1; --seg-catalog: #00e5ff; --seg-rules: #80deea; --seg-examples: #ffd54f;
+  --seg-command: #ffb300; --seg-template: #2c5a64;
+  --m-unison: #00e5ff; --m-mirror: #5fb8ff; --m-call_response: #ffb300; --m-canon: #c9f6ff;
+  --m-solo_car: #ff7a1a; --m-solo_lego: #ffe066;
+  --radius: 0; --mono: "Menlo", "SF Mono", ui-monospace, monospace;
+  --cv-font: "Menlo", ui-monospace, monospace;
+  --cv-bg: #020b12; --cv-grid: #06303a; --cv-grid-strong: #0e6577; --cv-shade: #041a22;
+  --cv-ink: #9eeef9; --cv-on-block: #001015; --cv-tick: #ffffffcc; --cv-playhead: #ffb300;
+  --ent-lo: #0e6577; --ent-hi: #00e5ff;
+  --mx-bg: #000; --mx-on: 0, 229, 255; --mx-off: #04161c; --mx-glow: 12; --mx-shape: square;
+  --stage-bg: #01080d; --stage-grid: #062a33; --car-body: #002a33; --car-line: #00e5ff;
+  --wheel-fwd: #00e5ff; --wheel-back: #ffb300; --wheel-idle: #19414a;
+  --lego-body: #1f1600; --lego-arm: #ffb300;
+  --conf-lo: #ff7a1a; --conf-hi: #00e5ff; --conf-none: #0b2a33; --conf-alpha: 0.32;
+  --bar1: #00e5ff; --bar2: #5fb8ff; --bar3: #c9f6ff; --bar4: #ffb300; --bar5: #ff7a1a;
+}
+[data-theme="hud"] body {
+  font-family: "Avenir Next Condensed", "DIN Condensed", "Roboto Condensed", "Arial Narrow", sans-serif;
+  letter-spacing: 0.02em;
+  display: flex; flex-direction: column;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(0, 229, 255, 0.16), transparent 60%),
+    linear-gradient(rgba(0, 229, 255, 0.05) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(0, 229, 255, 0.05) 1px, transparent 1px) 0 0 / 48px 48px,
+    #01060b;
+}
+[data-theme="hud"] body::after {           /* scanlines */
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 40;
+  background: repeating-linear-gradient(0deg, rgba(0, 229, 255, 0.035) 0 1px, transparent 1px 3px);
+}
+[data-theme="hud"] header#top { order: 0; background: rgba(1, 6, 11, 0.85); border-bottom: 1px solid var(--accent);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.25); }
+[data-theme="hud"] #duet { order: 1; padding-top: 12px; }
+[data-theme="hud"] main { order: 2; }
+[data-theme="hud"] .brand { letter-spacing: 0.4em; color: var(--accent); text-shadow: 0 0 10px rgba(0, 229, 255, 0.7); }
+[data-theme="hud"] .brand .logo::before { content: "◢ "; }
+[data-theme="hud"] .card, [data-theme="hud"] .ex {
+  border: 1px solid var(--line); background: linear-gradient(135deg, rgba(0, 229, 255, 0.06), rgba(0, 229, 255, 0.01));
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  box-shadow: inset 0 0 24px rgba(0, 229, 255, 0.06);
+}
+[data-theme="hud"] .card-head { text-transform: uppercase; letter-spacing: 0.18em; font-size: 12px; color: var(--accent); }
+[data-theme="hud"] .lane h2 { color: var(--accent); letter-spacing: 0.35em; }
+[data-theme="hud"] .lane h2::before { content: "//"; margin-right: 8px; color: var(--warn); }
+[data-theme="hud"] .num { border-radius: 0; background: transparent; color: var(--warn); border: 1px solid var(--warn); }
+[data-theme="hud"] .pill { border-radius: 0; background: transparent; border: 1px solid var(--accent); color: var(--accent);
+  clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); padding-left: 18px; padding-right: 18px; }
+[data-theme="hud"] .pill.PLANNING { background: rgba(0, 229, 255, 0.18); color: var(--accent); }
+[data-theme="hud"] .pill.EXECUTING, [data-theme="hud"] .pill.DANCING { background: rgba(255, 179, 0, 0.2); color: var(--warn); border-color: var(--warn); }
+[data-theme="hud"] .pill.ESTOP, [data-theme="hud"] .pill.ERROR { background: var(--bad); color: #000; }
+[data-theme="hud"] button, [data-theme="hud"] select, [data-theme="hud"] input {
+  border-radius: 0; background: transparent; border: 1px solid var(--line); color: var(--text);
+  text-transform: uppercase; letter-spacing: 0.12em; font-family: inherit; }
+[data-theme="hud"] .estop { background: transparent; border: 1px solid var(--warn); color: var(--warn);
+  box-shadow: 0 0 14px rgba(255, 179, 0, 0.45); }
+[data-theme="hud"] .mic { border-radius: 0; border-color: var(--accent); }
+[data-theme="hud"] .bubble { background: transparent; color: var(--accent); border: 1px dashed var(--accent); border-radius: 0;
+  text-transform: uppercase; letter-spacing: 0.1em; }
+[data-theme="hud"] .bubble::before { content: "◇ THOUGHT  "; color: var(--warn); font-size: 12px; }
+[data-theme="hud"] .bubble::after { display: none; }
+[data-theme="hud"] .chip { background: transparent; border-radius: 0; }
+[data-theme="hud"] .chip.k-command { background: rgba(255, 179, 0, 0.15); color: var(--warn); }
+[data-theme="hud"] .step { border-radius: 0; background: transparent; }
+[data-theme="hud"] .step .i { border-radius: 0; }
+[data-theme="hud"] .cmd-reply { background: transparent; border-left: 2px solid var(--warn); border-radius: 0; }
+[data-theme="hud"] .badge { border-radius: 0; background: transparent; border: 1px solid currentColor; }
+[data-theme="hud"] .dot { border-radius: 0; }
+[data-theme="hud"] .sync { color: var(--warn); }
+
+/* =====================================================================
+   Web 1.0: a 1997 home page on a Windows 95 desktop. Teal desktop,
+   bevelled grey windows with navy title bars, a marquee, a hit counter.
+   ===================================================================== */
+[data-theme="geocities"] {
+  --bg: #008080; --panel: #c0c0c0; --panel-2: #ffffff; --line: #808080; --text: #000000; --muted: #404040;
+  --accent: #000080; --ok: #000080; --warn: #ff00ff; --bad: #ff0000;
+  --seg-system: #0000ff; --seg-catalog: #008080; --seg-rules: #800080; --seg-examples: #808000;
+  --seg-command: #ff00ff; --seg-template: #808080;
+  --m-unison: #0000ff; --m-mirror: #00c0c0; --m-call_response: #ffff00; --m-canon: #ff00ff;
+  --m-solo_car: #ff8000; --m-solo_lego: #c0c000;
+  --radius: 0; --mono: "Courier New", Courier, monospace;
+  --cv-font: "Tahoma", "Geneva", "Verdana", sans-serif;
+  --cv-bg: #ffffff; --cv-grid: #c0c0c0; --cv-grid-strong: #808080; --cv-shade: #e0e0e0;
+  --cv-ink: #000000; --cv-on-block: #000000; --cv-tick: #000000; --cv-playhead: #ff0000;
+  --ent-lo: #000080; --ent-hi: #0000ff;
+  --mx-bg: #000; --mx-on: 255, 0, 0; --mx-off: #2a0000; --mx-glow: 0; --mx-shape: square;
+  --stage-bg: #ffffff; --stage-grid: #e0e0e0; --car-body: #c0c0c0; --car-line: #000000;
+  --wheel-fwd: #0000ff; --wheel-back: #ff00ff; --wheel-idle: #808080;
+  --lego-body: #ffff00; --lego-arm: #ff8000;
+  --conf-lo: #ff00ff; --conf-hi: #00ffff; --conf-none: #ffffff; --conf-alpha: 0.85;
+  --bar1: #000080; --bar2: #0000ff; --bar3: #00ffff; --bar4: #ffff00; --bar5: #ff00ff;
+}
+[data-theme="geocities"] body { font: 13px/1.3 "Tahoma", "MS Sans Serif", "Geneva", "Verdana", sans-serif; }
+[data-theme="geocities"] header#top { background: #000080; border-bottom: 3px ridge #c0c0c0; color: #fff; position: relative; }
+[data-theme="geocities"] .brand { font-family: "Comic Sans MS", "Chalkboard", cursive; color: #ffff00; letter-spacing: 0.05em;
+  text-shadow: 2px 2px 0 #ff00ff; font-size: 22px; }
+[data-theme="geocities"] .brand .logo::before { content: "★"; }
+[data-theme="geocities"] .brand .logo { color: #ffff00; font-size: 0; }
+[data-theme="geocities"] .brand .logo::before { font-size: 22px; }
+[data-theme="geocities"] .brand .sub { color: #00ffff; font-family: "Times New Roman", serif; font-style: italic; font-size: 12px; text-shadow: none; }
+[data-theme="geocities"] .brand .sub::after { content: " · Best viewed in Netscape Navigator 4.0 at 800x600"; }
+[data-theme="geocities"] .doing { color: #00ff00; font-family: "Courier New", monospace; overflow: hidden; }
+[data-theme="geocities"] .doing { animation: gc-marquee 14s linear infinite; }
+@keyframes gc-marquee { from { text-indent: 100%; } to { text-indent: -100%; } }
+[data-theme="geocities"] header#top::after { content: "Visitors: 000193"; font: bold 13px "Courier New", monospace; color: #00ff00;
+  background: #000; border: 2px inset #c0c0c0; padding: 2px 8px; letter-spacing: 0.25em; }
+[data-theme="geocities"] .kv, [data-theme="geocities"] .meta label { color: #fff; }
+[data-theme="geocities"] .pill, [data-theme="geocities"] .dot { border-radius: 0; background: #c0c0c0; color: #000;
+  border: 2px outset #fff; animation: none; font-family: inherit; letter-spacing: 0; }
+[data-theme="geocities"] .pill.PLANNING { background: #ffff00; }
+[data-theme="geocities"] .pill.EXECUTING, [data-theme="geocities"] .pill.DANCING { background: #00ffff; }
+[data-theme="geocities"] .pill.ESTOP { background: #ff0000; color: #fff; }
+[data-theme="geocities"] .dot.on { color: #000080; }
+[data-theme="geocities"] .card, [data-theme="geocities"] .ex { background: #c0c0c0; border-radius: 0; border: 2px solid;
+  border-color: #ffffff #404040 #404040 #ffffff; box-shadow: 1px 1px 0 #000; }
+[data-theme="geocities"] .lane { gap: 14px; }
+[data-theme="geocities"] .lane h2 { background: linear-gradient(90deg, #000080, #1084d0); color: #fff; padding: 3px 6px;
+  letter-spacing: 0; text-transform: none; font: bold 13px "Tahoma", sans-serif; display: flex; align-items: center;
+  border: 2px solid; border-color: #ffffff #404040 #404040 #ffffff; }
+[data-theme="geocities"] .lane h2 small { color: #c0c0ff; }
+[data-theme="geocities"] .lane h2::after { content: "_ □ ×"; margin-left: auto; background: #c0c0c0; color: #000;
+  font: bold 11px "Tahoma", sans-serif; padding: 0 4px; letter-spacing: 0.4em; border: 1px outset #fff; }
+[data-theme="geocities"] .num { border-radius: 0; background: #c0c0c0; color: #000; border: 1px outset #fff; }
+[data-theme="geocities"] .card-head { font-family: "Times New Roman", serif; font-size: 15px; color: #000080; text-decoration: underline; }
+[data-theme="geocities"] button, [data-theme="geocities"] select { background: #c0c0c0; color: #000; border-radius: 0;
+  border: 2px solid; border-color: #ffffff #404040 #404040 #ffffff; font-family: inherit; }
+[data-theme="geocities"] button:active { border-color: #404040 #ffffff #ffffff #404040; }
+[data-theme="geocities"] input { background: #fff; color: #000; border-radius: 0; border: 2px inset #808080; }
+[data-theme="geocities"] .estop { color: #ff0000; font-weight: 900; }
+[data-theme="geocities"] .mic { border-radius: 0; color: #000080; }
+[data-theme="geocities"] .bubble { background: #ffffe1; color: #000; border: 1px solid #000; border-radius: 0;
+  font-family: "Comic Sans MS", "Chalkboard", cursive; }
+[data-theme="geocities"] .bubble::after { border-top-color: #000; }
+[data-theme="geocities"] .chips, [data-theme="geocities"] .stream, [data-theme="geocities"] .log, [data-theme="geocities"] .plan,
+[data-theme="geocities"] .decisions { background: #fff; border: 2px inset #808080; padding: 4px; }
+[data-theme="geocities"] .chip { background: #fff; color: #000; border-radius: 0; }
+[data-theme="geocities"] .chip.k-command { background: #ffff00; color: #000; }
+[data-theme="geocities"] .chip.k-template { color: #808080; }
+[data-theme="geocities"] .cmd-text { font-family: "Times New Roman", serif; font-size: 22px; color: #000080; }
+[data-theme="geocities"] .cmd-reply { background: #fff; border: 2px inset #808080; border-left: 2px inset #808080; border-radius: 0; }
+[data-theme="geocities"] .cmd-reply b { color: #ff00ff; }
+[data-theme="geocities"] .badge { border-radius: 0; background: #000080; color: #fff; }
+[data-theme="geocities"] .step { background: #fff; border-radius: 0; border: 1px dotted #000; }
+[data-theme="geocities"] .step .i { border-radius: 0; background: #c0c0c0; }
+[data-theme="geocities"] .step.ok .i { background: #000080; color: #fff; }
+[data-theme="geocities"] .opt .lbl .fill { background: #00ffff; }
+[data-theme="geocities"] .opt.chosen .lbl .fill { background: #ffff00; }
+[data-theme="geocities"] .muted, [data-theme="geocities"] .empty { color: #404040; }
+[data-theme="geocities"] .log .m { background: transparent; }
+[data-theme="geocities"] .log .m b { color: #0000ff; text-decoration: underline; }
+[data-theme="geocities"] .sync { color: #000080; }
+
+/* =====================================================================
+   Chart recorder: an analog lab instrument and its paper log.
+   Graph paper, typewriter text, ink and pencil, rubber stamps,
+   taped paper slips, an amber filament matrix.
+   ===================================================================== */
+[data-theme="analog"] {
+  --bg: #efe6cf; --panel: #f8f2e2; --panel-2: #fbf6e8; --line: #b9a77f; --text: #2a2416; --muted: #6d5f43;
+  --accent: #1f3a68; --ok: #1f3a68; --warn: #b8641a; --bad: #8f2d1d;
+  --seg-system: #1f3a68; --seg-catalog: #4f7cac; --seg-rules: #7a6a4f; --seg-examples: #c9a227;
+  --seg-command: #b8641a; --seg-template: #b9a77f;
+  --m-unison: #1f3a68; --m-mirror: #4f7cac; --m-call_response: #b8641a; --m-canon: #7a6a4f;
+  --m-solo_car: #8f2d1d; --m-solo_lego: #c9a227;
+  --radius: 0; --mono: "American Typewriter", "Courier New", Courier, monospace;
+  --cv-font: "American Typewriter", "Courier New", monospace;
+  --cv-bg: #fbf6e8; --cv-grid: #e3d5b0; --cv-grid-strong: #c4ad7c; --cv-shade: #efe4c7;
+  --cv-ink: #2a2416; --cv-on-block: #fbf6e8; --cv-tick: #2a2416; --cv-playhead: #8f2d1d;
+  --ent-lo: #9c8b66; --ent-hi: #1f3a68;
+  --mx-bg: #1a1408; --mx-on: 255, 170, 60; --mx-off: #2b2214; --mx-glow: 7; --mx-shape: round;
+  --stage-bg: #fbf6e8; --stage-grid: #eadcb8; --car-body: #e9dcb9; --car-line: #2a2416;
+  --wheel-fwd: #1f3a68; --wheel-back: #8f2d1d; --wheel-idle: #b9a77f;
+  --lego-body: #f1d98a; --lego-arm: #b8641a;
+  --conf-lo: #f08a5d; --conf-hi: #fbf3d0; --conf-none: #fbf6e8; --conf-alpha: 0.95;
+  --bar1: #1f3a68; --bar2: #4f7cac; --bar3: #b8641a; --bar4: #c9a227; --bar5: #8f2d1d;
+}
+[data-theme="analog"] body {
+  font: 14px/1.4 "American Typewriter", "Courier New", Courier, monospace;
+  background:
+    linear-gradient(90deg, transparent 47px, rgba(143, 45, 29, 0.35) 47px 49px, transparent 49px),
+    linear-gradient(#e0d2ac 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, #e0d2ac 1px, transparent 1px) 0 0 / 24px 24px,
+    #efe6cf;
+}
+[data-theme="analog"] header#top { background: #f6efdc; border-bottom: 3px double #2a2416; }
+[data-theme="analog"] .brand { font-family: "Georgia", "Times New Roman", serif; font-variant: small-caps; letter-spacing: 0.08em; color: #2a2416; }
+[data-theme="analog"] .brand .logo { color: #8f2d1d; }
+[data-theme="analog"] .brand .sub { font-style: italic; }
+[data-theme="analog"] .brand .sub::after { content: " · instrument log no. 193"; }
+[data-theme="analog"] .pill { border-radius: 0; background: transparent; color: #8f2d1d; border: 2.5px solid #8f2d1d;
+  transform: rotate(-3deg); font-family: "Courier New", monospace; letter-spacing: 0.15em; animation: none; opacity: 0.85; }
+[data-theme="analog"] .pill.PLANNING { color: #1f3a68; border-color: #1f3a68; background: transparent; }
+[data-theme="analog"] .pill.EXECUTING, [data-theme="analog"] .pill.DANCING { color: #b8641a; border-color: #b8641a; background: transparent; }
+[data-theme="analog"] .pill.IDLE { color: #1f3a68; border-color: #1f3a68; }
+[data-theme="analog"] .dot { border-radius: 50%; border: 1.5px solid #6d5f43; }
+[data-theme="analog"] .estop { background: #8f2d1d; border: none; border-bottom: 5px solid #5a1c12; border-radius: 4px;
+  color: #fbf6e8; font-family: "Courier New", monospace; }
+[data-theme="analog"] .card, [data-theme="analog"] .ex { position: relative; background: #f8f2e2; border: 1px solid #b9a77f;
+  border-radius: 0; box-shadow: 2px 3px 0 rgba(60, 40, 10, 0.15); }
+[data-theme="analog"] .lane .card:nth-child(odd) { transform: rotate(-0.35deg); }
+[data-theme="analog"] .lane .card:nth-child(even) { transform: rotate(0.3deg); }
+[data-theme="analog"] .card::before { content: ""; position: absolute; top: -9px; left: 50%; width: 72px; height: 18px;
+  transform: translateX(-50%) rotate(-2deg); background: rgba(232, 220, 170, 0.75); border: 1px solid rgba(160, 140, 90, 0.35); }
+[data-theme="analog"] .lane h2 { font-family: "Georgia", serif; font-style: italic; text-transform: none; letter-spacing: 0.02em;
+  font-size: 19px; color: #2a2416; border-bottom: 3px double #2a2416; padding-bottom: 2px; }
+[data-theme="analog"] .num { background: transparent; color: #8f2d1d; border: 1.5px solid #8f2d1d; font-style: normal; }
+[data-theme="analog"] .card-head { font-family: "Georgia", serif; font-style: italic; border-bottom: 1px solid #cdbb8f; padding-bottom: 3px; }
+[data-theme="analog"] button, [data-theme="analog"] select, [data-theme="analog"] input { border-radius: 0; background: #fbf6e8;
+  color: #2a2416; border: 1px solid #6d5f43; font-family: inherit; }
+[data-theme="analog"] .mic { border-radius: 50%; border: 2px solid #2a2416; color: #2a2416; }
+[data-theme="analog"] .bubble { color: #1f3a68; border-radius: 0; font-family: "Bradley Hand", "Segoe Print", "Comic Sans MS", cursive;
+  font-size: 22px; font-weight: 400; border: 1px solid #b9a77f;
+  background: repeating-linear-gradient(#fbf6e8 0 27px, #c7d6ea 27px 28px), #fbf6e8; }
+[data-theme="analog"] .bubble::after { display: none; }
+[data-theme="analog"] .chip { background: transparent; color: #2a2416; border-radius: 0; }
+[data-theme="analog"] .chip.k-command { background: #f7e48a; color: #2a2416; }
+[data-theme="analog"] .cmd-text { font-family: "Georgia", serif; }
+[data-theme="analog"] .cmd-reply { background: #fbf6e8; border-left: 3px solid #1f3a68; border-radius: 0;
+  font-family: "Bradley Hand", "Segoe Print", cursive; font-size: 20px; color: #1f3a68; }
+[data-theme="analog"] .badge { border-radius: 0; background: transparent; color: #8f2d1d; border: 1.5px solid #8f2d1d; }
+[data-theme="analog"] .step { background: transparent; border-radius: 0; border: none; border-bottom: 1px dashed #b9a77f; }
+[data-theme="analog"] .step .i { background: transparent; border: 1.5px solid #2a2416; }
+[data-theme="analog"] .step.ok .i { background: #1f3a68; color: #fbf6e8; border-color: #1f3a68; }
+[data-theme="analog"] .opt .lbl .fill { background: #e9d9a6; }
+[data-theme="analog"] .opt.chosen .lbl .fill { background: #f2b77e; }
+[data-theme="analog"] .log .m { background: transparent; border-bottom: 1px dotted #cdbb8f; }
+[data-theme="analog"] .log .m b { color: #8f2d1d; }
+[data-theme="analog"] .sync { color: #8f2d1d; }
+
+/* =====================================================================
+   Brutalist: a Swiss poster. Off-white, black, one safety orange.
+   Heavy rules, huge numerals, no shadows, no rounding, no apologies.
+   ===================================================================== */
+[data-theme="brutalist"] {
+  --bg: #f2f0ea; --panel: #ffffff; --panel-2: #ffffff; --line: #111111; --text: #111111; --muted: #555555;
+  --accent: #ff4f00; --ok: #111111; --warn: #ff4f00; --bad: #ff4f00;
+  --seg-system: #111111; --seg-catalog: #0057ff; --seg-rules: #888888; --seg-examples: #ffd400;
+  --seg-command: #ff4f00; --seg-template: #cccccc;
+  --m-unison: #111111; --m-mirror: #ff4f00; --m-call_response: #0057ff; --m-canon: #6e6e6e;
+  --m-solo_car: #b33a00; --m-solo_lego: #8a7400;
+  --radius: 0; --mono: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --cv-font: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --cv-bg: #ffffff; --cv-grid: #dddddd; --cv-grid-strong: #111111; --cv-shade: #eeeeee;
+  --cv-ink: #111111; --cv-on-block: #ffffff; --cv-tick: #111111; --cv-playhead: #ff4f00;
+  --ent-lo: #bbbbbb; --ent-hi: #111111;
+  --mx-bg: #111111; --mx-on: 255, 79, 0; --mx-off: #2a2a2a; --mx-glow: 0; --mx-shape: square;
+  --stage-bg: #ffffff; --stage-grid: #e5e5e5; --car-body: #ffffff; --car-line: #111111;
+  --wheel-fwd: #111111; --wheel-back: #ff4f00; --wheel-idle: #bbbbbb;
+  --lego-body: #ffd400; --lego-arm: #111111;
+  --conf-lo: #ff4f00; --conf-hi: #ffffff; --conf-none: #ffffff; --conf-alpha: 1;
+  --bar1: #111111; --bar2: #ff4f00; --bar3: #0057ff; --bar4: #888888; --bar5: #cccccc;
+}
+[data-theme="brutalist"] body { font: 15px/1.3 "Helvetica Neue", Helvetica, Arial, sans-serif; }
+[data-theme="brutalist"] header#top { background: #f2f0ea; border-bottom: 6px solid #111; padding: 14px 16px; }
+[data-theme="brutalist"] .brand { font: 900 34px/1 "Helvetica Neue", "Arial Black", Arial, sans-serif; letter-spacing: -0.03em; color: #111; }
+[data-theme="brutalist"] .brand .logo { color: #ff4f00; }
+[data-theme="brutalist"] .brand .sub { display: block; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700; margin: 4px 0 0; }
+[data-theme="brutalist"] .pill { border-radius: 0; background: #111; color: #fff; border: none; animation: none; font-size: 16px; padding: 8px 16px; }
+[data-theme="brutalist"] .pill.PLANNING, [data-theme="brutalist"] .pill.EXECUTING, [data-theme="brutalist"] .pill.DANCING { background: #ff4f00; color: #111; }
+[data-theme="brutalist"] .doing { color: #111; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+[data-theme="brutalist"] .dot { border-radius: 0; border: 2px solid #111; color: #111; }
+[data-theme="brutalist"] .dot.on { background: #111; color: #fff; }
+[data-theme="brutalist"] button, [data-theme="brutalist"] select, [data-theme="brutalist"] input { border-radius: 0; background: #fff; color: #111;
+  border: 2px solid #111; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+[data-theme="brutalist"] input { text-transform: none; }
+[data-theme="brutalist"] button:hover { background: #111; color: #fff; }
+[data-theme="brutalist"] .estop { background: #ff4f00; color: #111; border: 3px solid #111; font-weight: 900; font-size: 18px; }
+[data-theme="brutalist"] main { gap: 0; padding: 0; border-bottom: 6px solid #111; }
+[data-theme="brutalist"] .lane { padding: 16px; border-right: 3px solid #111; gap: 0; }
+[data-theme="brutalist"] .lane:last-child { border-right: none; }
+[data-theme="brutalist"] .lane h2 { font: 900 46px/0.9 "Helvetica Neue", "Arial Black", Arial, sans-serif; letter-spacing: -0.04em;
+  color: #111; text-transform: uppercase; margin-bottom: 12px; }
+[data-theme="brutalist"] .lane h2 small { display: block; font: 700 11px/1.4 "Helvetica Neue", Arial, sans-serif; letter-spacing: 0.2em; margin: 6px 0 0; }
+[data-theme="brutalist"] .num { width: auto; height: auto; border-radius: 0; background: #ff4f00; color: #111; padding: 0 8px; font-size: 46px; }
+[data-theme="brutalist"] .card, [data-theme="brutalist"] .ex { border-radius: 0; border: none; border-top: 3px solid #111; background: transparent;
+  padding: 10px 0 14px; }
+[data-theme="brutalist"] .card-head { text-transform: uppercase; letter-spacing: 0.1em; font-size: 12px; font-weight: 900; }
+[data-theme="brutalist"] .bubble { background: #111; color: #fff; border-radius: 0; font-size: 22px; font-weight: 900; }
+[data-theme="brutalist"] .bubble::before { content: "“"; color: #ff4f00; font-size: 40px; line-height: 0; vertical-align: -14px; margin-right: 4px; }
+[data-theme="brutalist"] .bubble::after { border-top-color: #111; }
+[data-theme="brutalist"] .chip { background: transparent; color: #111; border-radius: 0; }
+[data-theme="brutalist"] .chip.k-command { background: #ff4f00; color: #111; }
+[data-theme="brutalist"] .cmd-text { font-size: 28px; font-weight: 900; letter-spacing: -0.02em; line-height: 1.05; }
+[data-theme="brutalist"] .cmd-reply { background: transparent; border-left: 8px solid #ff4f00; border-radius: 0; font-weight: 700; }
+[data-theme="brutalist"] .badge { border-radius: 0; background: #111; color: #fff; }
+[data-theme="brutalist"] .step { border-radius: 0; background: #fff; border: 2px solid #111; }
+[data-theme="brutalist"] .step .i { border-radius: 0; background: #111; color: #fff; }
+[data-theme="brutalist"] .step.running { border-color: #ff4f00; box-shadow: none; outline: 3px solid #ff4f00; }
+[data-theme="brutalist"] .step.ok .i { background: #ff4f00; color: #111; }
+[data-theme="brutalist"] .opt .lbl .fill { background: #dddddd; }
+[data-theme="brutalist"] .opt.chosen .lbl .fill { background: #ff4f00; }
+[data-theme="brutalist"] .log .m { background: transparent; border-bottom: 1px solid #111; }
+[data-theme="brutalist"] .log .m b { color: #111; }
+[data-theme="brutalist"] #duet { padding: 16px; gap: 0; }
+[data-theme="brutalist"] #duet .card { border-top: 6px solid #111; padding-right: 16px; }
+[data-theme="brutalist"] .sync { color: #111; font-weight: 900; }
+[data-theme="brutalist"] .mic { border-radius: 0; color: #111; }
+
+/* --- polish --- */
+[data-theme="hud"] .opt .lbl .fill { background: rgba(0, 229, 255, 0.16); }
+[data-theme="hud"] .opt.chosen .lbl .fill { background: rgba(255, 179, 0, 0.38); }
+[data-theme="geocities"] .doing { order: 10; flex-basis: 100%; background: #000; border: 2px inset #c0c0c0; padding: 2px 6px;
+  font-size: 14px; white-space: nowrap; }
+[data-theme="geocities"] .doing::before { content: "★ NOW: "; color: #ffff00; }
+[data-theme="geocities"] .doing { animation-delay: -6s; }

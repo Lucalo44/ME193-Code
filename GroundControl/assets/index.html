@@ -1,10 +1,11 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="mission">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ground Control</title>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="themes.css">
 </head>
 <body>
 <header id="top">
@@ -12,6 +13,7 @@
   <div id="state" class="pill IDLE">IDLE</div>
   <div id="doing" class="doing">connecting…</div>
   <div class="meta">
+    <label>theme <select id="theme"></select></label>
     <label>model <select id="model"></select></label>
     <label title="think field length (chars). 0 = no think">think <select id="think">
       <option>0</option><option>30</option><option selected>60</option><option>90</option></select></label>
