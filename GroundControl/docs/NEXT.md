@@ -36,4 +36,4 @@ Agreed on 2026-11-25: build all three skills below. Same pattern as `self_report
 ## State at handoff
 
 - Board runs the latest commit (Qwen3-1.7B, `answer` + `self_report`, LLM lock, ctx 4096, https dashboard).
-- The held-out re-run with the `self` category (48 commands) may not have finished; see the commit message. Re-run with `venv/bin/python tools/eval/run_eval.py --tag self` (about 25 min, needs `adb forward tcp:9999 tcp:9999`).
+- The held-out re-run with the `self` category crashed after 26 of 48 commands (21/26 correct so far; traceback not captured, probably an LLM timeout while dashboard commands were sharing the model). First make `run_eval.py` catch per-command exceptions (record as `did_nothing` with the error) and save partial results, then re-run: `venv/bin/python tools/eval/run_eval.py --tag self` (about 25 min, needs `adb forward tcp:9999 tcp:9999`; don't use the dashboard meanwhile).
