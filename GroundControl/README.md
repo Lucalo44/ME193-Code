@@ -78,7 +78,7 @@ At 3 to 4 tokens per second, the LLM can't keep time, so it never sends a motor 
 
 | Config | Accuracy | Did nothing | Did wrong | Mean latency |
 |---|---|---|---|---|
-| **Qwen3-1.7B** · constrained JSON · think (deployed) | **80%** (31/39) | 0 | 8 | 23.6 s |
+| **Qwen3-1.7B** · constrained JSON · think | **80%** (31/39) | 0 | 8 | 23.6 s |
 | Qwen3.5-0.8B · constrained JSON · think | 62% (24/39) | 1 | 14 | 14.0 s |
 | Qwen3.5-0.8B · constrained JSON · parts | 51% (20/39) | 1 | 18 | 16.0 s |
 | Qwen3.5-0.8B · constrained JSON · no scratchpad | 49% (19/39) | 0 | 20 | 8.3 s |
@@ -86,6 +86,8 @@ At 3 to 4 tokens per second, the LLM can't keep time, so it never sends a motor 
 | Gemma 3 1B · constrained JSON · parts | 36% (14/39) | 1 | 24 | 14.0 s |
 
 The 1.7B's eight mistakes are small but real: three plans tack on an extra `matrix_clear` or `wait`, one turns left instead of right, one invents a reply topic, and two injection attempts got planned instead of refused. The 0.8B refused all four injections, but its most common mistake (8 of 15) was an `mqtt_publish` nobody asked for. Either way, the topic whitelist means no plan in any run could actually publish to a `/cmd` topic.
+
+After adding the `answer` skill, I extended the set to 43 commands with a `question` category. The deployed planner scored **81% (35/43)**, answered all 5 questions, and still mixes up left and right now and then.
 
 **Error.** With 39 commands, one command is 2.6 points, and in my dev runs, prompt variants moved accuracy by ±15 points on 20 commands. So differences smaller than about 10 points shouldn't be read as real. The "did wrong" count includes plans the topic whitelist would have blocked at execution. Those are counted as wrong because the model still chose them.
 
