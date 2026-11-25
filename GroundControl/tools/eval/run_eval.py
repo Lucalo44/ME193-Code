@@ -151,7 +151,7 @@ def main():
     out = HERE / "results"
     out.mkdir(exist_ok=True)
     style = f"_{a.style}" if a.mode == "json" and a.style != "parts" else ""
-    name = f"{a.set}_{a.model}_{a.mode}_think{a.think}{style}{('_' + a.tag) if a.tag else ''}.json"
+    name = f"{a.set}_{a.model.split('/')[-1]}_{a.mode}_think{a.think}{style}{('_' + a.tag) if a.tag else ''}.json"
     (out / name).write_text(json.dumps({"summary": summary, "rows": rows}, indent=1))
     print(f"saved tools/eval/results/{name}")
 

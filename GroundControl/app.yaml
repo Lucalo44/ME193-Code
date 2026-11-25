@@ -3,6 +3,10 @@ icon: 🕺
 description: "Voice/MQTT-commanded dancing robots. A local LLM on the UNO Q plans, deterministic code performs, and the dashboard shows the model thinking."
 ports: []
 bricks:
-  - arduino:web_ui
+  - arduino:web_ui: {}
   - arduino:llm:
-    model: llamacpp:Qwen3.5-0.8B-Q4_0
+      model: llamacpp:Qwen3.5-0.8B-Q4_0
+      variables:
+        # Default is 16384. Our prompts are ~800 tokens; 2048 keeps the KV cache small so a
+        # standard-attention model (e.g. Qwen3-1.7B) fits the runner's 2.44 GiB memory cap.
+        LLAMA_ARG_CTX_SIZE: "2048"

@@ -2,7 +2,7 @@
 
 This is my final project for ME193, and the brief was a lot. The UNO Q had to take commands over MQTT, run them through an LLM that lives on the board itself, do what was asked, report back, and somehow show off neural nets, motors and sensors along the way. I decided the most honest way to show off a 0.8-billion-parameter model on a 4 GB board was to make it choreograph a dance between two robots, and to put its thinking on a projector while it does it.
 
-The hardware is an Arduino UNO Q (the 4 GB version), which is really two computers: a Qualcomm chip running Debian for Python and the LLM, and an STM32 for the LED matrix and the motors. The partner robot is a LEGO Education Double Motor over Bluetooth. The model is Qwen3.5-0.8B at 4-bit, served by llama.cpp through App Lab's LLM Brick. It reads a prompt at about 11 tokens per second and writes at about 4.3. Every design choice below comes back to that second number.
+The hardware is an Arduino UNO Q (the 4 GB version), which is really two computers: a Qualcomm chip running Debian for Python and the LLM, and an STM32 for the LED matrix and the motors. The partner robot is a LEGO Education Double Motor over Bluetooth. The planner runs on llama.cpp through App Lab's LLM Brick. I started with the default model, Qwen3.5-0.8B at 4-bit, which reads a prompt at about 11 tokens per second and writes at about 4.3. It ended up on Qwen3-1.7B, which writes at about 3. Every design choice below comes back to that number.
 
 ## What it does
 
@@ -55,13 +55,21 @@ The dashboard ([assets/app.js](assets/app.js)) is the part I'm proudest of. It r
 
 Below that sits the duet: a beat grid with one lane per robot, blocks colored by dance mode, a moving playhead, and a tick for every keyframe showing where it was commanded versus where it really landed.
 
+### A bigger model
+
+Prompt tuning on the 0.8B topped out at 62%, so I tried the next size up. App Lab can install any GGUF from Hugging Face, not just the two models in its catalog. On disk and in RAM, the UNO Q tops out at about a 2B model: the model container is capped at 2.44 GiB, and 4B models don't fit at 4-bit.
+
+Qwen3-1.7B (1.06 GB) did not work at first. It wrote a lovely 0.3 tokens per second. The 0.8B is a hybrid model whose attention cache barely grows, but the 1.7B uses standard attention, and App Lab's default 16k-token context reserves about 1.8 GB for it. Together with the weights, that overflowed the container cap, so the kernel kept re-reading the model from flash on every token. Setting `LLAMA_ARG_CTX_SIZE` to 2048 in [app.yaml](app.yaml) (my prompts are about 800 tokens) brought it to 3.0 tokens per second, in 948 MiB.
+
+With exactly the same prompt, it scored 80% instead of 62%. Each command takes about 24 s instead of 14 s, and the boot warm-up takes 2.7 minutes instead of one. That is a trade I'll take for a planner, since nothing time-critical waits on it. It is now the default, and the dashboard's model picker can still switch to the 0.8B when speed matters more.
+
 ### The duet
 
-At 4.3 tokens per second, the LLM can't keep time, so it never sends a motor command. It writes a score of about 60 tokens (bpm, sections, a mode and a move per robot), and [python/dance/compiler.py](python/dance/compiler.py) turns that into 70-plus timed keyframes with a 3-2-1 count-in on the matrix. [python/dance/conductor.py](python/dance/conductor.py) gives every performer the same wall-clock start time. The car's keyframes fire from a local thread. The LEGO bot gets its whole timeline ahead of time, and the host service schedules it locally and fires each move early by half the measured BLE round trip. The board host and the app container share one kernel clock, which is what makes this work at all. After each dance, the service learns how long the motor takes to actually start moving and leads by that next time, so the second dance should be tighter than the first.
+At 3 to 4 tokens per second, the LLM can't keep time, so it never sends a motor command. It writes a score of about 60 tokens (bpm, sections, a mode and a move per robot), and [python/dance/compiler.py](python/dance/compiler.py) turns that into 70-plus timed keyframes with a 3-2-1 count-in on the matrix. [python/dance/conductor.py](python/dance/conductor.py) gives every performer the same wall-clock start time. The car's keyframes fire from a local thread. The LEGO bot gets its whole timeline ahead of time, and the host service schedules it locally and fires each move early by half the measured BLE round trip. The board host and the app container share one kernel clock, which is what makes this work at all. After each dance, the service learns how long the motor takes to actually start moving and leads by that next time, so the second dance should be tighter than the first.
 
 ## Planner evaluation
 
-**Abstract.** I measured how often the on-board planner turns a natural-language command into the right plan, on 39 held-out commands across 8 categories, comparing two models, two prompt styles and two decoding approaches.
+**Abstract.** I measured how often the on-board planner turns a natural-language command into the right plan, on 39 held-out commands across 8 categories, comparing three models, two prompt styles and two decoding approaches.
 
 **Methods.** [tools/eval/commands.yaml](tools/eval/commands.yaml) has 39 commands: single actions, multi-step, information requests, explicit topics, dances, negation traps, nonsense and injection attempts. None of them were used for tuning; that's what [tools/eval/dev.yaml](tools/eval/dev.yaml) is for. A plan counts as correct only if its skill sequence matches exactly and every key argument is right. Failures are split into "did nothing" (safe) and "did something wrong" (the dangerous kind). Plans are scored, not executed. Every run used the real models on the board, called from the laptop through `adb forward`.
 
@@ -69,19 +77,20 @@ At 4.3 tokens per second, the LLM can't keep time, so it never sends a motor com
 
 | Config | Accuracy | Did nothing | Did wrong | Mean latency |
 |---|---|---|---|---|
-| Qwen3.5-0.8B · constrained JSON · **think** (deployed) | **62%** (24/39) | 1 | 14 | 14.0 s |
+| **Qwen3-1.7B** · constrained JSON · think (deployed) | **80%** (31/39) | 0 | 8 | 23.6 s |
+| Qwen3.5-0.8B · constrained JSON · think | 62% (24/39) | 1 | 14 | 14.0 s |
 | Qwen3.5-0.8B · constrained JSON · parts | 51% (20/39) | 1 | 18 | 16.0 s |
 | Qwen3.5-0.8B · constrained JSON · no scratchpad | 49% (19/39) | 0 | 20 | 8.3 s |
 | Qwen3.5-0.8B · native tool calling (the LLM Brick's way) | 44% (17/39) | 5 | 17 | 33.8 s |
 | Gemma 3 1B · constrained JSON · parts | 36% (14/39) | 1 | 24 | 14.0 s |
 
-The deployed planner refused all four injection attempts. Even without that, the topic whitelist means no plan in any run could actually publish to a `/cmd` topic. Its most common mistake (8 of 15) is an `mqtt_publish` nobody asked for. In three of those plans it's the only error, and it's harmless, because the executor replies "done" anyway. I count them all as wrong.
+The 1.7B's eight mistakes are small but real: three plans tack on an extra `matrix_clear` or `wait`, one turns left instead of right, one invents a reply topic, and two injection attempts got planned instead of refused. The 0.8B refused all four injections, but its most common mistake (8 of 15) was an `mqtt_publish` nobody asked for. Either way, the topic whitelist means no plan in any run could actually publish to a `/cmd` topic.
 
 **Error.** With 39 commands, one command is 2.6 points, and in my dev runs, prompt variants moved accuracy by ±15 points on 20 commands. So differences smaller than about 10 points shouldn't be read as real. The "did wrong" count includes plans the topic whitelist would have blocked at execution. Those are counted as wrong because the model still chose them.
 
-Picking the winner used the held-out set, so 62% is somewhat optimistic.
+For the 0.8B, I picked its best prompt by comparing configs on the held-out set, so its 62% is somewhat optimistic. The 1.7B ran the held-out set exactly once with a prompt tuned for the smaller model, so its 80% is the cleaner number.
 
-**Conclusions.** One constrained JSON plan beats native tool calling: 18 points better and 2.4x faster, because the tool loop pays a full round trip per call. A scratchpad is what makes multi-step plans possible (0/6 multi-step without one). The 0.8B model is clearly the bottleneck. It knows the skills, but it copies its examples too literally, and 62% is well short of the 85% I was aiming for. That makes the fine-tune the obvious next step rather than more prompt surgery.
+**Conclusions.** Model size beat every prompt trick I tried: doubling the parameters gained 18 points, more than all my prompt work on the 0.8B combined. One constrained JSON plan beats native tool calling (18 points better and 2.4x faster on the same model), because the tool loop pays a full round trip per call. A scratchpad is what makes multi-step plans possible (0/6 multi-step without one). 80% is still short of the 85% I was aiming for, so the fine-tune is the next step, and it works for either model.
 
 ## Running it
 
@@ -110,13 +119,13 @@ cd tools/voice && python3 -m http.server 8000   # http://localhost:8000/voice.ht
 
 ## What's left
 
-- **Hardware in the loop.** Everything up to the motors is verified on the board: the assignment example ("I am done" on `luca` after 22.7 s, **HI** on the matrix), the yaw request (15 s), and `/status` (214–280 ms round trip through the public broker, 0.32 s while the model was mid-plan). The wheels and the LEGO bot are not yet: the Double Motor wasn't on during testing, and I still need to confirm the car's wiring. The sketch uses the sumo robot's pins (D5/D6 left, D9/D10 right).
+- **Hardware in the loop.** Everything up to the motors is verified on the board: the assignment example ("I am done" on `luca` after 33.5 s with the 1.7B, 22.7 s with the 0.8B, **HI** on the matrix), the yaw request (29 s), and `/status` (214–330 ms round trip through the public broker, 0.32 s while the model was mid-plan). The wheels and the LEGO bot are not yet: the Double Motor wasn't on during testing, and I still need to confirm the car's wiring. The sketch uses the sumo robot's pins (D5/D6 left, D9/D10 right).
 - **The fine-tune.** [tools/finetune/](tools/finetune/) generates 4,000 synthetic plans and has the LoRA, GGUF and install recipe. App Lab 0.14 can install a custom GGUF straight from Hugging Face.
 - **Phases 6, 7 and 9:** a real IMU for closed-loop turns, the camera, and my own keyword-spotting net for reflex words.
 
 ## Reflection
 
-- **What I learned:** a small model's mistakes are legible if you show its probabilities. The "closed the list at 99%" moment taught me more than any accuracy number.
+- **What I learned:** a small model's mistakes are legible if you show its probabilities. The "closed the list at 99%" moment taught me more than any accuracy number. Also, a slightly bigger model beat hours of prompt surgery.
 - **What I'm proud of:** the dashboard, and that `stop` and `/status` never wait on the LLM.
 - **What was tough:** prompt tuning. Every fix broke something else.
 - **Biggest failure:** my first held-out eval, at 59%, after the dev set said 83%. Then my "better" version scored 51%. I had tuned myself into a corner, twice.

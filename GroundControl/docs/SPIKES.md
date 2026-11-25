@@ -24,6 +24,8 @@ Measured on 2026-11-25 over USB (adb) with the board on home Wi-Fi.
 | `llamacpp:Qwen3.5-0.8B-Q4_0` (default) | 507 MB | yes |
 | `llamacpp:gemma-3-1b-it-Q4_0` | 722 MB | yes |
 
+**Later the same day:** installed `llamacpp:unsloth/Qwen3-1.7B-GGUF:Q4_0` (1.06 GB) from Hugging Face with `arduino-app-cli model install`, and deleted Gemma 3 1B (`arduino-app-cli model delete`) to free disk: 1022 MB free afterwards. The server picks up new models only after the runner container restarts. Qwen3-1.7B needs `LLAMA_ARG_CTX_SIZE=2048` (see below) and runs at 4.8–5.2 tok/s prefill and 3.0–3.1 tok/s decode, using 948 MiB. It is now the default (80% vs 62% on the held-out eval).
+
 The runner is a separate container (`llamacpp-models-runner:9999` inside the app's network, `127.0.0.1:9999` on the host) in **router mode** (`LLAMA_ARG_MODELS_DIR`, `MODELS_MAX=1`): the request's `model` field picks the model, and switching models unloads the other one. Container memory limit 2500 MB, ctx 16384, 4 threads, flash attention on, reasoning off.
 
 ## Spike 1: MQTT over WebSockets (`tools/spikes/spike_mqtt.py`, run inside the app container)
@@ -51,6 +53,10 @@ The runner is a separate container (`llamacpp-models-runner:9999` inside the app
 Found later: `top_logprobs` without `logprobs: true` is a 400; `"items": false` in a schema is rejected (tuple length comes from `prefixItems` + `minItems/maxItems` instead). `prefixItems`, `const` (including arrays) and `anyOf` all work.
 
 The top-k probabilities are the model's **raw** distribution (before the grammar mask). At temperature 0, any generated token that isn't the raw top-1 was forced by the grammar. That gives the dashboard's ⚑ marker for free.
+
+### Context size vs. memory cap
+
+With the default `LLAMA_ARG_CTX_SIZE=16384`, Qwen3-1.7B decoded at **0.3 tok/s** while the board's free RAM sank to 104 MB. Its KV cache is about 115 KB/token (28 layers × 8 KV heads × 128 × 2 × fp16), so about 1.8 GB at 16k. With the weights, that exceeds the runner's 2.44 GiB cgroup cap, and the mmapped weights get evicted and re-read from eMMC on every token. Qwen3.5-0.8B (a hybrid model) has a much smaller KV cache and never hit this. Fix: `arduino-app-cli app brick config <app> arduino:llm LLAMA_ARG_CTX_SIZE=2048`, which writes `variables:` under the brick in `app.yaml` (and drops the `model:` line, so keep the repo's copy authoritative).
 
 ## Spike 3: Bridge round trip
 

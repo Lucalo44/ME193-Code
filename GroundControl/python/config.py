@@ -28,8 +28,8 @@ QUEUE_CAP = 5
 
 # --- LLM ------------------------------------------------------------------------
 LLM_URL = os.environ.get("GC_LLM_URL", "http://llamacpp-models-runner:9999")
-LLM_MODEL = os.environ.get("GC_LLM_MODEL", "Qwen3.5-0.8B-Q4_0")
-LLM_MODELS = ["Qwen3.5-0.8B-Q4_0", "gemma-3-1b-it-Q4_0"]
+LLM_MODEL = os.environ.get("GC_LLM_MODEL", "unsloth/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q4_0")   # 80% held-out (docs/EVAL.md)
+LLM_MODELS = ["unsloth/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q4_0", "Qwen3.5-0.8B-Q4_0"]   # dashboard picker
 THINK_MAX_CHARS = int(os.environ.get("GC_THINK_CHARS", "60"))   # 0 = no think field
 MAX_STEPS = 8
 # "think": the model names the skills it will use in a short think, then writes steps

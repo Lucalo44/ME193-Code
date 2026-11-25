@@ -115,12 +115,12 @@
     </div>
     <div class="ex">
       <h3>The KV cache</h3>
-      <p>Reading the prompt (prefill) runs at about 11 tokens/s here, so 750 tokens would cost over a minute. The prompt starts with the same fixed text every time, so llama.cpp keeps its attention keys/values from the last request and only reads the new command: about 30 tokens, 3 seconds.</p>
+      <p>Reading the prompt (prefill) runs at about 5 tokens/s here, so 750 tokens would cost 2.5 minutes. The prompt starts with the same fixed text every time, so llama.cpp keeps its attention keys/values from the last request and only reads the new command: about 35 tokens, 7 seconds.</p>
       <svg viewBox="0 0 300 40"><rect x="0" y="8" width="240" height="24" rx="4" class="svg-cached"/><rect x="242" y="8" width="56" height="24" rx="4" class="svg-new"/><text x="120" y="25" text-anchor="middle">reused from cache</text><text x="270" y="25" text-anchor="middle">new</text></svg>
     </div>
     <div class="ex">
       <h3>4-bit weights (Q4_0)</h3>
-      <p>Qwen3.5-0.8B has 0.8 billion weights. Stored as 16-bit floats that's 1.6 GB; Q4_0 packs blocks of 32 weights into 4-bit integers with one scale each, so the whole model is 507 MB and fits next to everything else in the UNO Q's 4 GB.</p>
+      <p>Qwen3-1.7B has 1.7 billion weights. Stored as 16-bit floats that's 3.4 GB; Q4_0 packs blocks of 32 weights into 4-bit integers with one scale each, so the whole model is 1.06 GB and fits next to everything else in the UNO Q's 4 GB.</p>
     </div>
     <div class="ex">
       <h3>Why the JSON is always valid</h3>
@@ -128,7 +128,7 @@
     </div>
     <div class="ex">
       <h3>Two brains</h3>
-      <p>The LLM is a planner: about 10 to 20 seconds per command. It never drives in a loop. Timing-critical work (the beat clock, stopping, the watchdog) is deterministic code that reacts in milliseconds. "stop" never touches the model.</p>
+      <p>The LLM is a planner: about 20 to 35 seconds per command. It never drives in a loop. Timing-critical work (the beat clock, stopping, the watchdog) is deterministic code that reacts in milliseconds. "stop" never touches the model.</p>
     </div>
     <div class="ex">
       <h3>The duet</h3>
