@@ -1,0 +1,134 @@
+/* Layouts. Loaded after styles.css and themes.css.
+   html.layout-desktop : fit-to-screen. Header row, three lanes filling the height
+                         (panels scroll inside), choreography + stage pinned at the
+                         bottom, layout toggle in a slim footer. Built for 1280-1920
+                         wide laptop screens; short windows fall back to scrolling.
+   html.layout-mobile  : one column, big touch targets, analysis panels hidden.
+   The toggle lives in footer#layout-bar. */
+
+/* ------------------------------------------------------------ footer toggle (both) */
+#layout-bar { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 16px;
+  font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); background: var(--bg); }
+#layout-bar .seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+#layout-bar .seg button { border: none; border-radius: 0; padding: 4px 14px; background: transparent; color: var(--muted); font-size: 12px; }
+#layout-bar .seg button.on { background: var(--accent); color: var(--bg); font-weight: 700; }
+#layout-bar label { display: none; }
+
+/* ============================================================ desktop: fit to screen */
+html.layout-desktop { font-size: clamp(12px, 0.5vw + 6px, 15px); }
+html.layout-desktop body { font-size: 1rem; }
+@media (min-width: 1000px) and (min-height: 640px) {
+  html.layout-desktop, html.layout-desktop body { height: 100%; overflow: hidden; }
+  html.layout-desktop body {
+    display: grid; grid-template-columns: 100%;
+    grid-template-rows: auto minmax(0, 1fr) clamp(196px, 27vh, 300px) auto;
+    grid-template-areas: "head" "main" "duet" "foot";
+  }
+  html.layout-desktop[data-theme="hud"] body { grid-template-rows: auto clamp(196px, 27vh, 300px) minmax(0, 1fr) auto;
+    grid-template-areas: "head" "duet" "main" "foot"; }
+  html.layout-desktop header#top { grid-area: head; flex-wrap: nowrap; padding: 6px 14px; gap: 10px; position: static; }
+  html.layout-desktop .brand { font-size: 1.1rem; }
+  html.layout-desktop .brand .sub { display: none; }
+  html.layout-desktop .doing { min-width: 80px; }
+  html.layout-desktop .meta { flex-wrap: nowrap; gap: 8px; }
+  html.layout-desktop .meta label { white-space: nowrap; font-size: 0.85rem; }
+  html.layout-desktop #model { max-width: 15vw; }
+  html.layout-desktop .meta button { padding: 4px 10px; }
+  html.layout-desktop main { grid-area: main; min-height: 0; padding: 10px 14px; gap: 10px; }
+  html.layout-desktop .lane { min-height: 0; overflow: hidden; gap: 8px; }
+  html.layout-desktop .lane > .card, html.layout-desktop .lane > .row { flex: 0 0 auto; }
+  html.layout-desktop .card { padding: 8px 10px; }
+  html.layout-desktop .card.grow { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+  html.layout-desktop .chips, html.layout-desktop .stream, html.layout-desktop .decisions,
+  html.layout-desktop .plan, html.layout-desktop .log { max-height: none; min-height: 0; overflow-y: auto; }
+  html.layout-desktop .card.grow .chips, html.layout-desktop .card.grow .stream { flex: 1 1 0; }
+  /* thinking lane: tokens and decisions share the height */
+  html.layout-desktop #lane-think > .card:last-child { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+  html.layout-desktop #lane-think > .card.grow { flex: 1.3 1 0; }
+  /* action lane: plan scrolls, latency takes the rest */
+  html.layout-desktop #lane-action > .card:first-of-type { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+  html.layout-desktop #lane-action > .card:last-child { flex: 0.9 1 0; min-height: 0; display: flex; flex-direction: column; }
+  html.layout-desktop canvas#gantt { flex: 1 1 0; height: auto; min-height: 60px; }
+  html.layout-desktop .row .card:first-child { flex: 0 0 auto; }
+  html.layout-desktop canvas#matrix { width: clamp(150px, 13vw, 240px); height: auto; aspect-ratio: 13 / 8; }
+  html.layout-desktop .log { max-height: clamp(70px, 12vh, 150px); }
+  html.layout-desktop canvas#entropy { height: 40px; }
+  html.layout-desktop .cmd-text { font-size: clamp(14px, 1.15vw, 20px); }
+  html.layout-desktop .bubble { font-size: clamp(13px, 1vw, 18px); padding: 7px 12px; min-height: 0; }
+  html.layout-desktop .stream { font-size: clamp(12px, 0.85vw, 15px); }
+  html.layout-desktop .cmd-reply { font-size: clamp(13px, 0.95vw, 17px); max-height: 18vh; overflow-y: auto; }
+  /* bottom strip */
+  html.layout-desktop #duet { grid-area: duet; min-height: 0; padding: 0 14px 8px; gap: 10px; }
+  html.layout-desktop[data-theme="hud"] #duet { padding-top: 8px; }
+  html.layout-desktop #duet > .card { min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  html.layout-desktop canvas#timeline, html.layout-desktop canvas#stage { flex: 1 1 0; height: auto; min-height: 140px; }
+  html.layout-desktop #layout-bar { grid-area: foot; padding: 3px 14px; }
+  /* themes whose headings are huge get a fitting size */
+  html.layout-desktop[data-theme="brutalist"] .lane h2 { font-size: clamp(24px, 2.4vw, 46px); margin-bottom: 6px; }
+  html.layout-desktop[data-theme="brutalist"] .num { font-size: clamp(24px, 2.4vw, 46px); }
+  html.layout-desktop[data-theme="brutalist"] .brand { font-size: clamp(20px, 1.8vw, 34px); }
+  html.layout-desktop[data-theme="brutalist"] main { padding: 0; }
+  html.layout-desktop[data-theme="brutalist"] .lane { padding: 10px 14px; }
+  html.layout-desktop[data-theme="geocities"] .doing { flex-basis: auto; order: 0; flex: 1; }
+  html.layout-desktop[data-theme="geocities"] header#top::after { display: none; }
+}
+
+/* ============================================================ mobile */
+html.layout-mobile { font-size: 15px; }
+html.layout-mobile body { display: block; }
+html.layout-mobile header#top { padding: 8px 12px; gap: 8px; position: sticky; top: 0; }
+html.layout-mobile .brand { font-size: 16px; letter-spacing: 0.08em; }
+html.layout-mobile .brand .sub, html.layout-mobile .meta label, html.layout-mobile .kv,
+html.layout-mobile #explain-btn, html.layout-mobile header#top::after { display: none; }
+html.layout-mobile .pill { min-width: 0; padding: 4px 10px; font-size: 12px; }
+html.layout-mobile .doing { order: 10; flex-basis: 100%; font-size: 13px; white-space: normal; animation: none; text-indent: 0; }
+html.layout-mobile .meta { margin-left: auto; gap: 6px; }
+html.layout-mobile .estop { padding: 10px 18px; font-size: 16px; }
+html.layout-mobile main { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px; }
+html.layout-mobile .lane { gap: 10px; }
+html.layout-mobile .lane h2 { font-size: 12px; }
+html.layout-mobile[data-theme="brutalist"] .lane h2 { font-size: 30px; }
+html.layout-mobile[data-theme="brutalist"] .num { font-size: 30px; }
+html.layout-mobile[data-theme="brutalist"] .lane { border-right: none; border-bottom: 3px solid #111; padding: 12px; }
+html.layout-mobile[data-theme="brutalist"] main { padding: 0; }
+/* the controls first, big */
+html.layout-mobile .send { gap: 10px; }
+html.layout-mobile .send input { font-size: 17px; padding: 12px; }
+html.layout-mobile .mic { width: 56px; height: 56px; }
+html.layout-mobile .mic svg { width: 28px; height: 28px; }
+html.layout-mobile .send button[type="submit"] { padding: 12px 16px; font-size: 16px; }
+html.layout-mobile .quick button { padding: 8px 12px; font-size: 14px; }
+html.layout-mobile .cmd-text { font-size: 19px; }
+html.layout-mobile .cmd-reply { font-size: 18px; }
+/* hide the token-level analysis; keep thought, plan, matrix, replies, the dance */
+html.layout-mobile .card:has(#chips), html.layout-mobile .card:has(#stream), html.layout-mobile .card:has(#decisions),
+html.layout-mobile .card:has(#gantt), html.layout-mobile .lane h2 small { display: none; }
+html.layout-mobile .row { flex-direction: row; }
+html.layout-mobile canvas#matrix { width: 100%; max-width: 220px; height: auto; aspect-ratio: 13 / 8; }
+html.layout-mobile .log { max-height: 140px; }
+html.layout-mobile #duet { display: flex; flex-direction: column; gap: 10px; padding: 0 12px 12px; }
+html.layout-mobile canvas#timeline { height: 150px; }
+html.layout-mobile canvas#stage { height: 170px; }
+html.layout-mobile #duet .legend { font-size: 11px; }
+html.layout-mobile .step { grid-template-columns: 24px 1fr; }
+html.layout-mobile .step .st { grid-column: 2; justify-self: start; }
+html.layout-mobile .explain-grid { grid-template-columns: 1fr; }
+html.layout-mobile #layout-bar { padding: 12px; font-size: 13px; }
+html.layout-mobile #layout-bar label { display: inline-flex; gap: 6px; align-items: center; }
+html.layout-mobile #layout-bar .seg button { padding: 8px 18px; font-size: 14px; }
+
+/* narrower laptops (13" at 1280): keep the header on one line */
+@media (min-width: 1000px) and (max-width: 1400px) {
+  html.layout-desktop .kv { display: none; }
+  html.layout-desktop .meta button { white-space: nowrap; }
+  html.layout-desktop #model { max-width: 12vw; }
+}
+@media (min-width: 1000px) and (min-height: 640px) {
+  html.layout-desktop .doing { flex: 1 1 0; min-width: 0; }
+  html.layout-desktop .meta { flex: 0 1 auto; min-width: 0; }
+  html.layout-desktop #theme { max-width: 10vw; }
+  html.layout-desktop[data-theme="brutalist"] .pill { font-size: 13px; padding: 5px 10px; }
+  html.layout-desktop[data-theme="brutalist"] .estop { font-size: 14px; padding: 4px 12px; }
+  html.layout-desktop[data-theme="brutalist"] header#top { padding: 8px 14px; border-bottom-width: 4px; }
+}
+html.layout-desktop[data-theme="brutalist"] .sync { font-size: 12px; }

@@ -276,6 +276,45 @@ class Planner:
             pass
         return plan, None
 
+    # ---- answer composer: a direct reply to the exact question, from gathered facts
+    COMPOSE_SYSTEM = (
+        "You are Ground Control, a small robot built on an Arduino UNO Q. Answer the user's question "
+        "directly in one or two natural sentences, speaking as yourself (I, my). Start with exactly what was "
+        "asked: a number, a name or a value. For a yes/no question, answer yes or no exactly as the facts say. Then add the "
+        "one most useful detail from the facts. Keep it under 30 words. Use only the facts given; "
+        "never invent numbers, names or devices. If the facts don't answer the question, say so briefly and "
+        "give the closest fact.")
+
+    def compose(self, question, facts, job_id=None, cancel=None, max_tokens=90):
+        """One short free-text generation. Returns the answer, or None on failure
+        (callers fall back to their deterministic text)."""
+        msgs = [{"role": "system", "content": self.COMPOSE_SYSTEM},
+                {"role": "user", "content": f"Facts: {facts}\nQuestion: {question}"}]
+        with self.llm_lock:
+            self.emit("llm.compose", {"id": job_id, "facts": facts[:600]})
+
+            def on_token(tok):
+                self.emit("llm.token", {"id": job_id, "attempt": 0, "compose": True, **tok})
+            try:
+                r = self.client.chat_stream(msgs, schema=None, max_tokens=max_tokens, temperature=0.1,
+                                            on_token=on_token, cancel=cancel)
+            except Exception as e:  # noqa: BLE001
+                print(f"[compose] failed: {e!r}", flush=True)
+                return None
+        text = re.sub(r"<think>.*?</think>", "", r["text"], flags=re.S).strip().strip('"')
+        text = re.sub(r"\s+", " ", text)
+        # This model opens almost everything with "Yes." Keep it only for yes/no questions.
+        yes_no = re.match(r"^\s*(is|are|am|do|does|did|can|could|will|would|should|shall|has|have|had|was|were)\b",
+                          question, re.I)
+        if not yes_no:
+            text = re.sub(r"^(yes|no)[.,!]?\s+", "", text, flags=re.I)
+            text = text[:1].upper() + text[1:]
+        else:
+            # "Yes. Nothing is plugged in." contradicts itself; the sentence after it is what the facts say.
+            text = re.sub(r"^yes[.,!]?\s+(?=(nothing|no |none|not |there (is|are) no|i (do not|don't|have no)))",
+                          "No. ", text, flags=re.I)
+        return text or None
+
     # ---- Baseline B: native tool calling loop (what the LLM Brick does) ----
     def plan_with_tools(self, text, max_rounds=4):
         msgs = [{"role": "system", "content": P.HEAD.split("\n")[0] + " Use the tools to do what the user asks."},

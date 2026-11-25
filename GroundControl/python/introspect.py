@@ -8,7 +8,7 @@ and phrases them:
   pins       what the sketch drives + a live probe of the free header pins + I2C scan
   devices    USB / camera / audio / Bluetooth / I2C / the LEGO bot
   software   the app, the model, the other App Lab apps and services
-  resources  RAM, disk, CPU load, temperature, uptime
+  health     RAM, disk, CPU load, my own temperature, uptime
   network    IP address, MQTT broker and topics, dashboard URL
   all        a short summary of everything
 
@@ -218,7 +218,7 @@ class SelfModel:
             out.append(f"({h['app_cli']}.)")
         return " ".join(out)
 
-    def _t_resources(self):
+    def _t_health(self):
         h = self.host()
         out = []
         if h.get("mem_total_mb"):
@@ -259,7 +259,101 @@ class SelfModel:
                 f"{model}. My sketch drives two wheel motors on D5/D6 and D9/D10, "
                 f"{i2c} on my buses, the LEGO bot is "
                 f"{lego}, and I'm {s.get('state', '?').lower()}. Ask about my board, pins, devices, software, "
-                "resources or network for details.")
+                "health or network for details.")
 
 
-TOPICS = ["board", "pins", "devices", "software", "resources", "network", "all"]
+    # ---------------------------------------------------------------- compact facts
+    # Short "key: value" facts for the answer composer (the LLM writes the reply
+    # to the exact question from these). Compact on purpose: every token is
+    # prefill time on the board.
+    # Words that mean a question needs a topic's facts, whatever topic the model picked.
+    KEYWORDS = {
+        "health": ("disk", "storage", "space", "ram", "memory", "temperature", "hot", "warm", "cool", "load", "uptime", "how long"),
+        "pins": ("pin", "plugged", "attached", "wired", "header", "gpio", "i2c", "qwiic", "connected to"),
+        "network": ("ip", "address", "network", "wifi", "wi-fi", "url", "dashboard", "broker", "mqtt", "topic"),
+        "software": ("app", "running", "model", "program", "software", "version", "llm"),
+        "board": ("board", "processor", "cpu", "chip", "microcontroller", "made of", "what are you"),
+        "devices": ("usb", "camera", "microphone", "audio", "speaker", "bluetooth", "lego", "device"),
+    }
+
+    def facts(self, topic, question=""):
+        """Facts for the chosen topic, plus any topic the question's words point to
+        (a 1.7B model sometimes picks a near-miss topic, e.g. 'devices' for disk space)."""
+        q = f" {question.lower()} "
+        topics = [topic] + [t for t, words in self.KEYWORDS.items()
+                            if t != topic and any(w in q for w in words)][:2]
+        out = []
+        for t in topics:
+            try:
+                out.append(getattr(self, f"_f_{t}")())
+            except Exception as e:  # noqa: BLE001
+                out.append(f"error reading {t}: {e}")
+        return " ".join(out)
+
+    def _f_board(self):
+        h = self.host()
+        soc = (h.get("soc") or ["?"])[0].replace("qcom,", "Qualcomm ").replace("qrb", "QRB")
+        return (f"board: {self._board_name(h) or 'unknown'} (hostname {h.get('hostname', '?')}); "
+                f"main processor (runs Linux, Python and this LLM): {soc}, {h.get('cpus', '?')} Arm cores, "
+                f"{h.get('mem_total_mb', 0) / 1024:.1f} GB RAM, {h.get('os', '?')}; "
+                "second chip, a real-time microcontroller: STM32U585 (runs the 8x13 LED matrix, header pins, motors)")
+
+    def _f_pins(self):
+        probe = self.hal.probe_pins() or {}
+        floating = [p for p, v in probe.items() if v == "f"]
+        driven = [f"{p} held {'high' if v == 'H' else 'low'}" for p, v in probe.items() if v in "HL"]
+        scan = self.hal.i2c_scan() or {}
+        i2c = [f"0x{a} on {I2C_BUS_NAMES.get(b, b)} (likely {I2C_KNOWN.get(a.lower(), 'unknown device')})"
+               for b, addrs in scan.items() for a in addrs]
+        summary = (f"Something is plugged into {', '.join(d.split()[0] for d in driven)}. " if driven
+                   else f"Nothing is plugged into any of my {len(probe)} free pins. ")
+        summary += ("An I2C device is connected. " if i2c else "No I2C device is connected. ")
+        return (summary + f"open pins (nothing attached): {len(floating)} of the {len(probe)} free header pins I just probed "
+                f"({', '.join(floating) or 'none'}); pins with something attached and driving them: "
+                f"{len(driven)} ({', '.join(driven) or 'none'}); "
+                f"motor pins (outputs, cannot be sensed): D5, D6 left wheel; D9, D10 right wheel. "
+                f"I2C devices: {', '.join(i2c) or 'none on Qwiic, header SDA/SCL or A4/A5'}. "
+                "Not probed: D0/D1 (serial), D20/D21 (I2C).")
+
+    def _f_devices(self):
+        h = self.host()
+        lego = (self.status.get("lego") or {}).get("connected")
+        cams = [v for v in (h.get("video") or []) if "venus" not in v.lower()]
+        scan = self.hal.i2c_scan() or {}
+        n = sum(len(v) for v in scan.values())
+        return (f"USB devices: {', '.join(h.get('usb') or []) or 'none'}; camera: {', '.join(cams) or 'none'}; "
+                f"audio: {', '.join(h.get('sound_cards') or []) or 'none'}; bluetooth: {'on' if h.get('bluetooth') else 'off'}; "
+                f"LEGO Double Motor: {'connected' if lego else 'not connected (simulated)'}; I2C devices: {n}")
+
+    def _f_software(self):
+        h = self.host()
+        s = self.status.snapshot()
+        model = s.get("model", "?").split("/")[-1]
+        apps = [a for a in (h.get("apps_installed") or []) if a != "Ground Control"]
+        others = [m.split("/")[-1] for m in (h.get("models") or []) if m.split("/")[-1] != model]
+        return (f"running app: Ground Control (up {_human_s(time.time() - self.t0)}); planner model: {model} on llama.cpp"
+                + (f" ({s['llm_tok_s']} tokens/s)" if s.get("llm_tok_s") else "")
+                + f"; other models installed: {', '.join(others) or 'none'}; other App Lab apps installed, not running: "
+                f"{', '.join(apps) or 'none'}; MQTT: {'connected' if s.get('mqtt') else 'disconnected'} ({config.BROKER_HOST}); "
+                f"current state: {s.get('state', '?').lower()}")
+
+    def _f_health(self):
+        h = self.host()
+        return (f"RAM free: {h.get('mem_avail_mb', 0) / 1024:.1f} of {h.get('mem_total_mb', 0) / 1024:.1f} GB; "
+                f"disk free: {h.get('disk_free_mb', 0) / 1024:.1f} of {h.get('disk_total_mb', 0) / 1024:.1f} GB; "
+                f"CPU load (1 min): {(h.get('load') or ['?'])[0]} on {h.get('cpus', '?')} cores; "
+                f"my own processor temperature (inside me, not the weather): {h.get('temp_c', '?')} °C; "
+                f"uptime: {_human_s(h.get('uptime_s', 0))}")
+
+    def _f_network(self):
+        h = self.host()
+        ips = h.get("ips") or []
+        return (f"IP address: {', '.join(ips) or 'unknown'} (Wi-Fi); dashboard: "
+                f"http{'s' if config.WEB_TLS else ''}://{ips[0] if ips else '?'}:7000; "
+                f"commands topic: {config.TOPIC_CMD}; replies topic: {config.TOPIC_REPLY}; broker: {config.BROKER_HOST}")
+
+    def _f_all(self):
+        return self._f_board() + ". " + self._f_software() + ". " + self._f_devices()
+
+
+TOPICS = ["board", "pins", "devices", "software", "health", "network", "all"]

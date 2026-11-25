@@ -209,4 +209,10 @@ def test_self_report_uses_real_probes(gc):
     assert wait_for(lambda: len([p for t, p in gc.sent if t == config.TOPIC_REPLY]) >= 2)
     board, pins = [p for t, p in gc.sent if t == config.TOPIC_REPLY][:2]
     assert "Arduino UNO Q" in board and "Qualcomm QRB2210" in board and "3.6 GB" in board
-    assert "D5/D6" in pins and "A0 (held high)" in pins and "0x6a on the Qwiic connector" in pins
+    assert "D5, D6 left wheel" in pins and "A0 held high" in pins and "0x6a on Qwiic connector" in pins
+    assert "open pins (nothing attached): 13 of the 14" in pins   # the composer gets the count, not just a list
+
+
+def test_facts_follow_the_question_words(gc):
+    f = gc.self_model.facts("devices", "how much disk space do you have left?")
+    assert "disk free" in f                      # health facts pulled in by the word "disk"

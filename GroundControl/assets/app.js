@@ -10,19 +10,38 @@
 
   // ------------------------------------------------------------ themes
   const THEMES = { mission: "Mission (dark)", hud: "HUD", geocities: "Web 1.0", analog: "Chart recorder", brutalist: "Brutalist" };
-  const themeSel = $("theme");
-  themeSel.innerHTML = Object.entries(THEMES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+  const themeSels = [$("theme"), $("theme-m")];
+  themeSels.forEach((sel) => {
+    sel.innerHTML = Object.entries(THEMES).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+  });
   function setTheme(t) {
     if (!THEMES[t]) t = "mission";
     document.documentElement.dataset.theme = t;
-    themeSel.value = t;
+    themeSels.forEach((sel) => { sel.value = t; });
     try { localStorage.setItem("gc-theme", t); } catch (e) { /* private mode */ }
     setTimeout(() => { Draw.gantt($("gantt"), S.history); Draw.entropy($("entropy"), S.tokens); }, 50);
   }
   let saved = null;
   try { saved = localStorage.getItem("gc-theme"); } catch (e) { /* ignore */ }
   setTheme(new URLSearchParams(location.search).get("theme") || saved || "mission");
-  themeSel.addEventListener("change", (e) => setTheme(e.target.value));
+  themeSels.forEach((sel) => sel.addEventListener("change", (e) => setTheme(e.target.value)));
+
+  // ------------------------------------------------------------ layout: desktop (fit to screen) / mobile
+  const LAYOUTS = ["desktop", "mobile"];
+  function setLayout(l, remember = true) {
+    if (!LAYOUTS.includes(l)) l = "desktop";
+    const root = document.documentElement;
+    LAYOUTS.forEach((x) => root.classList.toggle(`layout-${x}`, x === l));
+    document.querySelectorAll("#layout-bar [data-layout]").forEach((b) => b.classList.toggle("on", b.dataset.layout === l));
+    if (remember) { try { localStorage.setItem("gc-layout", l); } catch (e) { /* ignore */ } }
+    setTimeout(() => { Draw.gantt($("gantt"), S.history); Draw.entropy($("entropy"), S.tokens); }, 60);
+  }
+  let savedLayout = null;
+  try { savedLayout = localStorage.getItem("gc-layout"); } catch (e) { /* ignore */ }
+  const urlLayout = new URLSearchParams(location.search).get("layout");
+  setLayout(urlLayout || savedLayout || (window.innerWidth < 760 ? "mobile" : "desktop"), Boolean(urlLayout || savedLayout));
+  document.querySelectorAll("#layout-bar [data-layout]").forEach((b) =>
+    b.addEventListener("click", () => setLayout(b.dataset.layout)));
 
   const SEGS = ["system", "catalog", "rules", "examples", "command", "template"];
   $("seg-legend").innerHTML = SEGS.map((k) => `<span><i style="background:var(--seg-${k})"></i>${k}</span>`).join("") +
@@ -302,6 +321,14 @@
     $("stream").appendChild(div);
   });
   socket.on("llm.done", llmDone);
+  socket.on("llm.compose", (c) => {
+    if (c.id !== S.jobId) return;
+    const div = document.createElement("div");
+    div.className = "muted compose-note";
+    div.style.width = "100%";
+    div.textContent = `↳ composing a direct answer from facts: ${c.facts.slice(0, 160)}${c.facts.length > 160 ? "…" : ""}`;
+    $("stream").appendChild(div);
+  });
   socket.on("plan.grounded", (g) => {
     if (g.id !== S.jobId) return;
     S.plan = g.plan;
@@ -342,5 +369,5 @@
   Draw.gantt($("gantt"), S.history);
   Draw.entropy($("entropy"), []);
   requestAnimationFrame(frame);
-  window.addEventListener("resize", () => Draw.gantt($("gantt"), S.history));
+  window.addEventListener("resize", () => { Draw.gantt($("gantt"), S.history); Draw.entropy($("entropy"), S.tokens); });
 })();

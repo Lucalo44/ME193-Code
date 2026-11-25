@@ -58,6 +58,15 @@ class FakeLLM:
     def chat_stream(self, messages, schema=None, max_tokens=200, on_token=None, temperature=0.0,
                     top_k=5, cancel=None):
         cmd = messages[-1]["content"]
+        if schema is None and cmd.startswith("Facts: "):           # answer composer
+            facts = cmd[len("Facts: "):].split("\nQuestion: ")[0]
+            text = f"Here's what I found: {facts}"
+            toks = [{"i": i, "piece": p, "logprob": None, "p": 0.9, "top": [{"piece": p, "p": 0.9}], "t_ms": 1}
+                    for i, p in enumerate(_split(text))]
+            for t in toks:
+                if on_token:
+                    on_token(t)
+            return {"text": text, "tokens": toks, "timings": {}, "wall_ms": 1, "first_token_ms": 1}
         plan = self.plan_for(cmd)
         text = json.dumps(plan, separators=(",", ":"))
         t0 = time.time()

@@ -53,14 +53,17 @@ def answer(ctx, text):
     return {"answer": text}
 
 
-@skill("self_report", "facts about yourself: your board, what is plugged into your pins, what is running",
+@skill("self_report", "facts about yourself: board and processor, pins, devices, software, health (RAM, disk, your own temperature), network",
        args={"topic": Enum(TOPICS)}, timeout_s=20)
 def self_report(ctx, topic):
     """The model picks the topic; real facts come from introspect.SelfModel (live pin
     probe, I2C scan, host sysinfo), so they can't be hallucinated."""
     if ctx.self_model is None:
         raise SkillError("self-inspection isn't available")
-    text = ctx.self_model.report(topic)
+    text = None
+    if ctx.compose is not None and ctx.question:
+        text = ctx.compose(ctx.question, ctx.self_model.facts(topic, ctx.question))   # direct answer
+    text = text or ctx.self_model.report(topic)                         # fallback: full report
     topic_out = ctx.reply_to or config.TOPIC_REPLY
     ctx.publish(topic_out, text)
     ctx.published.append(topic_out)

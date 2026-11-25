@@ -139,7 +139,9 @@ class GroundControl:
     def make_ctx(self, job):
         return Ctx(hal=self.hal, matrix=self.matrix, publish=self.mqtt.publish, status=self.status,
                    conductor=self.conductor, reply_to=job.reply_to, cancel=job.cancel,
-                   self_model=self.self_model, lookup=self.lookup, memory=self.memory)
+                   self_model=self.self_model, lookup=self.lookup, memory=self.memory,
+                   question=job.text,
+                   compose=lambda q, facts: self.planner.compose(q, facts, job_id=job.id, cancel=job.cancel))
 
     def _worker(self):
         while not self._stop.is_set():

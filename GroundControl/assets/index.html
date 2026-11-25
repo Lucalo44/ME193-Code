@@ -1,11 +1,12 @@
 <!doctype html>
-<html lang="en" data-theme="mission">
+<html lang="en" data-theme="mission" class="layout-desktop">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Ground Control</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="themes.css">
+<link rel="stylesheet" href="layout.css">
 </head>
 <body>
 <header id="top">
@@ -142,6 +143,15 @@
   </div>
   <button id="explain-close" class="ghost">Close</button>
 </div>
+
+<footer id="layout-bar">
+  <span>view</span>
+  <div class="seg" role="group" aria-label="Layout">
+    <button type="button" data-layout="desktop">Desktop</button>
+    <button type="button" data-layout="mobile">Mobile</button>
+  </div>
+  <label>theme <select id="theme-m"></select></label>
+</footer>
 
 <div id="popover" class="popover hidden"></div>
 

@@ -23,12 +23,16 @@ def _reply(ctx, text):
         ctx.matrix.text(text)
 
 
-@skill("lookup", "real facts: time, date, weather now, forecast (later or tomorrow), your apps or what one of them does",
+@skill("lookup", "real facts: time, date, the weather outside now, forecast (later or tomorrow), your apps or what one of them does",
        args={"what": Enum(LOOKUP_WHAT), "about": Str(40)}, timeout_s=20)
 def lookup(ctx, what, about):
     if ctx.lookup is None:
         raise SkillError("lookup isn't available")
-    text = ctx.lookup.answer(what, about)
+    facts = ctx.lookup.answer(what, about)
+    text = None
+    if what not in ("time", "date") and ctx.compose is not None and ctx.question:
+        text = ctx.compose(ctx.question, facts)         # direct answer to the exact question
+    text = text or facts
     _reply(ctx, text)
     return {"what": what, "text": text}
 

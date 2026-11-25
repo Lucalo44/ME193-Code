@@ -118,7 +118,7 @@ def test_tools_end_to_end(gc):
     gc.submit("what is my favorite color?")
     assert wait_for(lambda: (config.TOPIC_REPLY, "Your favorite color is green.") in gc.sent)
     gc.submit("what's the temperature outside?")
-    assert wait_for(lambda: any(p.startswith("It's 41°F in Boston") for _, p in gc.sent))
+    assert wait_for(lambda: any("41°F in Boston" in p for _, p in gc.sent))   # composed from the weather facts
 
 
 def test_grounding_guard_replaces_imagined_app_answers():
@@ -128,3 +128,24 @@ def test_grounding_guard_replaces_imagined_app_answers():
     assert new["steps"] == [{"skill": "lookup", "args": {"what": "app_info", "about": "GaitID"}}] and note
     same, note2 = ground_app_questions(plan, "what is gait analysis?", ["GaitID"])
     assert same is plan and note2 is None
+
+
+def test_composer_drops_reflexive_yes():
+    from planner.planner import Planner
+
+    class C:
+        def chat_stream(self, *a, **k):
+            return {"text": "Yes. There are 14 open pins.", "tokens": []}
+    p = Planner(C())
+    assert p.compose("how many open pins are there?", "facts") == "There are 14 open pins."
+    assert p.compose("is anything plugged in?", "facts").startswith("Yes.")
+
+
+def test_composer_fixes_self_contradicting_yes():
+    from planner.planner import Planner
+
+    class C:
+        def chat_stream(self, *a, **k):
+            return {"text": "Yes. Nothing is plugged into any of my 14 free pins.", "tokens": []}
+    assert Planner(C()).compose("is anything plugged into your pins?", "f") == \
+        "No. Nothing is plugged into any of my 14 free pins."

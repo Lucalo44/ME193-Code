@@ -84,6 +84,16 @@ The dashboard caught a lovely mistake: asked how many e's are in "strawberry", t
 
 The model still wanted to answer "what does the GaitID app do?" from its own imagination, even with the app names in its prompt. So a small grounding guard in code replaces an imagined answer with a real lookup whenever a question names one of the installed apps, and the dashboard says so.
 
+### Answering the question that was asked
+
+The first version of those tools answered every question about pins with the same paragraph-long report. It was accurate and completely canned. Now the tools gather compact facts, and a second, short model call answers the exact question from them, in its own words: "how many open pins?" gets "There are 14 open pins on the board." Three small guards keep it honest:
+
+1. **Facts follow the question.** If the question says "disk" or "plugged", those facts are included even when the planner picked a near-miss topic.
+2. **A reflexive "Yes."** is dropped from questions that aren't yes/no.
+3. **A self-contradicting "Yes. Nothing is plugged in"** becomes "No."
+
+Math, memory and the time stay deterministic, since rephrasing those could only add errors. Composing costs about 20–40 s per question on the board, so this is where the speed went.
+
 ### The duet
 
 At 3 to 4 tokens per second, the LLM can't keep time, so it never sends a motor command. It writes a score of about 60 tokens (bpm, sections, a mode and a move per robot), and [python/dance/compiler.py](python/dance/compiler.py) turns that into 70-plus timed keyframes with a 3-2-1 count-in on the matrix. [python/dance/conductor.py](python/dance/conductor.py) gives every performer the same wall-clock start time. The car's keyframes fire from a local thread. The LEGO bot gets its whole timeline ahead of time, and the host service schedules it locally and fires each move early by half the measured BLE round trip. The board host and the app container share one kernel clock, which is what makes this work at all. After each dance, the service learns how long the motor takes to actually start moving and leads by that next time, so the second dance should be tighter than the first.
@@ -117,7 +127,7 @@ For the 0.8B, I picked its best prompt by comparing configs on the held-out set,
 
 ## Looks
 
-The dashboard has five themes, picked in its header or with `?theme=` in the URL. Every canvas (matrix, timeline, stage, charts) follows the theme too. Screenshots taken mid-dance are in [docs/themes/](docs/themes/).
+The dashboard has a fit-to-screen desktop layout (no scrolling on a 13" MacBook; the dance stays pinned at the bottom) and a single-column mobile layout. Switch between them with the toggle at the bottom of the page or with `?layout=mobile`; phones default to mobile. It also has five themes, picked in its header or with `?theme=` in the URL. Every canvas (matrix, timeline, stage, charts) follows the theme too. Screenshots taken mid-dance are in [docs/themes/](docs/themes/).
 
 1. **Mission** (`mission`): the original dark control room.
 2. **HUD** (`hud`): a futuristic heads-up display. Hairlines, chamfered corners, cyan and amber, scanlines, and the choreography moved to the top as the hero.

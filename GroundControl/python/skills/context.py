@@ -23,6 +23,8 @@ class Ctx:
     self_model: object = None             # introspect.SelfModel
     lookup: object = None                 # lookup.Lookup
     memory: object = None                 # memory_store.Memory
+    question: str = ""                     # the user's command, for composed answers
+    compose: callable = None              # (question, facts) -> str | None
     reply_to: str = ""
     cancel: threading.Event = field(default_factory=threading.Event)
     step_timeout: threading.Event = field(default_factory=threading.Event)

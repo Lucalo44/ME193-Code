@@ -96,7 +96,7 @@
 - {id: sk1, cat: self, text: "which board are you?", expect: {skills: [self_report], args: {0: {topic: board}}}}
 - {id: sk2, cat: self, text: "do you have anything connected to your pins?", expect: {skills: [self_report], args: {0: {topic: "~pins|devices"}}}}
 - {id: sk3, cat: self, text: "what software are you running?", expect: {skills: [self_report], args: {0: {topic: software}}}}
-- {id: sk4, cat: self, text: "how hot are you and how much memory is free?", expect: {skills: [self_report], args: {0: {topic: resources}}}}
+- {id: sk4, cat: self, text: "how hot are you and how much memory is free?", expect: {skills: [self_report], args: {0: {topic: health}}}}
 - {id: sk5, cat: self, text: "tell me about yourself", expect: {skills: [self_report], args: {0: {topic: all}}}}
 
 # ---------------- tools (added with lookup / compute / memory)

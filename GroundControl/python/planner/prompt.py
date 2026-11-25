@@ -20,7 +20,7 @@ RULES_PARTS = [
     "mqtt_publish only when the user asks to tell, send, reply or report. A \"done\" reply is sent automatically.",
     "Publish to the topic the user names, else topic \"reply\". {imu.yaw} {imu.pitch} {imu.roll} in a message are filled in.",
     "Time, date, weather, forecast, or your apps and what they do: lookup. Math, or letters in a word: compute. Anything the user asks you to remember, or asks about themselves (my ...): memory.",
-    "Questions about yourself (your board, pins, devices, software, RAM, network): self_report. Other questions or chat: answer in words. Impossible or unsafe requests: no parts, no steps. Never publish to a topic ending in /cmd.",
+    "Questions about yourself (your board, pins, devices, software, health, network): self_report. Other questions or chat: answer in words. Impossible or unsafe requests: no parts, no steps. Never publish to a topic ending in /cmd.",
 ]
 
 EXAMPLES_PARTS = [
@@ -68,7 +68,7 @@ RULES_THINK = [
     "Reply with mqtt_publish to the topic the user names, else topic \"reply\".",
     "To report a value, read it first, then use its {placeholder} in the message.",
     "Time, date, weather, forecast, or your apps and what they do: lookup. Math, or letters in a word: compute. Anything the user asks you to remember, or asks about themselves (my ...): memory.",
-    "Questions about yourself (your board, pins, devices, software, RAM, network): self_report. Other questions or chat: answer. Impossible or unsafe requests: no steps. Never publish to a topic ending in /cmd.",
+    "Questions about yourself (your board, pins, devices, software, health, network): self_report. Other questions or chat: answer. Impossible or unsafe requests: no steps. Never publish to a topic ending in /cmd.",
 ]
 
 EXAMPLES_THINK = [
