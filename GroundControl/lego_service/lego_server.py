@@ -243,6 +243,62 @@ def _sh(cmd, timeout=5):
         return ""
 
 
+APPS_DIR = "/home/arduino/ArduinoApps"
+
+
+def apps():
+    """Installed App Lab apps: folder, name, description, README first paragraph, running?"""
+    import glob
+    import re
+    running = {n[: -len("-main-1")] for n in _sh("docker ps --format '{{.Names}}'").splitlines()
+               if n.endswith("-main-1")}
+    out = []
+    for y in sorted(glob.glob(f"{APPS_DIR}/*/app.yaml")):
+        folder = os.path.basename(os.path.dirname(y))
+        text = open(y).read()
+        name = re.search(r"^name:\s*(.+)$", text, re.M)
+        desc = re.search(r"^description:\s*(.+)$", text, re.M)
+        readme = ""
+        for r in ("README.md", "readme.md"):
+            p = os.path.join(os.path.dirname(y), r)
+            if os.path.exists(p):
+                paras = [b.strip() for b in open(p).read().split("\n\n")
+                         if b.strip() and not b.strip().startswith(("#", "```", "|", "!["))]
+                readme = paras[0][:400] if paras else ""
+                break
+        out.append({"folder": folder,
+                    "name": name.group(1).strip().strip('"') if name else folder,
+                    "description": desc.group(1).strip().strip('"') if desc else "",
+                    "readme": readme, "running": folder in running})
+    return out
+
+
+def app_config(folder):
+    """Top-level UPPER_CASE constants of an app's python/main.py, read with ast (never
+    executed). f-strings come back as their literal text with {...} for the
+    expressions, which is enough to read URL query parameters."""
+    import ast
+    folder = os.path.basename(str(folder))            # no path tricks
+    path = os.path.join(APPS_DIR, folder, "python", "main.py")
+    if not os.path.exists(path):
+        return {"error": f"no app '{folder}'"}
+    consts = {}
+    for node in ast.parse(open(path).read()).body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            key = node.targets[0].id
+            if not key.isupper():
+                continue
+            v = node.value
+            try:
+                consts[key] = ast.literal_eval(v)
+                continue
+            except (ValueError, SyntaxError):
+                pass
+            if isinstance(v, ast.JoinedStr):
+                consts[key] = "".join(p.value if isinstance(p, ast.Constant) else "{...}" for p in v.values)
+    return {"folder": folder, "constants": consts}
+
+
 def sysinfo():
     """Host-level facts the app container can't see (it has its own OS image and
     only its own app folder). Used by the planner's self_report skill."""
@@ -348,6 +404,10 @@ class Handler(socketserver.StreamRequestHandler):
                     out = LEGO.state()
                 elif op == "sysinfo":
                     out = sysinfo()
+                elif op == "apps":
+                    out = {"apps": apps()}
+                elif op == "app_config":
+                    out = app_config(req.get("folder", ""))
                 else:
                     out = {"error": f"unknown op {op}"}
             except Exception as e:  # noqa: BLE001

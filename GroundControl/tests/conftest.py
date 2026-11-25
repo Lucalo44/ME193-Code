@@ -17,8 +17,10 @@ class RecordingMqtt:
 
 
 @pytest.fixture
-def gc():
+def gc(tmp_path):
     g = GroundControl(SimHal(latency_ms=1), ui=None, llm=FakeLLM(delay_s=0.001), lego=False, mqtt=False)
+    from memory_store import Memory
+    g.memory = Memory(tmp_path / "memory.json")            # never write memory.json into the repo
     sent = []
     g.mqtt.on_publish_hook = lambda t, p: sent.append((t, p))
     g.sent = sent

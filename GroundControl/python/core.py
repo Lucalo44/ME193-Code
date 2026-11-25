@@ -18,6 +18,8 @@ import skills  # noqa: F401  (registers skills)
 from dance.conductor import Conductor
 from executor import Executor
 from introspect import SelfModel
+from lookup import Lookup, describe_apps_in_catalog, ground_app_questions
+from memory_store import Memory
 from hal.performers import CarPerformer, LegoPerformer, SimLegoPerformer
 from jobs import Job, JobQueue, QueueFull
 from mqtt_io import MqttIO
@@ -51,6 +53,9 @@ class GroundControl:
         self.conductor = Conductor(self.performers, emit=self.viz.emit, status=self.status)
         self.executor = Executor(self.make_ctx, emit=self.viz.emit, status=self.status)
         self.self_model = SelfModel(hal, self.status)
+        self.lookup = Lookup()
+        self.app_names = describe_apps_in_catalog(self.lookup)
+        self.memory = Memory()
         self.status.on_change(self._on_status)
         self.status.update(car={"connected": hal.connected, "left": 0, "right": 0},
                            imu=hal.imu(), lego={"connected": False, "state": "sim"})
@@ -134,7 +139,7 @@ class GroundControl:
     def make_ctx(self, job):
         return Ctx(hal=self.hal, matrix=self.matrix, publish=self.mqtt.publish, status=self.status,
                    conductor=self.conductor, reply_to=job.reply_to, cancel=job.cancel,
-                   self_model=self.self_model)
+                   self_model=self.self_model, lookup=self.lookup, memory=self.memory)
 
     def _worker(self):
         while not self._stop.is_set():
@@ -180,6 +185,9 @@ class GroundControl:
             self.matrix.icon("x")
             self._finish(job, reply, t_start, llm_t, [])
             return
+        plan, note = ground_app_questions(plan, job.text, self.app_names)
+        if note:
+            self.viz.emit("plan.grounded", {"id": job.id, "plan": plan, "note": note})
         job.plan = plan
         self.status.set_state("EXECUTING", f"Executing {len(plan.get('steps', []))} step(s)")
         res = self.executor.run(job, plan)

@@ -18,6 +18,10 @@ CANNED = [
     (r"\bhi\b", {"parts": ["Type Hi on the LED matrix", "send back on topic luca 'I am done'"], "steps": [
         {"skill": "matrix_text", "args": {"text": "Hi"}},
         {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "I am done"}}]}),
+    (r"weather|temperature", {"think": "lookup weather", "steps": [{"skill": "lookup", "args": {"what": "weather", "about": ""}}]}),
+    (r"strawberry", {"think": "compute count", "steps": [{"skill": "compute", "args": {"op": "count", "text": "strawberry", "of": "e"}}]}),
+    (r"^remember", {"think": "memory save", "steps": [{"skill": "memory", "args": {"op": "save", "key": "favorite color", "value": "green"}}]}),
+    (r"favou?rite color\?", {"think": "memory recall", "steps": [{"skill": "memory", "args": {"op": "recall", "key": "favorite color", "value": ""}}]}),
     (r"2\s*\+\s*2", {"think": "answer", "steps": [{"skill": "answer", "args": {"text": "2 + 2 is 4."}}]}),
     (r"what board|plugged|pins", {"think": "self_report board, then self_report pins", "steps": [
         {"skill": "self_report", "args": {"topic": "board"}}, {"skill": "self_report", "args": {"topic": "pins"}}]}),

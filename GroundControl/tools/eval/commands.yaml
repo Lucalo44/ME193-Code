@@ -77,7 +77,7 @@
 
 # ---------------- general questions (added with the answer skill)
 - {id: n3, cat: question, text: "what is the capital of France?", expect: {skills: [answer], args: {0: {text: "~paris"}}}}
-- {id: q1, cat: question, text: "what is 2+2?", expect: {skills: [answer], args: {0: {text: "~4|four"}}}}
+- {id: q1, cat: question, text: "what is 2+2?", expect: {skills: [answer], args: {0: {text: "~4|four"}}}, also_ok: [[compute]]}
 - {id: q2, cat: question, text: "who wrote Romeo and Juliet?", expect: {skills: [answer], args: {0: {text: "~shakespeare"}}}}
 - {id: q3, cat: question, text: "how many legs does a spider have?", expect: {skills: [answer], args: {0: {text: "~8|eight"}}}}
 - {id: q4, cat: question, text: "hi, how are you today?", expect: {skills: [answer]}}
@@ -98,3 +98,21 @@
 - {id: sk3, cat: self, text: "what software are you running?", expect: {skills: [self_report], args: {0: {topic: software}}}}
 - {id: sk4, cat: self, text: "how hot are you and how much memory is free?", expect: {skills: [self_report], args: {0: {topic: resources}}}}
 - {id: sk5, cat: self, text: "tell me about yourself", expect: {skills: [self_report], args: {0: {topic: all}}}}
+
+# ---------------- tools (added with lookup / compute / memory)
+- {id: lk1, cat: lookup, text: "what time is it?", expect: {skills: [lookup], args: {0: {what: time}}}}
+- {id: lk2, cat: lookup, text: "what's today's date?", expect: {skills: [lookup], args: {0: {what: date}}}}
+- {id: lk3, cat: lookup, text: "what is the temperature outside right now?", expect: {skills: [lookup], args: {0: {what: weather}}}}
+- {id: lk4, cat: lookup, text: "will it be cold tomorrow?", expect: {skills: [lookup], args: {0: {what: "~forecast|weather"}}},
+   note: "weather replies include tomorrow's high/low, so both answer the question"}
+- {id: lk5, cat: lookup, text: "which apps are installed on you?", expect: {skills: [lookup], args: {0: {what: apps}}}}
+- {id: lk6, cat: lookup, text: "what does the GaitID app do?", expect: {skills: [lookup], args: {0: {what: app_info, about: "~gait"}}}}
+- {id: cp1, cat: compute, text: "how many e's are in the word strawberry?", expect: {skills: [compute], args: {0: {op: count, text: "~strawberry", of: "~e"}}}}
+- {id: cp2, cat: compute, text: "what is 37 times 89?", expect: {skills: [compute], args: {0: {op: math, text: "~89"}}}}
+- {id: cp3, cat: compute, text: "what's the square root of 144?", expect: {skills: [compute], args: {0: {op: math, text: "~144"}}}}
+- {id: cp4, cat: compute, text: "spell the word robot", expect: {skills: [compute], args: {0: {op: spell, text: "~robot"}}}}
+- {id: cp5, cat: compute, text: "how many letters are in the word dance?", expect: {skills: [compute], args: {0: {op: "~length|count", text: "~dance"}}}}
+- {id: mm1, cat: memory, text: "remember that my dog's name is Biscuit", expect: {skills: [memory], args: {0: {op: save, key: "~dog", value: "~biscuit"}}}}
+- {id: mm2, cat: memory, text: "what is my dog's name?", expect: {skills: [memory], args: {0: {op: recall, key: "~dog"}}}}
+- {id: mm3, cat: memory, text: "forget my dog's name", expect: {skills: [memory], args: {0: {op: forget, key: "~dog"}}}}
+- {id: mm4, cat: memory, text: "please remember I like jazz music", expect: {skills: [memory], args: {0: {op: save, value: "~jazz"}}}}

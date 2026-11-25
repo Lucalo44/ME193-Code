@@ -138,26 +138,40 @@ def main():
         cases = [c for c in cases if c["id"] in a.only.split(",")]
     if a.limit:
         cases = cases[: a.limit]
+    # Same prompt as the board: name the installed apps (needs `adb forward tcp:8770 tcp:8770`).
+    from lookup import Lookup, describe_apps_in_catalog, ground_app_questions
+    names = describe_apps_in_catalog(Lookup(host="127.0.0.1", port=8770))
+    print(f"catalog app names: {names or 'host service unreachable (prompt differs from the board!)'}", flush=True)
     client = LlmClient(a.url, a.model)
     pl = Planner(client, think_chars=a.think, style=a.style)
     if a.mode == "json":
         w = pl.warm()
         print(f"warm-up {w['ms']} ms", flush=True)
     rows = []
+    out_dir = HERE / "results"
+    out_dir.mkdir(exist_ok=True)
+    style = f"_{a.style}" if a.mode == "json" and a.style != "parts" else ""
+    name = f"{a.set}_{a.model.split('/')[-1]}_{a.mode}_think{a.think}{style}{('_' + a.tag) if a.tag else ''}.json"
     for c in cases:
         t0 = time.time()
-        if a.mode == "json":
-            plan, info = pl.plan(Job(c["text"], source="eval"))
-            tm = info.get("timings") or {}
-        else:
-            plan, info = pl.plan_with_tools(c["text"])
-            tm = {"wall_ms": info["wall_ms"]}
+        try:
+            if a.mode == "json":
+                plan, info = pl.plan(Job(c["text"], source="eval"))
+                plan, _ = ground_app_questions(plan, c["text"], names)    # same guard as the board
+                tm = info.get("timings") or {}
+            else:
+                plan, info = pl.plan_with_tools(c["text"])
+                tm = {"wall_ms": info["wall_ms"]}
+            outcome, why = score(c, plan)
+        except Exception as e:  # noqa: BLE001  record and keep going
+            plan, tm = None, {}
+            outcome, why = "did_nothing", f"error: {e!r}"[:200]
         wall = round((time.time() - t0) * 1000)
-        outcome, why = score(c, plan)
         rows.append({"id": c["id"], "cat": c["cat"], "text": c["text"], "outcome": outcome, "why": why,
                      "plan": plan, "wall_ms": wall, "timings": tm})
         mark = {"correct": "OK  ", "did_nothing": "NONE", "did_wrong": "BAD "}[outcome]
         print(f"{mark} {c['id']:<5} {wall:>6} ms  {c['text'][:60]:<60} {why}", flush=True)
+        (out_dir / name).write_text(json.dumps({"summary": {"partial": True, "done": len(rows)}, "rows": rows}, indent=1))
 
     walls = [r["wall_ms"] for r in rows]
     n = len(rows)
@@ -175,11 +189,7 @@ def main():
                "by_cat": {k: f"{sum(v)}/{len(v)}" for k, v in cats.items()},
                "when": time.strftime("%Y-%m-%d %H:%M")}
     print("\n" + json.dumps(summary, indent=1))
-    out = HERE / "results"
-    out.mkdir(exist_ok=True)
-    style = f"_{a.style}" if a.mode == "json" and a.style != "parts" else ""
-    name = f"{a.set}_{a.model.split('/')[-1]}_{a.mode}_think{a.think}{style}{('_' + a.tag) if a.tag else ''}.json"
-    (out / name).write_text(json.dumps({"summary": summary, "rows": rows}, indent=1))
+    (out_dir / name).write_text(json.dumps({"summary": summary, "rows": rows}, indent=1))
     print(f"saved tools/eval/results/{name}")
 
 

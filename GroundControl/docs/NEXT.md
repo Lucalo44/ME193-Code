@@ -1,4 +1,8 @@
-# Next session: wider skill set
+# Wider skill set: DONE (2026-11-26)
+
+Built as planned below; see README "Tools instead of guesses" and EVAL.md for results. Kept here for the design notes.
+
+## Original plan
 
 Agreed on 2026-11-25: build all three skills below. Same pattern as `self_report`: the model picks an option and copies inputs, and code produces the facts, so nothing is hallucinated. Grouping keeps the catalog short (each new skill costs a 1.7B model some accuracy).
 

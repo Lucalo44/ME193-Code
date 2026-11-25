@@ -21,6 +21,8 @@ class Ctx:
     conductor: object = None
     imu_source: callable = None           # () -> dict | None
     self_model: object = None             # introspect.SelfModel
+    lookup: object = None                 # lookup.Lookup
+    memory: object = None                 # memory_store.Memory
     reply_to: str = ""
     cancel: threading.Event = field(default_factory=threading.Event)
     step_timeout: threading.Event = field(default_factory=threading.Event)

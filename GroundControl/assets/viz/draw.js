@@ -76,7 +76,8 @@ const Draw = (() => {
     // axis
     ctx.strokeStyle = "#24314a";
     ctx.fillStyle = css("--muted");
-    const step = tmax > 40 ? 10 : tmax > 15 ? 5 : 2;
+    const span = w - left - right;
+    const step = [1, 2, 5, 10, 20, 30, 60, 120, 300].find((s) => (s / tmax) * span >= 42) || 600;
     for (let t = 0; t <= tmax; t += step) {
       ctx.beginPath(); ctx.moveTo(sx(t), 0); ctx.lineTo(sx(t), h - 14); ctx.stroke();
       ctx.fillText(`${t}s`, sx(t) - 6, h - 2);

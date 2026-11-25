@@ -13,10 +13,11 @@ Commands arrive on `ME193/q/luca/cmd`, typed into the dashboard, or spoken into 
 3. **Planned commands.** Everything else goes to the planner, which writes one JSON plan per command:
    1. General questions: "what is 2+2?" gets an answer in words on the reply topic, and short answers scroll on the LED matrix.
    2. Questions about itself: "what board are you on?", "is anything plugged into your pins?", "what's running on you?" get real, measured answers, not guesses.
-   3. Single actions: "show a heart", "drive backwards for 3 seconds".
-   4. Sequences with replies: "Type Hi on the LED matrix and then send back on MQTT on topic luca message 'I am done'".
-   5. Information requests: "what is your yaw? reply on luca". The plan writes `{imu.yaw}` and the executor fills in the real value when the message goes out.
-   6. Duets: "do a 4 bar dance at 100 bpm, the lego bot mirrors you, then tell me 'bow complete' on luca". The model writes a short dance score, and deterministic code performs it on both robots against one clock.
+   3. Things it has to look up or work out: the time, the outside temperature (from the weather app's own source), what its other apps do, exact math, letters in a word, and anything you ask it to remember.
+   4. Single actions: "show a heart", "drive backwards for 3 seconds".
+   5. Sequences with replies: "Type Hi on the LED matrix and then send back on MQTT on topic luca message 'I am done'".
+   6. Information requests: "what is your yaw? reply on luca". The plan writes `{imu.yaw}` and the executor fills in the real value when the message goes out.
+   7. Duets: "do a 4 bar dance at 100 bpm, the lego bot mirrors you, then tell me 'bow complete' on luca". The model writes a short dance score, and deterministic code performs it on both robots against one clock.
 
 ## How I built it
 
@@ -72,6 +73,16 @@ I wanted to be able to ask the robot what it is, and a 1.7B model asked about it
 The pins were the interesting part. The sketch knows which pins it drives (the motors on D5/D6 and D9/D10), but it can't sense what's attached to an output. For the free pins, [sketch/sketch.ino](sketch/sketch.ino) switches each one to the internal pull-up and reads it, then to the pull-down and reads it again. A pin that follows both pulls is floating. A pin that stays put is being driven by something. It also scans all three I2C buses. The UNO Q variant file showed me which bus is which: `Wire` is the header SDA/SCL, `Wire1` is the Qwiic connector, and `Wire2` is A4/A5. Known addresses get names, so a Modulino Movement shows up as one. Host-level facts the app's container can't see (installed apps, USB devices, disk, temperature, IP) come from the same host service that runs Bluetooth. The robot says it's on Wi-Fi but never names the network, because replies go out on a public broker.
 
 Testing this also caught a bug I had been lucky to miss. Commands sent during the boot warm-up made llama.cpp run two prompts side by side in a shared context, and reading the prompt slowed to under 3 tokens per second. A single lock around the model fixed it.
+
+### Tools instead of guesses
+
+The dashboard caught a lovely mistake: asked how many e's are in "strawberry", the model said three. It never sees letters. The token chips show "strawberry" arriving as `str`, `aw` and `berry`. It also couldn't know the time, the weather, or what my other App Lab apps do. So I added three tools with the same rule as `self_report`: the model picks an option and copies the inputs, and code produces the answer.
+
+1. **`compute`** does exact math through a small whitelisted expression parser (never `eval`), plus counting, spelling and reversing letters ([python/compute.py](python/compute.py)).
+2. **`memory`** saves, recalls and forgets things in a small JSON file that survives restarts ([python/memory_store.py](python/memory_store.py)).
+3. **`lookup`** answers the time and date, and the weather ([python/lookup.py](python/lookup.py)). For the weather, I wanted the robot to use what is already installed on it. App Lab only runs one app at a time, so starting the Boston Weather Display app would have shut Ground Control down. Instead, the host service reads that app's settings (its coordinates and units) straight out of its code without running it, and Ground Control calls the same Open-Meteo API. Change the city in the weather app and the robot's answer follows.
+
+The model still wanted to answer "what does the GaitID app do?" from its own imagination, even with the app names in its prompt. So a small grounding guard in code replaces an imagined answer with a real lookup whenever a question names one of the installed apps, and the dashboard says so.
 
 ### The duet
 

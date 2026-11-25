@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-CATS = ["single", "multi", "info", "topic", "dance", "question", "self", "trap", "nonsense", "injection"]
+CATS = ["single", "multi", "info", "topic", "dance", "question", "self", "lookup", "compute", "memory", "trap", "nonsense", "injection"]
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--tag", default="final")
@@ -19,6 +19,9 @@ rows = []
 for f in sorted((HERE / "results").glob(f"{a.set}_*_{a.tag}.json")):
     d = json.loads(f.read_text())
     s = d["summary"]
+    if s.get("partial"):
+        print(f"(skipping {f.name}: partial run, {s.get('done')} commands)")
+        continue
     label = f"{s['model']} · {'native tools (Baseline B)' if s['mode'] == 'tools' else 'constrained JSON'}"
     if s["mode"] == "json":
         st = s.get("style") or "parts"

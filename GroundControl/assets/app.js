@@ -282,6 +282,12 @@
     $("stream").appendChild(div);
   });
   socket.on("llm.done", llmDone);
+  socket.on("plan.grounded", (g) => {
+    if (g.id !== S.jobId) return;
+    S.plan = g.plan;
+    $("plan-note").textContent = `grounded: ${g.note}`;
+    renderPlan();
+  });
   socket.on("plan.step", (s) => { if (s.id !== S.jobId) return; S.steps[s.i] = { ...(S.steps[s.i] || {}), ...s }; renderPlan(); });
   socket.on("job.done", (j) => {
     if (j.id === S.jobId && j.reply) {
