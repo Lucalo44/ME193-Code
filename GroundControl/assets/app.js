@@ -3,7 +3,7 @@
 (() => {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  const socket = io(`http://${window.location.host}`);
+  const socket = io();
 
   const S = { jobId: null, tokens: [], text: "", prompt: null, plan: null, steps: {}, history: [],
               status: {}, frame: new Array(104).fill(0), repair: null };
@@ -18,6 +18,7 @@
     ["Info request", "what is your yaw? reply on luca"],
     ["Duet", "do a 4 bar dance at 100 bpm, the lego bot mirrors you, then tell me 'bow complete' on luca"],
     ["Call & response", "call and response dance at 90 bpm, the car spins and the lego claps, then tell me how in sync you were on luca"],
+    ["Question", "what is 2+2?"],
     ["Trap", "don't turn left, turn right 90 degrees"],
     ["/status", "/status"],
   ];
@@ -27,9 +28,39 @@
     if (i !== undefined) send(QUICK[i][1]);
   });
 
-  function send(text) {
-    socket.emit("send_command", { text, source: "ui" });
+  function send(text, source = "ui") {
+    socket.emit("send_command", { text, source });
   }
+
+  // ------------------------------------------------------------ microphone (browser speech recognition)
+  // Needs a secure page (https or localhost); the board serves https for this reason.
+  (() => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const btn = $("mic"), note = $("mic-note"), input = $("send-text");
+    if (!SR) { btn.disabled = true; btn.title = "Speech recognition isn't available in this browser (use Chrome, Edge or Safari)"; return; }
+    if (!window.isSecureContext) {
+      btn.disabled = true;
+      note.textContent = `The mic needs a secure page: open https://${location.hostname}:${location.port || 7000} (accept the certificate warning once).`;
+      return;
+    }
+    const rec = new SR();
+    rec.lang = "en-US"; rec.interimResults = true; rec.continuous = false;
+    let listening = false, finalText = "";
+    rec.onstart = () => { listening = true; finalText = ""; btn.classList.add("on"); note.textContent = "Listening… speak your command"; };
+    rec.onresult = (e) => {
+      let interim = ""; finalText = "";
+      for (const r of e.results) (r.isFinal ? (finalText += r[0].transcript) : (interim += r[0].transcript));
+      input.value = (finalText + interim).trim();
+    };
+    rec.onerror = (e) => { note.textContent = e.error === "not-allowed" ? "Microphone permission was denied." : `Speech error: ${e.error}`; };
+    rec.onend = () => {
+      listening = false; btn.classList.remove("on");
+      const t = finalText.trim();
+      if (t) { send(t, "voice"); input.value = ""; note.textContent = `Sent: “${t}”`; }
+      else if (!note.textContent.startsWith("Speech error") && !note.textContent.startsWith("Microphone")) note.textContent = "";
+    };
+    btn.addEventListener("click", () => { if (listening) rec.stop(); else { note.textContent = ""; rec.start(); } });
+  })();
   $("send-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const t = $("send-text").value.trim();
@@ -71,6 +102,7 @@
     $("cmd-id").textContent = j.id + (j.reply_to ? ` → ${j.reply_to}` : "");
     $("cmd-text").classList.remove("muted");
     $("cmd-text").textContent = j.text;
+    $("cmd-reply").classList.add("hidden");
     $("chips").innerHTML = `<div class="empty">tokenizing…</div>`;
     $("prompt-stats").textContent = "";
     $("stream").innerHTML = "";
@@ -224,6 +256,10 @@
       if (j.prompt) renderPrompt(j.prompt);
       (j.tokens || []).forEach(addToken);
       if (j.done) llmDone(j.done);
+      if (j.result && j.result.reply) {
+        $("cmd-reply").innerHTML = `<b>REPLY</b>${esc(j.result.reply)}`;
+        $("cmd-reply").classList.remove("hidden");
+      }
       S.steps = Object.fromEntries(Object.entries(j.steps || {}).map(([k, v]) => [+k, v]));
       if (S.plan) renderPlan();
       if (j.dance) { Duet.start({ ...j.dance, server_now: st.server_now }); (j.dance_kf || []).forEach(Duet.addKf); }
@@ -247,7 +283,15 @@
   });
   socket.on("llm.done", llmDone);
   socket.on("plan.step", (s) => { if (s.id !== S.jobId) return; S.steps[s.i] = { ...(S.steps[s.i] || {}), ...s }; renderPlan(); });
-  socket.on("job.done", (j) => { S.history.push(j); if (S.history.length > 8) S.history.shift(); Draw.gantt($("gantt"), S.history); });
+  socket.on("job.done", (j) => {
+    if (j.id === S.jobId && j.reply) {
+      $("cmd-reply").innerHTML = `<b>REPLY</b>${esc(j.reply)}`;
+      $("cmd-reply").classList.remove("hidden");
+    }
+    S.history.push(j);
+    if (S.history.length > 8) S.history.shift();
+    Draw.gantt($("gantt"), S.history);
+  });
   socket.on("matrix", (m) => { S.frame = m.frame; });
   socket.on("mqtt.out", addMqtt);
   socket.on("dance.timeline", Duet.start);

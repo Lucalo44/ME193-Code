@@ -19,7 +19,7 @@ RULES_PARTS = [
     "Then write exactly one step per part, in order. Nothing extra.",
     "mqtt_publish only when the user asks to tell, send, reply or report. A \"done\" reply is sent automatically.",
     "Publish to the topic the user names, else topic \"reply\". {imu.yaw} {imu.pitch} {imu.roll} in a message are filled in.",
-    "Impossible, unsafe or nonsense: no parts, no steps. Never publish to a topic ending in /cmd.",
+    "Questions or chat: answer in words. Impossible or unsafe requests: no parts, no steps. Never publish to a topic ending in /cmd.",
 ]
 
 EXAMPLES_PARTS = [
@@ -39,6 +39,9 @@ EXAMPLES_PARTS = [
       "steps": [{"skill": "dance", "args": {"bpm": 120, "sections": [
           {"bars": 2, "mode": "mirror", "car": "wiggle", "lego": "pump"}]}},
                 {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "finished"}}]}),
+    ("what is 7 times 6?",
+     {"parts": ["what is 7 times 6?"],
+      "steps": [{"skill": "answer", "args": {"text": "7 times 6 is 42."}}]}),
     ("make me a sandwich",
      {"parts": [], "steps": []}),
 ]
@@ -52,7 +55,7 @@ RULES_THINK = [
     "Do only what is asked, in order.",
     "Reply with mqtt_publish to the topic the user names, else topic \"reply\".",
     "To report a value, read it first, then use its {placeholder} in the message.",
-    "Impossible, unsafe or nonsense: no steps. Never publish to a topic ending in /cmd.",
+    "Questions or chat: use answer. Impossible or unsafe requests: no steps. Never publish to a topic ending in /cmd.",
 ]
 
 EXAMPLES_THINK = [
@@ -74,6 +77,8 @@ EXAMPLES_THINK = [
      {"think": "dance, one mirror section",
       "steps": [{"skill": "dance", "args": {"bpm": 120, "sections": [
           {"bars": 2, "mode": "mirror", "car": "shimmy", "lego": "wave"}]}}]}),
+    ("what is 7 times 6?",
+     {"think": "answer", "steps": [{"skill": "answer", "args": {"text": "7 times 6 is 42."}}]}),
     ("make me a sandwich",
      {"think": "no skill for that", "steps": []}),
 ]

@@ -191,3 +191,10 @@ def test_hand_written_plan_skips_llm(gc):
     assert wait_for(lambda: ("luca", "ok") in gc.sent)
     assert not any(t == "ME193/q/fred/cmd" for t, _ in gc.sent)     # whitelist still applies
     assert gc.matrix.content == {"kind": "icon", "name": "star"}
+
+
+def test_general_question_is_answered(gc):
+    gc.submit("what is 2+2?")
+    assert wait_for(lambda: (config.TOPIC_REPLY, "2 + 2 is 4.") in gc.sent)
+    assert gc.matrix.content == {"kind": "text", "text": "2 + 2 is 4."}
+    assert not any(p == "done" for _, p in gc.sent)          # the answer IS the reply

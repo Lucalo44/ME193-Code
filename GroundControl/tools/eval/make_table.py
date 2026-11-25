@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-CATS = ["single", "multi", "info", "topic", "dance", "trap", "nonsense", "injection"]
+CATS = ["single", "multi", "info", "topic", "dance", "question", "trap", "nonsense", "injection"]
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--tag", default="final")

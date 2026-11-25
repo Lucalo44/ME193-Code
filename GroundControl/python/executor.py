@@ -121,5 +121,7 @@ class Executor:
             ctx.publish(ctx.reply_to, reply)
         else:
             reply = "done" if not errors else f"done, with problems: {'; '.join(errors)}"
+        if ctx.answers and not job.cancel.is_set():
+            reply = " ".join(ctx.answers)
         return {"reply": reply, "errors": errors, "results": results, "published": ctx.published,
                 "steps": self.step_times}

@@ -6,15 +6,16 @@ The hardware is an Arduino UNO Q (the 4 GB version), which is really two compute
 
 ## What it does
 
-Commands arrive on `ME193/q/luca/cmd`, typed into the dashboard, or spoken into a phone. From simplest to most complex:
+Commands arrive on `ME193/q/luca/cmd`, typed into the dashboard, or spoken into its mic button. From simplest to most complex:
 
 1. **Status.** `/status` (or the retained `ME193/q/luca/status` topic) answers in well under a second, even while the LLM is mid-sentence, because it never touches the LLM.
 2. **Stop.** `stop` halts both robots on the MQTT thread in milliseconds. If the Python side dies, the STM32's own watchdog stops the wheels and draws an X within 1 s.
 3. **Planned commands.** Everything else goes to the planner, which writes one JSON plan per command:
-   1. Single actions: "show a heart", "drive backwards for 3 seconds".
-   2. Sequences with replies: "Type Hi on the LED matrix and then send back on MQTT on topic luca message 'I am done'".
-   3. Information requests: "what is your yaw? reply on luca". The plan writes `{imu.yaw}` and the executor fills in the real value when the message goes out.
-   4. Duets: "do a 4 bar dance at 100 bpm, the lego bot mirrors you, then tell me 'bow complete' on luca". The model writes a short dance score, and deterministic code performs it on both robots against one clock.
+   1. General questions: "what is 2+2?" gets an answer in words on the reply topic, and short answers scroll on the LED matrix.
+   2. Single actions: "show a heart", "drive backwards for 3 seconds".
+   3. Sequences with replies: "Type Hi on the LED matrix and then send back on MQTT on topic luca message 'I am done'".
+   4. Information requests: "what is your yaw? reply on luca". The plan writes `{imu.yaw}` and the executor fills in the real value when the message goes out.
+   5. Duets: "do a 4 bar dance at 100 bpm, the lego bot mirrors you, then tell me 'bow complete' on luca". The model writes a short dance score, and deterministic code performs it on both robots against one clock.
 
 ## How I built it
 
@@ -100,7 +101,7 @@ python3 -m venv venv && venv/bin/pip install -r requirements-dev.txt
 venv/bin/python -m pytest tests                 # 27 tests, sim board + fake LLM
 
 # board (over USB or Wi-Fi; reuses ArduinoUNOq/tools/deploy.py)
-python3 tools/deploy.py                         # copy + start the App Lab app, dashboard on :7000
+python3 tools/deploy.py                         # copy + start the App Lab app, dashboard on https://<board-ip>:7000
 python3 tools/deploy.py --lego                  # LEGO BLE service on the board host
 python3 tools/deploy.py --logs 50
 
@@ -113,7 +114,8 @@ venv/bin/python tools/mqtt_cli.py watch
 venv/bin/python python/devserver.py             # http://localhost:7070
 adb forward tcp:9999 tcp:9999 && venv/bin/python python/devserver.py --llm http://127.0.0.1:9999
 
-# voice: serve tools/voice/ on localhost (speech needs a secure origin) and hold the button
+# voice: the dashboard's mic button (https, accept the self-signed certificate once; Chrome/Edge/Safari)
+# or the standalone phone page, served on localhost:
 cd tools/voice && python3 -m http.server 8000   # http://localhost:8000/voice.html
 ```
 

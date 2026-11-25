@@ -22,7 +22,7 @@ import paho.mqtt.client as mqtt
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "python"))
 import config  # noqa: E402
 
-WATCH = [config.TOPIC_REPLY, config.TOPIC_STATUS, config.TOPIC_EVENTS, config.NAME, f"{config.TOPIC_BASE}/#"]
+WATCH = [config.NAME, f"{config.TOPIC_BASE}/#"]   # the wildcard covers reply/status/events
 
 
 def client(on_message=None):

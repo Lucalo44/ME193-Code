@@ -24,6 +24,7 @@ class Ctx:
     cancel: threading.Event = field(default_factory=threading.Event)
     step_timeout: threading.Event = field(default_factory=threading.Event)
     published: list = field(default_factory=list)
+    answers: list = field(default_factory=list)
 
     def cancelled(self):
         return self.cancel.is_set() or self.step_timeout.is_set()

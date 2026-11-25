@@ -64,5 +64,8 @@ MAX_DANCE_S = 60
 COUNT_IN_BEATS = 3              # matrix counts 3-2-1 before the first beat
 LOOKAHEAD_S = 0.15
 
+# --- dashboard ---
+WEB_TLS = os.environ.get("GC_WEB_TLS", "1") == "1"   # https on :7000 (needed for the mic)
+
 # --- viz ------------------------------------------------------------------------
 VIZ_QUEUE = 500

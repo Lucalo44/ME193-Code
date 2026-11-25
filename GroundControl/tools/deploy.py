@@ -87,7 +87,8 @@ def main():
     kit.remote(board, f"arduino-app-cli app logs {REMOTE_APP} --tail 25", check=False)
     url = kit.web_url(board)
     if url:
-        print(f"\nDashboard: {url}")
+        # The app serves https (self-signed) so the dashboard's mic works; accept the warning once.
+        print(f"\nDashboard: {url.replace('http://', 'https://')}")
 
 
 if __name__ == "__main__":

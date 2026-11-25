@@ -29,9 +29,17 @@
   <!-- ============ INPUT LANE ============ -->
   <section class="lane" id="lane-input">
     <h2><span class="num">1</span> Input <small>what the model reads</small></h2>
+    <form id="send-form" class="card send">
+      <button type="button" id="mic" class="mic" title="Speak a command"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg></button>
+      <input id="send-text" placeholder="Ask or command, e.g. dance 4 bars at 100 bpm, the lego bot mirrors you · what is 2+2?" autocomplete="off">
+      <button type="submit">Send</button>
+      <div id="mic-note" class="mic-note muted"></div>
+      <div class="quick" id="quick"></div>
+    </form>
     <div class="card" id="cmd-card">
       <div class="cmd-head"><span id="cmd-src" class="badge">–</span><span id="cmd-id" class="muted"></span></div>
-      <div id="cmd-text" class="cmd-text muted">Send a command over MQTT (ME193/q/luca/cmd), by voice, or below.</div>
+      <div id="cmd-text" class="cmd-text muted">Type or speak above, or send over MQTT (ME193/q/luca/cmd).</div>
+      <div id="cmd-reply" class="cmd-reply hidden"></div>
     </div>
     <div class="card grow">
       <div class="card-head">
@@ -41,11 +49,6 @@
       <div class="legend" id="seg-legend"></div>
       <div id="chips" class="chips"><div class="empty">The prompt appears here as the token chips the model actually reads.</div></div>
     </div>
-    <form id="send-form" class="card send">
-      <input id="send-text" placeholder="e.g. dance 4 bars at 100 bpm, the lego bot mirrors you, then tell me 'bow complete' on luca" autocomplete="off">
-      <button type="submit">Send</button>
-      <div class="quick" id="quick"></div>
-    </form>
   </section>
 
   <!-- ============ THINKING LANE ============ -->

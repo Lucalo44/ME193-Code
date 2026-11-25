@@ -39,6 +39,19 @@ def mqtt_publish(ctx, topic, message):
     return {"topic": topic, "message": message}
 
 
+@skill("answer", "answer a question or chat, in words", args={"text": Str(160)})
+def answer(ctx, text):
+    """General questions ("what is 2+2?"): the model writes the answer itself. It goes
+    to the job's reply topic, and short answers also scroll on the LED matrix."""
+    topic = ctx.reply_to or config.TOPIC_REPLY
+    ctx.publish(topic, text)
+    ctx.published.append(topic)
+    ctx.answers.append(text)
+    if len(text) <= 24:
+        ctx.matrix.text(text)
+    return {"answer": text}
+
+
 @skill("wait", "pause", args={"seconds": Num(0, 10)})
 def wait(ctx, seconds):
     ctx.sleep(seconds)

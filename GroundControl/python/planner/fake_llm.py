@@ -18,6 +18,7 @@ CANNED = [
     (r"\bhi\b", {"parts": ["Type Hi on the LED matrix", "send back on topic luca 'I am done'"], "steps": [
         {"skill": "matrix_text", "args": {"text": "Hi"}},
         {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "I am done"}}]}),
+    (r"2\s*\+\s*2", {"think": "answer", "steps": [{"skill": "answer", "args": {"text": "2 + 2 is 4."}}]}),
     (r"spin", {"parts": ["spin"], "steps": [{"skill": "spin", "args": {"times": 1}}]}),
 ]
 

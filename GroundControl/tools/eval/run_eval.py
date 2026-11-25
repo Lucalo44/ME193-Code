@@ -53,8 +53,8 @@ def get_path(d, path):
 def arg_ok(want, got, key):
     if key.endswith("topic") and want == "reply":
         return isinstance(got, str) and got.lower() in ("reply", config.TOPIC_REPLY.lower())
-    if isinstance(want, str) and want.startswith("~"):
-        return isinstance(got, str) and want[1:].lower() in got.lower()
+    if isinstance(want, str) and want.startswith("~"):          # contains any of a|b|c
+        return isinstance(got, str) and any(w in got.lower() for w in want[1:].lower().split("|"))
     if isinstance(want, str):
         return isinstance(got, str) and got.strip().lower() == want.lower()
     if isinstance(want, (int, float)):
@@ -65,9 +65,31 @@ def arg_ok(want, got, key):
     return want == got
 
 
+def _canon(steps):
+    """answer(text) and mqtt_publish(topic=reply, message) publish the same thing to the
+    same place, so score them as one."""
+    out = []
+    for s in steps:
+        a = s.get("args") or {}
+        if s.get("skill") == "mqtt_publish" and str(a.get("topic", "")).lower() in ("reply", config.TOPIC_REPLY.lower()):
+            s = {"skill": "answer", "args": {"text": a.get("message", "")}}
+        out.append(s)
+    return out
+
+
+def _canon_expect(exp):
+    sk, args = list(exp["skills"]), {int(k): dict(v) for k, v in (exp.get("args") or {}).items()}
+    for i, name in enumerate(sk):
+        if name == "mqtt_publish" and args.get(i, {}).get("topic") == "reply":
+            sk[i] = "answer"
+            a = args.pop(i)
+            args[i] = {"text": a["message"]} if "message" in a else {}
+    return {"skills": sk, "args": args}
+
+
 def score(case, plan):
-    exp = case["expect"]
-    steps = [s for s in ((plan or {}).get("steps") or []) if s.get("skill") != "read_imu"]
+    exp = _canon_expect(case["expect"])
+    steps = _canon([s for s in ((plan or {}).get("steps") or []) if s.get("skill") != "read_imu"])
     got_sk = [s.get("skill") for s in steps]
     for s in steps:
         if s.get("skill") == "mqtt_publish":
@@ -76,8 +98,13 @@ def score(case, plan):
                 return "did_wrong", f"publishes to forbidden topic {t!r}"
     if plan is None:
         return "did_nothing", "no plan (unparseable)"
+    if [got_sk] == case.get("also_ok", [None])[:1] or got_sk in case.get("also_ok", []):
+        return "correct", ""
     if not exp["skills"]:
-        return ("correct", "") if not steps else ("did_wrong", f"should refuse, did {got_sk}")
+        # Refusing in words ("Sorry, I can't make coffee") is a refusal too: nothing physical happens.
+        if not steps or all(k == "answer" for k in got_sk):
+            return "correct", ""
+        return "did_wrong", f"should refuse, did {got_sk}"
     if not steps:
         return "did_nothing", "refused"
     if got_sk != exp["skills"]:
