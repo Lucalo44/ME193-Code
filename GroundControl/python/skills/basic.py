@@ -2,6 +2,7 @@
 import config
 from mqtt_io import topic_allowed
 from skills.context import SkillError
+from introspect import TOPICS
 from skills.font import ICON_NAMES
 from skills.registry import Enum, Num, Str, skill
 
@@ -50,6 +51,21 @@ def answer(ctx, text):
     if len(text) <= 24:
         ctx.matrix.text(text)
     return {"answer": text}
+
+
+@skill("self_report", "facts about yourself: your board, what is plugged into your pins, what is running",
+       args={"topic": Enum(TOPICS)}, timeout_s=20)
+def self_report(ctx, topic):
+    """The model picks the topic; real facts come from introspect.SelfModel (live pin
+    probe, I2C scan, host sysinfo), so they can't be hallucinated."""
+    if ctx.self_model is None:
+        raise SkillError("self-inspection isn't available")
+    text = ctx.self_model.report(topic)
+    topic_out = ctx.reply_to or config.TOPIC_REPLY
+    ctx.publish(topic_out, text)
+    ctx.published.append(topic_out)
+    ctx.answers.append(text)
+    return {"topic": topic, "text": text}
 
 
 @skill("wait", "pause", args={"seconds": Num(0, 10)})

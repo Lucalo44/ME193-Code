@@ -198,3 +198,15 @@ def test_general_question_is_answered(gc):
     assert wait_for(lambda: (config.TOPIC_REPLY, "2 + 2 is 4.") in gc.sent)
     assert gc.matrix.content == {"kind": "text", "text": "2 + 2 is 4."}
     assert not any(p == "done" for _, p in gc.sent)          # the answer IS the reply
+
+
+def test_self_report_uses_real_probes(gc):
+    import time as _t
+    gc.self_model._host_cache = (_t.time(), {"model": "Arduino UnoQ", "hostname": "Luca", "soc": ["qcom,qrb2210"],
+                                            "cpus": 4, "mem_total_mb": 3667, "os": "Debian GNU/Linux 13",
+                                            "kernel": "7.0"})
+    gc.submit("what board are you on and is anything plugged into your pins?")
+    assert wait_for(lambda: len([p for t, p in gc.sent if t == config.TOPIC_REPLY]) >= 2)
+    board, pins = [p for t, p in gc.sent if t == config.TOPIC_REPLY][:2]
+    assert "Arduino UNO Q" in board and "Qualcomm QRB2210" in board and "3.6 GB" in board
+    assert "D5/D6" in pins and "A0 (held high)" in pins and "0x6a on the Qwiic connector" in pins

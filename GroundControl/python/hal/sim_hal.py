@@ -25,6 +25,13 @@ class SimHal(Hal):
         t, self.tripped = self.tripped, False
         return t
 
+    # A simulated bench: something driving A0, a Modulino Movement on the Qwiic bus.
+    def _probe_pins(self):
+        return "D2:f,D3:f,D4:f,D7:f,D8:f,D11:f,D12:f,D13:f,A0:H,A1:f,A2:f,A3:f,A4:f,A5:f,"
+
+    def _i2c_scan(self):
+        return "Wire:;Wire1:6a;Wire2:"
+
     def imu(self):
         r = super().imu()
         r["pitch"] = round(random.gauss(0, 0.3), 1)

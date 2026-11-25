@@ -17,6 +17,7 @@ import config
 import skills  # noqa: F401  (registers skills)
 from dance.conductor import Conductor
 from executor import Executor
+from introspect import SelfModel
 from hal.performers import CarPerformer, LegoPerformer, SimLegoPerformer
 from jobs import Job, JobQueue, QueueFull
 from mqtt_io import MqttIO
@@ -49,6 +50,7 @@ class GroundControl:
         self.performers = {"car": self.car, "lego": self.sim_lego}
         self.conductor = Conductor(self.performers, emit=self.viz.emit, status=self.status)
         self.executor = Executor(self.make_ctx, emit=self.viz.emit, status=self.status)
+        self.self_model = SelfModel(hal, self.status)
         self.status.on_change(self._on_status)
         self.status.update(car={"connected": hal.connected, "left": 0, "right": 0},
                            imu=hal.imu(), lego={"connected": False, "state": "sim"})
@@ -131,7 +133,8 @@ class GroundControl:
     # ---------------------------------------------------------------- worker
     def make_ctx(self, job):
         return Ctx(hal=self.hal, matrix=self.matrix, publish=self.mqtt.publish, status=self.status,
-                   conductor=self.conductor, reply_to=job.reply_to, cancel=job.cancel)
+                   conductor=self.conductor, reply_to=job.reply_to, cancel=job.cancel,
+                   self_model=self.self_model)
 
     def _worker(self):
         while not self._stop.is_set():

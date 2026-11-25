@@ -20,6 +20,7 @@ class Ctx:
     status: object
     conductor: object = None
     imu_source: callable = None           # () -> dict | None
+    self_model: object = None             # introspect.SelfModel
     reply_to: str = ""
     cancel: threading.Event = field(default_factory=threading.Event)
     step_timeout: threading.Event = field(default_factory=threading.Event)

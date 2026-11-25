@@ -10,6 +10,7 @@ For the dashboard it emits:
 import json
 import math
 import re
+import threading
 import time
 
 import config
@@ -126,6 +127,10 @@ class Planner:
     def __init__(self, client, emit=None, think_chars=None, style=None):
         self.client = client
         self.style = style or config.PLAN_STYLE
+        # One generation at a time. The boot warm-up runs on its own thread; without
+        # this, a command arriving mid-warm-up made llama.cpp run both side by side
+        # in a shared context and prefill crawled at <3 tok/s.
+        self.llm_lock = threading.Lock()
         self.emit = emit or (lambda *a, **k: None)
         self.think_chars = config.THINK_MAX_CHARS if think_chars is None else think_chars
         self._last_prompt_ids = []
@@ -134,6 +139,10 @@ class Planner:
     # ---- boot ----
     def warm(self):
         """Prefill the fixed prefix once so the first real command hits the cache."""
+        with self.llm_lock:
+            return self._warm()
+
+    def _warm(self):
         t0 = time.time()
         msgs = P.messages("show a smile", self.think_chars, self.style)
         r = self.client.chat_stream(msgs, schema=plan_schema(self.think_chars, style=self.style),
@@ -174,6 +183,10 @@ class Planner:
 
     # ---- main path ----
     def plan(self, job, max_retries=1):
+        with self.llm_lock:
+            return self._plan(job, max_retries)
+
+    def _plan(self, job, max_retries=1):
         msgs = P.messages(job.text, self.think_chars, self.style)
         schema = plan_schema(self.think_chars, config.MAX_STEPS, style=self.style)
         pv = self.prompt_view(job.text)

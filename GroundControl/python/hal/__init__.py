@@ -84,7 +84,30 @@ class Hal:
         self._integrate()
         return {"x": round(self.x, 3), "y": round(self.y, 3), "yaw": round(self.yaw, 1)}
 
+    def probe_pins(self):
+        """-> {"D2": "f"|"H"|"L"|"?", ...} for the free header pins, or None if unsupported."""
+        with self._lock:
+            raw = self._probe_pins()
+        if not raw:
+            return None
+        return dict(item.split(":") for item in raw.strip(",").split(",") if ":" in item)
+
+    def i2c_scan(self):
+        """-> {"Wire": ["29", ...], "Wire1": [...], "Wire2": [...]} hex addresses, or None."""
+        with self._lock:
+            raw = self._i2c_scan()
+        if raw is None:
+            return None
+        out = {}
+        for part in raw.split(";"):
+            if ":" in part:
+                bus, addrs = part.split(":", 1)
+                out[bus] = addrs.split()
+        return out
+
     # subclass hooks
+    def _probe_pins(self): return None
+    def _i2c_scan(self): return None
     def _draw(self, frame): ...
     def _drive(self, left, right): ...
     def _heartbeat(self): return False

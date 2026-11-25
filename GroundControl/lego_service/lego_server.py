@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""LEGO Double Motor service: owns the BLE link, plays dance timelines locally.
+"""Host service: owns the LEGO BLE link (plays dance timelines locally) and
+answers `sysinfo` (host facts for the planner's self_report skill).
 
 Why a separate process: App Lab runs the app in a Docker container with no
 D-Bus socket, so bleak/BlueZ can't be reached from inside it (docs/SPIKES.md).
@@ -234,6 +235,69 @@ class Player:
 LEGO = Lego()
 
 
+def _sh(cmd, timeout=5):
+    import subprocess
+    try:
+        return subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=timeout).stdout.strip()
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def sysinfo():
+    """Host-level facts the app container can't see (it has its own OS image and
+    only its own app folder). Used by the planner's self_report skill."""
+    import glob
+    import re
+    info = {}
+    info["hostname"] = _sh("hostname")
+    m = re.search(r'PRETTY_NAME="([^"]+)"', open("/etc/os-release").read())
+    info["os"] = m.group(1) if m else ""
+    info["kernel"] = _sh("uname -r")
+    info["model"] = open("/proc/device-tree/model").read().strip("\x00 \n") if os.path.exists("/proc/device-tree/model") else ""
+    info["soc"] = [c for c in open("/proc/device-tree/compatible").read().split("\x00") if c][1:] \
+        if os.path.exists("/proc/device-tree/compatible") else []
+    info["cpus"] = os.cpu_count()
+    mem = dict(re.findall(r"(\w+):\s+(\d+) kB", open("/proc/meminfo").read()))
+    info["mem_total_mb"] = int(mem.get("MemTotal", 0)) // 1024
+    info["mem_avail_mb"] = int(mem.get("MemAvailable", 0)) // 1024
+    st = os.statvfs("/")
+    info["disk_free_mb"] = st.f_bavail * st.f_frsize // 2**20
+    info["disk_total_mb"] = st.f_blocks * st.f_frsize // 2**20
+    info["uptime_s"] = int(float(open("/proc/uptime").read().split()[0]))
+    info["load"] = open("/proc/loadavg").read().split()[:3]
+    temps = []
+    for z in glob.glob("/sys/class/thermal/thermal_zone*/temp"):
+        try:
+            temps.append(int(open(z).read()) / 1000)
+        except (OSError, ValueError):
+            pass
+    info["temp_c"] = round(max(temps), 1) if temps else None
+    info["ips"] = [l.split()[3].split("/")[0] for l in _sh("ip -4 -o addr show scope global").splitlines()
+                   if not l.split()[1].startswith(("docker", "br-", "veth"))]
+    apps = []
+    for y in sorted(glob.glob("/home/arduino/ArduinoApps/*/app.yaml")):
+        m = re.search(r"^name:\s*(.+)$", open(y).read(), re.M)
+        apps.append((m.group(1).strip().strip('"') if m else os.path.basename(os.path.dirname(y))))
+    info["apps_installed"] = apps
+    info["containers"] = _sh("docker ps --format '{{.Names}}'").splitlines()
+    info["models"] = re.findall(r"^\[(.+)\]$", open("/var/lib/arduino-app-cli/models/llamacpp/models.ini").read(), re.M) \
+        if os.path.exists("/var/lib/arduino-app-cli/models/llamacpp/models.ini") else []
+    usb = []
+    for d in glob.glob("/sys/bus/usb/devices/*"):
+        p = os.path.join(d, "product")
+        if os.path.exists(p) and not os.path.basename(d).startswith("usb"):
+            man = open(os.path.join(d, "manufacturer")).read().strip() if os.path.exists(os.path.join(d, "manufacturer")) else ""
+            usb.append(f"{man} {open(p).read().strip()}".strip())
+    info["usb"] = usb
+    info["video"] = [open(n).read().strip() for n in glob.glob("/sys/class/video4linux/*/name")]
+    info["sound_cards"] = [l.split(":", 1)[1].strip() for l in open("/proc/asound/cards").read().splitlines()
+                           if re.match(r"\s*\d+ \[", l)] if os.path.exists("/proc/asound/cards") else []
+    info["bluetooth"] = sorted(os.listdir("/sys/class/bluetooth")) if os.path.exists("/sys/class/bluetooth") else []
+    info["app_cli"] = _sh("arduino-app-cli version | head -1")
+    info["lego_ble"] = LEGO.ble
+    return info
+
+
 class Handler(socketserver.StreamRequestHandler):
     def setup(self):
         super().setup()
@@ -282,6 +346,8 @@ class Handler(socketserver.StreamRequestHandler):
                     out = {"ok": True}
                 elif op == "state":
                     out = LEGO.state()
+                elif op == "sysinfo":
+                    out = sysinfo()
                 else:
                     out = {"error": f"unknown op {op}"}
             except Exception as e:  # noqa: BLE001

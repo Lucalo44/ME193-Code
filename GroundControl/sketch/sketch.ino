@@ -16,8 +16,21 @@
 // pins and no direction pin -- pin A for forward, pin B for reverse.
 //   M1A/M1B = D5/D6 (left wheel), M2A/M2B = D9/D10 (right wheel).
 
+//   * self-inspection for the planner's self_report skill:
+//       probe_pins  <- which free header pins are being driven by something
+//       i2c_scan    <- which I2C addresses answer on each bus
+//
+// Pin probe: a pin is switched to INPUT_PULLUP and read, then INPUT_PULLDOWN and
+// read. If it follows both pulls it's floating (nothing attached, or a switch with
+// no pull resistor). If it stays HIGH or LOW, something is driving it. Only pins
+// this sketch doesn't use are probed (never D0/D1 serial or the motor pins), and
+// they're left as plain inputs afterwards.
+// I2C buses (from the UNO Q variant overlay): Wire = header SDA/SCL (D20/D21),
+// Wire1 = Qwiic connector, Wire2 = A4/A5. None share pins with the motors.
+
 #include <Arduino_RouterBridge.h>
 #include <Arduino_LED_Matrix.h>
+#include <Wire.h>
 #include <vector>
 
 const int MOTOR1_A_PIN = 5;
@@ -84,6 +97,8 @@ void setup() {
   Bridge.provide("drive", drive);
   Bridge.provide("heartbeat", heartbeat);
   Bridge.provide("ping", ping);
+  Bridge.provide_safe("probe_pins", probe_pins);
+  Bridge.provide_safe("i2c_scan", i2c_scan);
 }
 
 void loop() {
@@ -138,4 +153,55 @@ int heartbeat() {
 
 int ping(int x) {
   return x + 1;
+}
+
+// ---- self-inspection -------------------------------------------------------
+const int PROBE_PINS[] = {2, 3, 4, 7, 8, 11, 12, 13, A0, A1, A2, A3, A4, A5};
+const char *PROBE_NAMES[] = {"D2", "D3", "D4", "D7", "D8", "D11", "D12", "D13",
+                             "A0", "A1", "A2", "A3", "A4", "A5"};
+
+// "D2:f,D3:H,..."  f = floating, H/L = held high/low by something, ? = odd
+String probe_pins() {
+  String out;
+  for (unsigned i = 0; i < sizeof(PROBE_PINS) / sizeof(PROBE_PINS[0]); i++) {
+    int p = PROBE_PINS[i];
+    pinMode(p, INPUT_PULLUP);
+    delayMicroseconds(300);
+    int up = digitalRead(p);
+    pinMode(p, INPUT_PULLDOWN);
+    delayMicroseconds(300);
+    int down = digitalRead(p);
+    pinMode(p, INPUT);
+    char c = (up == HIGH && down == LOW) ? 'f' : (up == down ? (up == HIGH ? 'H' : 'L') : '?');
+    out += PROBE_NAMES[i];
+    out += ':';
+    out += c;
+    out += ',';
+  }
+  return out;
+}
+
+String scanBus(arduino::ZephyrI2C &bus) {
+  bus.begin();
+  String found;
+  for (uint8_t addr = 0x08; addr < 0x78; addr++) {
+    bus.beginTransmission(addr);
+    if (bus.endTransmission() == 0) {
+      if (found.length()) found += ' ';
+      found += String(addr, HEX);
+    }
+  }
+  return found;
+}
+
+// "Wire:29 6a;Wire1:;Wire2:"  (hex addresses that acknowledged)
+String i2c_scan() {
+  String out = "Wire:" + scanBus(Wire);
+#if WIRE_HOWMANY > 1
+  out += ";Wire1:" + scanBus(Wire1);
+#endif
+#if WIRE_HOWMANY > 2
+  out += ";Wire2:" + scanBus(Wire2);
+#endif
+  return out;
 }

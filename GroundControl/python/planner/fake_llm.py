@@ -19,6 +19,8 @@ CANNED = [
         {"skill": "matrix_text", "args": {"text": "Hi"}},
         {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "I am done"}}]}),
     (r"2\s*\+\s*2", {"think": "answer", "steps": [{"skill": "answer", "args": {"text": "2 + 2 is 4."}}]}),
+    (r"what board|plugged|pins", {"think": "self_report board, then self_report pins", "steps": [
+        {"skill": "self_report", "args": {"topic": "board"}}, {"skill": "self_report", "args": {"topic": "pins"}}]}),
     (r"spin", {"parts": ["spin"], "steps": [{"skill": "spin", "args": {"times": 1}}]}),
 ]
 

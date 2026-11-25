@@ -12,10 +12,11 @@ Commands arrive on `ME193/q/luca/cmd`, typed into the dashboard, or spoken into 
 2. **Stop.** `stop` halts both robots on the MQTT thread in milliseconds. If the Python side dies, the STM32's own watchdog stops the wheels and draws an X within 1 s.
 3. **Planned commands.** Everything else goes to the planner, which writes one JSON plan per command:
    1. General questions: "what is 2+2?" gets an answer in words on the reply topic, and short answers scroll on the LED matrix.
-   2. Single actions: "show a heart", "drive backwards for 3 seconds".
-   3. Sequences with replies: "Type Hi on the LED matrix and then send back on MQTT on topic luca message 'I am done'".
-   4. Information requests: "what is your yaw? reply on luca". The plan writes `{imu.yaw}` and the executor fills in the real value when the message goes out.
-   5. Duets: "do a 4 bar dance at 100 bpm, the lego bot mirrors you, then tell me 'bow complete' on luca". The model writes a short dance score, and deterministic code performs it on both robots against one clock.
+   2. Questions about itself: "what board are you on?", "is anything plugged into your pins?", "what's running on you?" get real, measured answers, not guesses.
+   3. Single actions: "show a heart", "drive backwards for 3 seconds".
+   4. Sequences with replies: "Type Hi on the LED matrix and then send back on MQTT on topic luca message 'I am done'".
+   5. Information requests: "what is your yaw? reply on luca". The plan writes `{imu.yaw}` and the executor fills in the real value when the message goes out.
+   6. Duets: "do a 4 bar dance at 100 bpm, the lego bot mirrors you, then tell me 'bow complete' on luca". The model writes a short dance score, and deterministic code performs it on both robots against one clock.
 
 ## How I built it
 
@@ -63,6 +64,14 @@ Prompt tuning on the 0.8B topped out at 62%, so I tried the next size up. App La
 Qwen3-1.7B (1.06 GB) did not work at first. It wrote a lovely 0.3 tokens per second. The 0.8B is a hybrid model whose attention cache barely grows, but the 1.7B uses standard attention, and App Lab's default 16k-token context reserves about 1.8 GB for it. Together with the weights, that overflowed the container cap, so the kernel kept re-reading the model from flash on every token. Setting `LLAMA_ARG_CTX_SIZE` to 2048 in [app.yaml](app.yaml) (my prompts are about 800 tokens) brought it to 3.0 tokens per second, in 948 MiB.
 
 With exactly the same prompt, it scored 80% instead of 62%. Each command takes about 24 s instead of 14 s, and the boot warm-up takes 2.7 minutes instead of one. That is a trade I'll take for a planner, since nothing time-critical waits on it. It is now the default, and the dashboard's model picker can still switch to the 0.8B when speed matters more.
+
+### Making it a little self-aware
+
+I wanted to be able to ask the robot what it is, and a 1.7B model asked about its own pins will cheerfully make something up. So the model never states facts about itself. It picks a topic (board, pins, devices, software, resources, network, or all), and [python/introspect.py](python/introspect.py) gathers the facts and phrases them.
+
+The pins were the interesting part. The sketch knows which pins it drives (the motors on D5/D6 and D9/D10), but it can't sense what's attached to an output. For the free pins, [sketch/sketch.ino](sketch/sketch.ino) switches each one to the internal pull-up and reads it, then to the pull-down and reads it again. A pin that follows both pulls is floating. A pin that stays put is being driven by something. It also scans all three I2C buses. The UNO Q variant file showed me which bus is which: `Wire` is the header SDA/SCL, `Wire1` is the Qwiic connector, and `Wire2` is A4/A5. Known addresses get names, so a Modulino Movement shows up as one. Host-level facts the app's container can't see (installed apps, USB devices, disk, temperature, IP) come from the same host service that runs Bluetooth. The robot says it's on Wi-Fi but never names the network, because replies go out on a public broker.
+
+Testing this also caught a bug I had been lucky to miss. Commands sent during the boot warm-up made llama.cpp run two prompts side by side in a shared context, and reading the prompt slowed to under 3 tokens per second. A single lock around the model fixed it.
 
 ### The duet
 
