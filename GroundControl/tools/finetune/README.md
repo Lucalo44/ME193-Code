@@ -20,6 +20,12 @@ In-context prompting got the base Qwen3-1.7B to 78% on the held-out eval (docs/E
    2. 20% general instruction data (alpaca-cleaned) is mixed in, so the model doesn't forget how to write a normal sentence.
    3. The notebook merges the adapter, converts to GGUF and quantizes to Q4_0, the same format the board runs now.
    4. `train_lora.py` does the same training as a plain script, for any other CUDA machine.
+   5. **Or on the Tufts HPC cluster** (no session limit, A100/L40S/H100): with the VPN on and one SSH login kept open
+      (`ssh -o ControlMaster=auto -o ControlPath=~/.ssh/sockets/%r@%h -o ControlPersist=6h <utln>@login-prod.pax.tufts.edu`),
+      copy `train_lora.py`, `cluster/setup.sh`, `cluster/job.sbatch` and `data/*.jsonl` to `~/gc-ft`, run `bash setup.sh` once
+      on the login node (adds the libraries to `~/mujoco-env` with PyTorch pinned, downloads the model, builds the quantizer),
+      then `sbatch job.sbatch`. On an A100 80 GB the job trained, merged and quantized v2 in one go; resubmitting resumes from
+      the last checkpoint.
 3. **Install on the board**: `venv/bin/python tools/deploy.py --model ~/Downloads/gc-planner-Q4_0.gguf`.
    1. It copies the file to `/var/lib/arduino-app-cli/models/llamacpp/custom/` and writes an `.arduino_metadata.yaml` beside it, the same record App Lab's downloader writes. Without that file, App Lab doesn't list the model, and an app that names it won't start.
    2. App Lab names the model after its folder, so the id is `llamacpp:custom/gc-planner-Q4_0` in `app.yaml` and `custom/gc-planner-Q4_0` as the runner's model name. App Lab rebuilds the runner's `models.ini` from these records on every app start.

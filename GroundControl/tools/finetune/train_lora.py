@@ -12,6 +12,7 @@ install it on the board as README.md describes.
 """
 import argparse
 import json
+import os
 import random
 
 import torch
@@ -28,6 +29,9 @@ ap.add_argument("--epochs", type=float, default=1)
 ap.add_argument("--lr", type=float, default=2e-4)
 ap.add_argument("--rank", type=int, default=16)
 ap.add_argument("--general", type=float, default=0.2, help="alpaca-cleaned replay, as a fraction of train")
+ap.add_argument("--batch", type=int, default=2, help="per-GPU batch (T4: 2; a 48 GB L40S: 8)")
+ap.add_argument("--accum", type=int, default=8, help="gradient accumulation; batch x accum = 16 by default")
+ap.add_argument("--save-steps", type=int, default=100, help="checkpoint every N steps (0 = none)")
 a = ap.parse_args()
 
 tok = AutoTokenizer.from_pretrained(a.base)
@@ -63,16 +67,20 @@ bf16 = torch.cuda.get_device_capability()[0] >= 8   # is_bf16_supported() counts
 model = AutoModelForCausalLM.from_pretrained(a.base, dtype=torch.bfloat16 if bf16 else torch.float32)
 cfg = SFTConfig(
     output_dir=a.out, num_train_epochs=a.epochs,
-    per_device_train_batch_size=2, gradient_accumulation_steps=8,
+    per_device_train_batch_size=a.batch, gradient_accumulation_steps=a.accum,
     learning_rate=a.lr, lr_scheduler_type="cosine", warmup_steps=15, logging_steps=25,
-    eval_strategy="steps", eval_steps=200, save_strategy="no", max_length=1400,
+    eval_strategy="steps", eval_steps=200, max_length=1400,
+    save_strategy="steps" if a.save_steps else "no", save_steps=a.save_steps or 500, save_total_limit=2,
     bf16=bf16, fp16=not bf16, gradient_checkpointing=True,
     completion_only_loss=True, report_to="none")
 lora = LoraConfig(r=a.rank, lora_alpha=2 * a.rank, lora_dropout=0.05, task_type="CAUSAL_LM",
                   target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"])
 trainer = SFTTrainer(model=model, args=cfg, train_dataset=Dataset.from_list(train),
                      eval_dataset=Dataset.from_list(val), processing_class=tok, peft_config=lora)
-trainer.train()
+# A job that was cut off (time limit, preemption) resumes from its newest checkpoint.
+has_ckpt = os.path.isdir(a.out) and any(d.startswith("checkpoint-") for d in os.listdir(a.out))
+print("resuming from a checkpoint" if has_ckpt else "starting fresh", flush=True)
+trainer.train(resume_from_checkpoint=True if has_ckpt else None)
 trainer.save_model(a.out)
 
 merged = trainer.model.merge_and_unload().to(torch.float16)
