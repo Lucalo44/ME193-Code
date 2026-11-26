@@ -43,7 +43,14 @@ const Duet = (() => {
   }
 
   function drawTimeline(canvas) {
-    const { ctx, w, h } = Draw.fit(canvas);
+    // Drawn on a 150-px-tall design; a bigger (expanded) canvas scales it up uniformly.
+    const fit = Draw.fit(canvas), ctx = fit.ctx;
+    const k = Math.max(1, Math.min(3, fit.h / 150, fit.w / 700));
+    ctx.scale(k, k);
+    const w = fit.w / k;
+    const oy = Math.max(0, (fit.h / k - 150) / 2);         // centre the 150-px design vertically
+    ctx.translate(0, oy);
+    const h = 150;
     ctx.clearRect(0, 0, w, h);
     const F = Draw.css("--cv-font");
     ctx.font = `12px ${F}`;
@@ -152,7 +159,10 @@ const Duet = (() => {
     const dt = Math.min(0.05, (t - stage.lastT) / 1000);
     stage.lastT = t;
     step(dt);
-    const { ctx, w, h } = Draw.fit(canvas);
+    const fit = Draw.fit(canvas), ctx = fit.ctx;
+    const k = Math.max(1, Math.min(fit.w / 420, fit.h / 190));    // scale up when expanded
+    ctx.scale(k, k);
+    const w = fit.w / k, h = fit.h / k;
     const F = Draw.css("--cv-font");
     ctx.clearRect(0, 0, w, h);
     ctx.fillStyle = Draw.css("--stage-bg");

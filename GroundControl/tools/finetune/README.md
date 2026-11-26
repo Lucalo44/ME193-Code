@@ -1,17 +1,19 @@
-# Fine-tuning the planner (Phase 11)
+# Fine-tuning the planner
 
-In-context prompting tops out around 60–70% on this 0.8B model (docs/EVAL.md). The model knows the skills, but it is easily pulled toward the few-shot examples. A small LoRA on synthetic plans is the fix the plan called for.
+In-context prompting got the base Qwen3-1.7B to 78% on the held-out eval (docs/EVAL.md). The model knows the skills, but the few-shot examples pull it around, and they cost about 700 prefix tokens on every cold prompt (5,209 characters of prompt versus 2,976 without them). A LoRA trained on synthetic plans attacks both problems: the examples move into the weights, and the prompt gets shorter.
 
-1. **Data** (laptop, seconds): `venv/bin/python tools/finetune/gen_data.py --n 4000` writes `data/train.jsonl` + `data/val.jsonl`. The commands are built from per-skill paraphrase templates, so every plan is exactly right. Anything matching `tools/eval/commands.yaml` or `dev.yaml` is dropped, so the eval stays held out. The system prompt has **no few-shot examples**, so after fine-tuning the board's prompt can drop them too (about 250 fewer prefix tokens).
-2. **Train** (Colab, about 20 min on a T4): upload `data/` and `train_lora.py`, then run `python train_lora.py --data data --epochs 2`.
-3. **Export to GGUF Q4_0** (Colab):
-   ```bash
-   git clone https://github.com/ggml-org/llama.cpp && pip install -r llama.cpp/requirements.txt
-   python llama.cpp/convert_hf_to_gguf.py gc-planner-lora/merged --outtype f16 --outfile gc-planner-f16.gguf
-   cmake -S llama.cpp -B build && cmake --build build --target llama-quantize -j
-   ./build/bin/llama-quantize gc-planner-f16.gguf gc-planner-Q4_0.gguf Q4_0
-   ```
-4. **Install on the board**: upload the GGUF to a Hugging Face model repo, then
-   `python3 tools/deploy.py --cmd "arduino-app-cli model install llamacpp:<user>/<repo>:Q4_0"`
-   (App Lab 0.14 accepts a llama.cpp HF id or a direct file URL). Check the name it registers with `arduino-app-cli model list`.
-5. **Evaluate**: `venv/bin/python tools/eval/run_eval.py --model <registered name>` and add the row to `docs/EVAL.md`. To use it live, put the model id in `app.yaml` and add it to `LLM_MODELS` in `python/config.py`, so the dashboard's model picker can switch between base and fine-tuned.
+1. **Data** (laptop, seconds): `venv/bin/python tools/finetune/gen_data.py` writes `data/train.jsonl` and `data/val.jsonl` (6,555 / 345 examples), then zips them into `data/gc_finetune_data.zip`.
+   1. Commands come from per-skill paraphrase templates, so every plan is exactly right. Each plan is checked with the planner's own `validate_plan`.
+   2. Anything that matches `tools/eval/commands.yaml` or `dev.yaml` is dropped, so the eval stays held out.
+   3. The system message is exactly `prompt.system_prompt(60, "think")`, the rules and skill list with no few-shot examples.
+   4. The data also covers the other two jobs the same weights do on the board: composing answers from facts and writing choreography scores.
+2. **Train** (Colab, about 1–2 hours on a free T4): open `finetune_planner_colab.ipynb` in Colab, pick a T4 GPU, Run all, and upload the zip when cell 2 asks.
+   1. LoRA r16 on every projection layer, one epoch, loss on the completion only.
+   2. 20% general instruction data (alpaca-cleaned) is mixed in, so the model doesn't forget how to write a normal sentence.
+   3. The notebook merges the adapter, converts to GGUF and quantizes to Q4_0, the same format the board runs now.
+   4. `train_lora.py` does the same training as a plain script, for any other CUDA machine.
+3. **Install on the board**: `venv/bin/python tools/deploy.py --model ~/Downloads/gc-planner-Q4_0.gguf`.
+   1. It copies the file to `/var/lib/arduino-app-cli/models/llamacpp/custom/` and adds a `[gc-planner-Q4_0]` section to the runner's `models.ini`.
+   2. Then it restarts the llama.cpp runner and lists the models it serves. No Hugging Face account is involved.
+4. **Evaluate**: `venv/bin/python tools/eval/run_eval.py --model gc-planner-Q4_0`. Selecting this model switches the planner to the `ft` prompt style automatically (`config.style_for`), which drops the few-shot examples to match training.
+5. **Use it live**: add `gc-planner-Q4_0` to `LLM_MODELS` in `python/config.py` so the dashboard's model picker can switch between base and fine-tuned, or set `GC_LLM_MODEL=gc-planner-Q4_0` to make it the default.

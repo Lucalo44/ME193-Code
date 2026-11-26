@@ -29,13 +29,20 @@ QUEUE_CAP = 5
 # --- LLM ------------------------------------------------------------------------
 LLM_URL = os.environ.get("GC_LLM_URL", "http://llamacpp-models-runner:9999")
 LLM_MODEL = os.environ.get("GC_LLM_MODEL", "unsloth/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q4_0")   # 80% held-out (docs/EVAL.md)
-LLM_MODELS = ["unsloth/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q4_0", "Qwen3.5-0.8B-Q4_0"]   # dashboard picker
+LLM_MODELS = ["unsloth/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q4_0"]   # dashboard picker (fine-tuned model gets added here)
 THINK_MAX_CHARS = int(os.environ.get("GC_THINK_CHARS", "60"))   # 0 = no think field
 MAX_STEPS = 8
 # "think": the model names the skills it will use in a short think, then writes steps
 #          (repair if the steps don't match the names). Best held-out score.
 # "parts": the model copies the command's clauses into parts, one step per part.
 PLAN_STYLE = os.environ.get("GC_PLAN_STYLE", "think")
+# The fine-tuned planner (tools/finetune/). Selecting it switches the planner to the "ft"
+# prompt style (no few-shot examples); install with `tools/deploy.py --model <file.gguf>`.
+FT_MODEL = "gc-planner-Q4_0"
+
+
+def style_for(model):
+    return "ft" if model == FT_MODEL else ("think" if PLAN_STYLE == "ft" else PLAN_STYLE)
 LLM_MAX_TOKENS = 220
 LLM_TIMEOUT_S = 180
 LLM_TOP_K = 5

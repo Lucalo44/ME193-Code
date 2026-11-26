@@ -369,6 +369,53 @@
     $("doing").textContent = `STOP from ${r.source}: everything halted in ${r.latency_ms} ms (no LLM involved)`;
   });
 
+  // ------------------------------------------------------------ expandable panels
+  // Every panel gets a ⤢ button (and double-click on its title). The expanded panel
+  // floats over a dimmed page and keeps updating live; Esc, ✕ or the backdrop close it.
+  const backdrop = document.createElement("div");
+  backdrop.id = "expand-backdrop";
+  document.body.appendChild(backdrop);
+  let expanded = null;
+  function redrawCharts() {
+    setTimeout(() => { Draw.gantt($("gantt"), S.history); Draw.entropy($("entropy"), S.tokens); }, 30);
+  }
+  function collapse() {
+    if (!expanded) return;
+    expanded.classList.remove("expanded");
+    expanded.querySelector(".expand-btn").textContent = "⤢";
+    expanded.querySelector(".expand-btn").title = "Expand";
+    expanded = null;
+    document.body.classList.remove("has-expanded");
+    redrawCharts();
+  }
+  function expand(card) {
+    if (expanded === card) return collapse();
+    collapse();
+    expanded = card;
+    card.classList.add("expanded");
+    card.querySelector(".expand-btn").textContent = "✕";
+    card.querySelector(".expand-btn").title = "Close (Esc)";
+    document.body.classList.add("has-expanded");
+    redrawCharts();
+  }
+  document.querySelectorAll("main .card, #duet .card").forEach((card) => {
+    if (card.id === "send-form") return;                  // the input stays put
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "expand-btn";
+    btn.textContent = "⤢";
+    btn.title = "Expand";
+    btn.addEventListener("click", (e) => { e.stopPropagation(); expand(card); });
+    card.appendChild(btn);
+    const head = card.querySelector(".card-head");
+    if (head) head.addEventListener("dblclick", () => expand(card));
+  });
+  backdrop.addEventListener("click", collapse);
+  // ?expand=matrix (or timeline, stage, stream, decisions, plan, chips, gantt ...) opens that panel directly
+  const want = new URLSearchParams(location.search).get("expand");
+  if (want && $(want)) { const card = $(want).closest(".card"); if (card) setTimeout(() => expand(card), 300); }
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") collapse(); });
+
   // ------------------------------------------------------------ render loop
   function frame() {
     // One broken panel must not freeze the others (or stop the loop).

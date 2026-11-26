@@ -57,13 +57,13 @@ def ground_app_questions(plan, text, names):
     return {**plan, "steps": new, "grounded": True}, f"'{hit}' is one of my apps, so I looked it up instead of guessing"
 
 
-def describe_apps_in_catalog(lookup):
+def describe_apps_in_catalog(lookup, patch=True):
     """Name the installed apps in lookup's catalog line (once, at startup; stays
     cache-friendly). Without it the model 'knows' what GaitID is and answers from
     imagination instead of looking it up. Returns the names (empty if unreachable)."""
     from skills.registry import REGISTRY
     names = lookup.app_names()
-    if names and "lookup" in REGISTRY:
+    if patch and names and "lookup" in REGISTRY:
         base = REGISTRY["lookup"].desc.split("; installed apps:")[0]
         REGISTRY["lookup"].desc = base + "; installed apps: " + ", ".join(names)
     return names

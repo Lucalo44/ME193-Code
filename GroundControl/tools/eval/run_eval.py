@@ -127,11 +127,13 @@ def main():
     ap.add_argument("--model", default=config.LLM_MODEL)
     ap.add_argument("--mode", default="json", choices=["json", "tools"])
     ap.add_argument("--think", type=int, default=config.THINK_MAX_CHARS)
-    ap.add_argument("--style", default=config.PLAN_STYLE, choices=["parts", "think"])
+    ap.add_argument("--style", default=None, choices=["parts", "think", "ft"],
+                    help="default: the style the board would use for --model")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--only", default="", help="comma-separated ids")
     ap.add_argument("--tag", default="")
     a = ap.parse_args()
+    a.style = a.style or config.style_for(a.model)
 
     cases = yaml.safe_load(open(HERE / f"{a.set}.yaml"))
     if a.only:
@@ -140,7 +142,7 @@ def main():
         cases = cases[: a.limit]
     # Same prompt as the board: name the installed apps (needs `adb forward tcp:8770 tcp:8770`).
     from lookup import Lookup, describe_apps_in_catalog, ground_app_questions
-    names = describe_apps_in_catalog(Lookup(host="127.0.0.1", port=8770))
+    names = describe_apps_in_catalog(Lookup(host="127.0.0.1", port=8770), patch=a.style != "ft")
     print(f"catalog app names: {names or 'host service unreachable (prompt differs from the board!)'}", flush=True)
     client = LlmClient(a.url, a.model)
     pl = Planner(client, think_chars=a.think, style=a.style)

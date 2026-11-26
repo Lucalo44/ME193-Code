@@ -124,8 +124,12 @@ EXAMPLES_THINK = [
      {"think": "no skill for that", "steps": []}),
 ]
 
+# "ft": the fine-tuned planner. Same rules and skill list as "think" but no few-shot
+# examples: the model learned them in training (tools/finetune/gen_data.py uses
+# exactly system_prompt(60, "think") as its system message).
 STYLES = {"parts": (HEAD, RULES_PARTS, EXAMPLES_PARTS, "parts"),
-          "think": (HEAD_THINK, RULES_THINK, EXAMPLES_THINK, "think")}
+          "think": (HEAD_THINK, RULES_THINK, EXAMPLES_THINK, "think"),
+          "ft": (HEAD_THINK, RULES_THINK, [], "think")}
 
 
 def _example_json(plan, think_chars, key="parts"):

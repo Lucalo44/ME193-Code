@@ -5,7 +5,7 @@ ports: []
 bricks:
   - arduino:web_ui: {}
   - arduino:llm:
-      model: llamacpp:Qwen3.5-0.8B-Q4_0
+      model: llamacpp:unsloth/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q4_0
       variables:
         # Default is 16384. Our prompts are ~1350 tokens; 2048 keeps the KV cache small
         # (~235 MB for Qwen3-1.7B) so a standard-attention model fits the runner's 2.44 GiB

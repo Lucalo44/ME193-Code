@@ -55,6 +55,26 @@ def lego(board):
     kit.remote(board, f"tail -5 {LEGO_REMOTE}/lego.log", check=False)
 
 
+MODELS_DIR = "/var/lib/arduino-app-cli/models/llamacpp"
+
+
+def install_model(board, path):
+    """Copy a GGUF to the board, register it in the llama.cpp runner's models.ini and
+    restart the runner. Its id is the file name without .gguf (gc-planner-Q4_0)."""
+    p = Path(path)
+    if not p.exists() or p.suffix != ".gguf":
+        sys.exit(f"not a .gguf file: {path}")
+    name = p.stem
+    kit.remote(board, f"mkdir -p {MODELS_DIR}/custom")
+    kit.push(board, [str(p)], f"{MODELS_DIR}/custom")
+    entry = f"[{name}]\\nmodel = /models/custom/{p.name}\\n"
+    kit.remote(board, f"grep -q '^\\[{name}\\]' {MODELS_DIR}/models.ini || "
+                      f"printf '\\n{entry}' >> {MODELS_DIR}/models.ini", check=False)
+    kit.remote(board, f"cat {MODELS_DIR}/models.ini; df -h / | tail -1", check=False)
+    kit.remote(board, "docker restart ground-control-llamacpp-models-runner-1 > /dev/null; sleep 8; "
+                      "curl -s 127.0.0.1:9999/v1/models", check=False, timeout=90)
+
+
 def main():
     args = sys.argv[1:]
     board = kit.find_board()
@@ -67,6 +87,9 @@ def main():
         return
     if args[:1] == ["--restart-python"]:
         kit.remote(board, f"docker restart {CONTAINER}", check=False)
+        return
+    if args[:1] == ["--model"]:
+        install_model(board, args[1])
         return
     if args[:1] == ["--lego"]:
         lego(board)

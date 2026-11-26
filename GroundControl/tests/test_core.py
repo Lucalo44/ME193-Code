@@ -216,3 +216,13 @@ def test_self_report_uses_real_probes(gc):
 def test_facts_follow_the_question_words(gc):
     f = gc.self_model.facts("devices", "how much disk space do you have left?")
     assert "disk free" in f                      # health facts pulled in by the word "disk"
+
+
+
+def test_ft_prompt_matches_training_and_has_no_examples():
+    from planner import prompt as P
+    import config
+    msgs = P.messages("dance", 60, "ft")
+    assert [m["role"] for m in msgs] == ["system", "user"]              # no few-shot turns
+    assert msgs[0]["content"] == P.system_prompt(60, "think")            # == gen_data.py's SYSTEM
+    assert config.style_for(config.FT_MODEL) == "ft" and config.style_for("other") == "think"

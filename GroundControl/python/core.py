@@ -46,7 +46,7 @@ class GroundControl:
         self.mqtt = MqttIO(self.status, self.submit, self.estop)
         self.mqtt.on_publish_hook = self._on_publish
         self.llm = llm or LlmClient()
-        self.planner = Planner(self.llm, emit=self.viz.emit)
+        self.planner = Planner(self.llm, emit=self.viz.emit, style=config.style_for(self.llm.model))
         self.car = CarPerformer(hal, self.matrix)
         self.sim_lego = SimLegoPerformer()
         self.real_lego = LegoPerformer() if lego else None
@@ -55,7 +55,8 @@ class GroundControl:
         self.executor = Executor(self.make_ctx, emit=self.viz.emit, status=self.status)
         self.self_model = SelfModel(hal, self.status)
         self.lookup = Lookup()
-        self.app_names = describe_apps_in_catalog(self.lookup)
+        # The fine-tuned model was trained without app names in its catalog; keep its prompt identical.
+        self.app_names = describe_apps_in_catalog(self.lookup, patch=self.planner.style != "ft")
         self.memory = Memory()
         self.wiki = Wiki()
         self.status.on_change(self._on_status)
@@ -283,6 +284,7 @@ class GroundControl:
             m = (data or {}).get("model")
             if m in config.LLM_MODELS:
                 self.llm.model = m
+                self.planner.style = config.style_for(m)        # the fine-tuned model uses its own prompt
                 self.status.update(model=m)
                 threading.Thread(target=self._warm, daemon=True).start()
             return {"model": self.llm.model}
