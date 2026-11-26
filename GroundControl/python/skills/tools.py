@@ -77,7 +77,8 @@ def wikipedia(ctx, query):
     # The top few articles, not just one: the best match isn't always ranked first
     # ("capital of Peru" ranks "Capital punishment in Peru" above "Peru").
     results = res.get("results") or [res]
-    facts = " | ".join(f"Wikipedia '{r['title']}': {r['extract'][:280]}" for r in results)
+    from wiki import select_facts
+    facts = select_facts(ctx.question or query, results)     # the sentences that answer it, not just the first 280 chars
     text = ctx.compose(ctx.question, facts) if ctx.compose is not None and ctx.question else None
     text = text or res["extract"].split(". ")[0].rstrip(".") + "."
     if "wikipedia" not in text.lower():

@@ -28,8 +28,8 @@ QUEUE_CAP = 5
 
 # --- LLM ------------------------------------------------------------------------
 LLM_URL = os.environ.get("GC_LLM_URL", "http://llamacpp-models-runner:9999")
-LLM_MODEL = os.environ.get("GC_LLM_MODEL", "unsloth/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q4_0")   # 80% held-out (docs/EVAL.md)
-LLM_MODELS = ["unsloth/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q4_0", "gc-planner-Q4_0"]   # dashboard picker: base, fine-tuned
+LLM_MODEL = os.environ.get("GC_LLM_MODEL", "custom/gc-planner-Q4_0")   # fine-tuned: 92% held-out vs 75% base (docs/EVAL.md)
+LLM_MODELS = ["custom/gc-planner-Q4_0"]   # dashboard picker (the base Qwen3-1.7B was removed to free disk)
 THINK_MAX_CHARS = int(os.environ.get("GC_THINK_CHARS", "60"))   # 0 = no think field
 MAX_STEPS = 8
 # "think": the model names the skills it will use in a short think, then writes steps
@@ -38,7 +38,7 @@ MAX_STEPS = 8
 PLAN_STYLE = os.environ.get("GC_PLAN_STYLE", "think")
 # The fine-tuned planner (tools/finetune/). Selecting it switches the planner to the "ft"
 # prompt style (no few-shot examples); install with `tools/deploy.py --model <file.gguf>`.
-FT_MODEL = "gc-planner-Q4_0"
+FT_MODEL = "custom/gc-planner-Q4_0"     # App Lab names it after its folder: models/llamacpp/custom/
 
 
 def style_for(model):
@@ -68,7 +68,9 @@ BPM_RANGE = (60, 160)
 MAX_SECTIONS = 4
 MAX_SECTION_BARS = 4
 MAX_DANCE_S = 60
-COUNT_IN_BEATS = 3              # matrix counts 3-2-1 before the first beat
+MAX_LOOP_S = 300               # a looped dance ("loop it", "until I say stop") ends after 5 min or on STOP
+MAX_LOOPS = 20
+COUNT_IN_BEATS = 4              # matrix counts 4-3-2-1 before the first beat (one bar, like a band)
 LOOKAHEAD_S = 0.15
 
 # --- dashboard ---

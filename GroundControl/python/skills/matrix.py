@@ -78,6 +78,30 @@ class Matrix:
                 i += 1
         self._set(anim(), {"kind": "thinking"})
 
+    def warming(self):
+        """An hourglass whose sand runs down while the model prefills its prompt
+        (warm-up takes minutes; the smiley only appears once it is ready)."""
+        outline = ["...#######...", "....#...#....", ".....#.#.....", "......#......",
+                   "......#......", ".....#.#.....", "....#...#....", "...#######..."]
+        # sand cells per stage: (row, col); top chamber empties into the bottom one
+        stages = [[(1, 5), (1, 6), (1, 7), (2, 6)],
+                  [(1, 5), (1, 6), (1, 7), (3, 6), (6, 6)],
+                  [(1, 6), (4, 6), (6, 5), (6, 6), (6, 7)],
+                  [(6, 5), (6, 6), (6, 7), (5, 6)]]
+        frames = []
+        for cells in stages:
+            f = [7 if ch == "#" else 0 for row in outline for ch in row]
+            for r, c in cells:
+                f[r * COLS + c] = 4
+            frames.append(f)
+
+        def anim():
+            while True:
+                for f in frames:
+                    yield f, 0.6
+                yield frames[-1], 0.6
+        self._set(anim(), {"kind": "warming"})
+
     # ---- internals ----
     def _set(self, gen, content):
         with self._cv:

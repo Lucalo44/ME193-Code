@@ -5,7 +5,9 @@ ports: []
 bricks:
   - arduino:web_ui: {}
   - arduino:llm:
-      model: llamacpp:unsloth/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q4_0
+      # The fine-tuned planner (tools/finetune/): installed by `tools/deploy.py --model`
+      # into models/llamacpp/custom/ and registered in the runner's models.ini.
+      model: llamacpp:custom/gc-planner-Q4_0
       variables:
         # Default is 16384. Our prompts are ~1350 tokens; 2048 keeps the KV cache small
         # (~235 MB for Qwen3-1.7B) so a standard-attention model fits the runner's 2.44 GiB

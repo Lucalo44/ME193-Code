@@ -226,3 +226,55 @@ def test_ft_prompt_matches_training_and_has_no_examples():
     assert [m["role"] for m in msgs] == ["system", "user"]              # no few-shot turns
     assert msgs[0]["content"] == P.system_prompt(60, "think")            # == gen_data.py's SYSTEM
     assert config.style_for(config.FT_MODEL) == "ft" and config.style_for("other") == "think"
+
+
+
+def test_loop_count_reads_the_users_words():
+    from skills.dance_skill import loop_count
+    assert loop_count("loop a stick figure dance on the matrix") == 0          # until STOP
+    assert loop_count("dance a waltz") == 1
+    assert loop_count("loop the dance 3 times") == 3
+    assert loop_count("repeat it twice") == 2
+    assert loop_count("spin twice then dance") == 1                          # "twice" belongs to the spin
+    assert loop_count("loop a stick figure dance on the matrix 2 times") == 2   # count far from "loop"
+    assert loop_count("loop a dance, then spin 3 times") == 0                 # the 3 belongs to the spin
+
+
+def test_perform_looped_skips_count_in_after_first_pass():
+    import threading
+    from types import SimpleNamespace
+    from skills.dance_skill import perform_looped
+    calls = []
+
+    class Cond:
+        def perform(self, score, cancel=None, where="robots", count_in=None):
+            calls.append(count_in)
+            return {"seconds": 1.0, "beats": 16}
+    ctx = SimpleNamespace(question="loop it 3 times", conductor=Cond(), cancel=threading.Event())
+    r = perform_looped(ctx, {"bpm": 100, "sections": []}, "matrix")
+    assert calls == [None, 0, 0] and r["loops"] == 3 and r["looped"]
+
+
+def test_facts_keep_the_sentence_that_answers():
+    from wiki import select_facts
+    res = [{"title": "Tower", "extract": "The Tower is a skyscraper in a city. It was designed by someone famous. "
+            "It opened to the public in a ceremony. The tower has a roof height of 1,250 feet (380 m) and "
+            "stands 1,454 feet tall."}]
+    f = select_facts("how tall is the tower?", res, budget=160)
+    assert "1,454 feet" in f and "skyscraper" in f and "designed" not in f
+
+
+def test_guard_drops_only_the_invented_clause_and_falls_back_to_a_fact():
+    from planner.planner import number_guard_detail
+    facts = "Wikipedia 'Tower': The Tower is a 102-story skyscraper. It has a roof height of 1,250 feet (380 m)."
+    q = "how tall is the tower?"
+    kept, removed = number_guard_detail("The Tower is 102 stories high, 334 feet tall.", facts, q)
+    assert kept == "The Tower is 102 stories high." and removed[0][1] == ["334"]
+    kept, _ = number_guard_detail("It is 334 feet tall.", facts, q)
+    assert "1,250 feet" in kept
+
+
+def test_new_icons_exist_and_fit_the_matrix():
+    from skills.font import ICON_NAMES, ICONS, icon_frame
+    assert "building" in ICON_NAMES and all(len(icon_frame(n)) == 104 for n in ICON_NAMES)
+    assert set(ICON_NAMES) <= set(ICONS)

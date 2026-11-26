@@ -134,16 +134,28 @@ def number_guard_detail(text, facts, question=""):
     if not text:
         return text, []
     known = {n.replace(",", "") for n in _NUM.findall(f"{facts} {question}")}
+    unsupported = lambda s: sorted({n.replace(",", "") for n in _NUM.findall(s)} - known)  # noqa: E731
     keep, removed = [], []
     for sent in re.split(r"(?<=[.!?])\s+", text):
-        bad = sorted({n.replace(",", "") for n in _NUM.findall(sent)} - known)
-        if bad:
-            removed.append((sent, bad))
+        bad = unsupported(sent)
+        if not bad:
+            keep.append(sent)
             continue
-        keep.append(sent)
+        # Drop only the clause with the invented figure when the rest stands on its own:
+        # "It is 102 stories high, 334 feet tall." keeps "It is 102 stories high."
+        parts = re.split(r",\s+|;\s+|\s+and\s+|\s+but\s+", sent.rstrip(".!?"))
+        good = [p for p in parts if not unsupported(p)]
+        if good and len(good) < len(parts) and len(good[0].split()) >= 3:
+            keep.append(", ".join(good).rstrip(",") + ".")
+            removed.append((", ".join(p for p in parts if unsupported(p)), bad))
+        else:
+            removed.append((sent, bad))
     out = " ".join(keep).strip()
     if removed and not out:
-        out = "My source doesn't give that number."
+        # Nothing true survived: quote the fact that matches the question instead of giving up.
+        from wiki import best_fact_sentence
+        fact = best_fact_sentence(question, facts)
+        out = fact if fact else "My source doesn't give that number."
     return out, removed
 
 

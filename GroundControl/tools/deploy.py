@@ -59,18 +59,29 @@ MODELS_DIR = "/var/lib/arduino-app-cli/models/llamacpp"
 
 
 def install_model(board, path):
-    """Copy a GGUF to the board, register it in the llama.cpp runner's models.ini and
-    restart the runner. Its id is the file name without .gguf (gc-planner-Q4_0)."""
+    """Copy a GGUF to the board and register it with App Lab, then restart the runner.
+
+    App Lab lists a model only if its folder has an .arduino_metadata.yaml (the file its
+    downloader writes), and it rebuilds the runner's models.ini from those on every app
+    start. The id is "custom/<file stem>", e.g. llamacpp:custom/gc-planner-Q4_0 in app.yaml
+    and custom/gc-planner-Q4_0 as the runner's model name."""
     p = Path(path)
     if not p.exists() or p.suffix != ".gguf":
         sys.exit(f"not a .gguf file: {path}")
     name = p.stem
     kit.remote(board, f"mkdir -p {MODELS_DIR}/custom")
     kit.push(board, [str(p)], f"{MODELS_DIR}/custom")
-    entry = f"[{name}]\\nmodel = /models/custom/{p.name}\\n"
-    kit.remote(board, f"grep -q '^\\[{name}\\]' {MODELS_DIR}/models.ini || "
-                      f"printf '\\n{entry}' >> {MODELS_DIR}/models.ini", check=False)
-    kit.remote(board, f"cat {MODELS_DIR}/models.ini; df -h / | tail -1", check=False)
+    meta = (f"# Written by Ground Control tools/deploy.py --model (copied over adb).\\n"
+            f"models:\\n- downloaded_at: \\042{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}\\042\\n"   # \\042 = " for printf
+            f"  handler: hf-handler\\n  model_id: llamacpp:custom/{name}\\n  model_origin: user\\n"
+            f"  files:\\n  - {p.name}\\n  inputs:\\n    models_repository: llamacpp\\n"
+            f"    model_directory: custom\\n    model_url: llamacpp:custom/{p.name}\\n")
+    kit.remote(board, f"printf '{meta}' > {MODELS_DIR}/custom/.arduino_metadata.yaml", check=False)
+    kit.remote(board, f"grep -q '^\\[custom/{name}\\]' {MODELS_DIR}/models.ini || "
+                      f"printf '\\n[custom/{name}]\\nmodel = /models/custom/{p.name}\\n' >> {MODELS_DIR}/models.ini",
+               check=False)
+    kit.remote(board, f"arduino-app-cli model list | grep llamacpp; df -h / | tail -1", check=False)
+    print(f"app.yaml:  model: llamacpp:custom/{name}    config.py:  custom/{name}")
     kit.remote(board, "docker restart ground-control-llamacpp-models-runner-1 > /dev/null; sleep 8; "
                       "curl -s 127.0.0.1:9999/v1/models", check=False, timeout=90)
 

@@ -46,8 +46,9 @@ def normalize(score):
     return {"bpm": bpm, "sections": out}
 
 
-def compile_score(score, build=None, intensity=0.7):
+def compile_score(score, build=None, intensity=0.7, count_in=None):
     build = build or config.LEGO_BUILD
+    ci = config.COUNT_IN_BEATS if count_in is None else count_in   # 0 on a loop's later passes
     score = normalize(score)
     bpm = score["bpm"]
     spb = 60.0 / bpm
@@ -91,11 +92,11 @@ def compile_score(score, build=None, intensity=0.7):
         start += n
     total_beats = start
 
-    # Matrix: count-in 3-2-1, a flash on every downbeat, a check at the end.
+    # Matrix: count-in 4-3-2-1, a flash on every downbeat, a check at the end.
     mat = []
-    for i in range(config.COUNT_IN_BEATS):
-        mat.append(Keyframe(-config.COUNT_IN_BEATS + i, "matrix",
-                            {"digit": str(config.COUNT_IN_BEATS - i)}, "count-in"))
+    for i in range(ci):
+        mat.append(Keyframe(-ci + i, "matrix",
+                            {"digit": str(ci - i)}, "count-in"))
     for b in range(0, total_beats, BEATS_PER_BAR):
         mat.append(Keyframe(b, "matrix", {"icon": "note"}, "downbeat"))
         mat.append(Keyframe(b + 0.5, "matrix", {"clear": True}, "downbeat"))
@@ -116,14 +117,14 @@ def compile_score(score, build=None, intensity=0.7):
             d = k.as_dict()
             d["i"] = i
             d["beat"] = d.pop("t")
-            d["t"] = round((d["beat"] + config.COUNT_IN_BEATS) * spb, 4)
+            d["t"] = round((d["beat"] + ci) * spb, 4)
             out.append(d)
         return out
 
     car_t, lego_t = finish(car), finish(lego)
-    seconds = (total_beats + config.COUNT_IN_BEATS) * spb
+    seconds = (total_beats + ci) * spb
     if seconds > config.MAX_DANCE_S + 1e-6:
         raise ScoreError(f"dance too long: {seconds:.1f}s")
-    return {"bpm": bpm, "spb": spb, "beats": total_beats, "count_in": config.COUNT_IN_BEATS,
+    return {"bpm": bpm, "spb": spb, "beats": total_beats, "count_in": ci,
             "seconds": round(seconds, 3), "score": score, "blocks": blocks,
             "timelines": {"car": car_t, "lego": lego_t}}

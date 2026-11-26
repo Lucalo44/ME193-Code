@@ -20,7 +20,7 @@ def test_compile_durations_and_count_in():
     spb = 0.6
     assert abs(c["seconds"] - (16 + config.COUNT_IN_BEATS) * spb) < 1e-6
     digits = [k["params"]["digit"] for k in c["timelines"]["car"] if "digit" in k["params"]]
-    assert digits == ["3", "2", "1"]
+    assert digits == ["4", "3", "2", "1"]
     assert c["timelines"]["car"][-1]["beat"] == 16
 
 
@@ -82,7 +82,7 @@ def test_figure_frames_are_valid_and_follow_the_lanes():
                                                     {"bars": 1, "mode": "unison", "car": "bow", "lego": "bow"}]})
     tl = figure_timeline(comp)
     assert all(len(k["params"]["frame"]) == 104 and set(k["params"]["frame"]) <= {0, 7} for k in tl)
-    assert [k["beat"] for k in tl[:3]] == [-3, -2, -1]                  # 3-2-1 count-in
+    assert [k["beat"] for k in tl[:4]] == [-4, -3, -2, -1]              # 4-3-2-1 count-in
     assert len({tuple(k["params"]["frame"]) for k in tl}) >= 5           # it actually moves
     assert tl == sorted(tl, key=lambda k: k["t"])
 

@@ -41,7 +41,14 @@ ICON_WORDS = {"heart": ["a heart", "a love heart", "the heart icon", "a little h
               "check": ["a check mark", "a tick", "a checkmark"], "x": ["an x", "a cross", "an X mark"],
               "star": ["a star", "a little star"], "note": ["a music note", "a note", "a musical note"],
               "arrow_up": ["an up arrow", "an arrow pointing up"], "arrow_left": ["a left arrow", "an arrow pointing left"],
-              "arrow_right": ["a right arrow", "an arrow pointing right"]}
+              "arrow_right": ["a right arrow", "an arrow pointing right"],
+              "arrow_down": ["a down arrow", "an arrow pointing down"], "sad": ["a sad face", "a frown", "a frowny face"],
+              "question": ["a question mark", "a ?"], "building": ["a building", "a skyscraper", "a tall building", "the building", "a tower"],
+              "house": ["a house", "a little house", "a home"], "tree": ["a tree", "a pine tree", "a christmas tree"],
+              "sun": ["a sun", "the sun", "a sunshine icon"], "moon": ["a moon", "the moon", "a crescent moon"],
+              "cloud": ["a cloud", "a rain cloud"], "lightning": ["a lightning bolt", "lightning", "a thunderbolt"],
+              "car": ["a car", "a little car"], "robot": ["a robot", "a robot face", "yourself"],
+              "rocket": ["a rocket", "a spaceship"], "flower": ["a flower", "a daisy"], "ghost": ["a ghost", "a spooky ghost"]}
 WORDS = ["Hi", "OK", "GO", "YES", "NO", "HELLO", "WOW", "LUCA", "ME193", "DANCE", "BYE", "TUFTS", "READY", "42",
          "ROBOT", "COOL", "HEY", "PARTY", "LOVE", "STOP"]
 MSGS = ["done", "finished", "all good", "ok", "I am done", "ready", "that was fun", "complete", "hello",

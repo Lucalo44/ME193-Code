@@ -8,8 +8,8 @@ The fine-tuned model is Qwen3-1.7B with a LoRA (r16, one epoch on a Colab T4) tr
 
 | Config | Accuracy | Did nothing | Did wrong | Mean | p90 | single | multi | info | topic | dance | question | self | lookup | compute | memory | wikipedia | style | matrix | trap | nonsense | injection |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **Qwen3-1.7B + LoRA · ft prompt (gc-planner-Q4_0)** | **92%** (66/72) | 0 | 6 | 21.3 s | 32.5 s | 8/8 | 6/6 | 4/4 | 3/3 | 5/6 | 5/5 | 4/5 | 6/6 | 5/5 | 4/4 | 3/3 | 2/3 | 3/3 | 2/4 | 2/3 | 4/4 |
-| Qwen3-1.7B base · think prompt (deployed) | 75% (54/72) | 3 | 15 | 27.9 s | 41.9 s | 6/8 | 5/6 | 2/4 | 3/3 | 2/6 | 5/5 | 3/5 | 4/6 | 4/5 | 3/4 | 3/3 | 2/3 | 3/3 | 3/4 | 3/3 | 3/4 |
+| **Qwen3-1.7B + LoRA · ft prompt (custom/gc-planner-Q4_0, deployed)** | **92%** (66/72) | 0 | 6 | 21.3 s | 32.5 s | 8/8 | 6/6 | 4/4 | 3/3 | 5/6 | 5/5 | 4/5 | 6/6 | 5/5 | 4/4 | 3/3 | 2/3 | 3/3 | 2/4 | 2/3 | 4/4 |
+| Qwen3-1.7B base · think prompt | 75% (54/72) | 3 | 15 | 27.9 s | 41.9 s | 6/8 | 5/6 | 2/4 | 3/3 | 2/6 | 5/5 | 3/5 | 4/6 | 4/5 | 3/4 | 3/3 | 2/3 | 3/3 | 3/4 | 3/3 | 3/4 |
 
 Fine-tuning fixed 16 of the base model's 18 misses and introduced 4 new ones.
 

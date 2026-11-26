@@ -32,7 +32,7 @@ class Conductor:
             except Exception as e:  # noqa: BLE001
                 print(f"[conductor] stop {p.name}: {e!r}", flush=True)
 
-    def perform(self, score, cancel=None, build=None, where="robots"):
+    def perform(self, score, cancel=None, build=None, where="robots", count_in=None):
         """where: "robots" (car + LEGO, matrix flashes the downbeats), "matrix" (only the
         stick figure on the LED matrix, no motors move), "all" (robots + figure)."""
         cancel = cancel or threading.Event()
@@ -40,7 +40,7 @@ class Conductor:
             raise RuntimeError("already dancing")
         try:
             self._cancel = cancel
-            comp = compile_score(score, build=build)
+            comp = compile_score(score, build=build, count_in=count_in)
             from dance.figure import figure_timeline
             timelines = dict(comp["timelines"])
             if where in ("matrix", "all"):
@@ -51,7 +51,7 @@ class Conductor:
             active = {n: p for n, p in self.performers.items() if n in names and n in timelines}
             comp = {**comp, "timelines": {n: timelines[n] for n in active}, "where": where}
             car = active.get("car")
-            if car is not None and hasattr(car, "calibrate"):
+            if car is not None and hasattr(car, "calibrate") and count_in != 0:   # once per loop, not every pass
                 car.calibrate()
             t_start = time.time() + PREP_S
             view = {**comp, "timelines": {n: [k for k in t if k["action"] != "frame"] if n == "figure" else t

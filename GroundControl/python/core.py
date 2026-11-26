@@ -78,7 +78,8 @@ class GroundControl:
             self.status.update(llm_ready=True)
         if self.ui is not None:
             self._wire_ui()
-        self.matrix.icon("smile")
+        if not warm:
+            self.matrix.icon("smile")                     # else _warm shows the hourglass, then the smiley
 
     def heartbeat(self):
         """Call from the main loop every HEARTBEAT_S."""
@@ -89,19 +90,21 @@ class GroundControl:
 
     def _warm(self):
         self.status.set_state("PLANNING", "Warming up the model (prefilling the fixed prompt)")
-        self.matrix.thinking()
+        self.matrix.warming()                             # hourglass until the model is ready
+        ready = False
         for attempt in range(30):
             try:
                 r = self.planner.warm()
                 print(f"[llm] warm-up done in {r['ms']} ms, timings {r['timings']}", flush=True)
                 self.viz.emit("llm.warm", r)
                 self.status.update(llm_ready=True)
+                ready = True
                 break
             except (LlmError, OSError) as e:
                 print(f"[llm] warm-up attempt {attempt}: {e}", flush=True)
                 time.sleep(5)
         self.status.set_state("IDLE", "Waiting for a command")
-        self.matrix.icon("smile")
+        self.matrix.icon("smile" if ready else "x")
 
     # ---------------------------------------------------------------- inputs
     def submit(self, text, source="mqtt", reply_to=None, plan=None):

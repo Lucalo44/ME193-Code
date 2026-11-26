@@ -13,7 +13,8 @@ In-context prompting got the base Qwen3-1.7B to 78% on the held-out eval (docs/E
    3. The notebook merges the adapter, converts to GGUF and quantizes to Q4_0, the same format the board runs now.
    4. `train_lora.py` does the same training as a plain script, for any other CUDA machine.
 3. **Install on the board**: `venv/bin/python tools/deploy.py --model ~/Downloads/gc-planner-Q4_0.gguf`.
-   1. It copies the file to `/var/lib/arduino-app-cli/models/llamacpp/custom/` and adds a `[gc-planner-Q4_0]` section to the runner's `models.ini`.
-   2. Then it restarts the llama.cpp runner and lists the models it serves. No Hugging Face account is involved.
-4. **Evaluate**: `venv/bin/python tools/eval/run_eval.py --model gc-planner-Q4_0`. Selecting this model switches the planner to the `ft` prompt style automatically (`config.style_for`), which drops the few-shot examples to match training.
-5. **Use it live**: add `gc-planner-Q4_0` to `LLM_MODELS` in `python/config.py` so the dashboard's model picker can switch between base and fine-tuned, or set `GC_LLM_MODEL=gc-planner-Q4_0` to make it the default.
+   1. It copies the file to `/var/lib/arduino-app-cli/models/llamacpp/custom/` and writes an `.arduino_metadata.yaml` beside it, the same record App Lab's downloader writes. Without that file, App Lab doesn't list the model, and an app that names it won't start.
+   2. App Lab names the model after its folder, so the id is `llamacpp:custom/gc-planner-Q4_0` in `app.yaml` and `custom/gc-planner-Q4_0` as the runner's model name. App Lab rebuilds the runner's `models.ini` from these records on every app start.
+   3. No Hugging Face account is involved.
+4. **Evaluate**: `venv/bin/python tools/eval/run_eval.py --model custom/gc-planner-Q4_0`. Selecting this model switches the planner to the `ft` prompt style automatically (`config.style_for`), which drops the few-shot examples to match training.
+5. **Use it live**: it is the default now (`app.yaml` and `LLM_MODEL` in `python/config.py`). The base Qwen3-1.7B was deleted from the board to free 1 GB; to compare again, reinstall it with `arduino-app-cli model install llamacpp:unsloth/Qwen3-1.7B-GGUF:Q4_0` and add it back to `LLM_MODELS`.
