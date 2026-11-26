@@ -124,3 +124,8 @@
 - {id: ds1, cat: style, text: "dance like traditional West African dance", expect: {skills: [dance_style], args: {0: {style: "~african"}}}}
 - {id: ds2, cat: style, text: "do a 4 bar waltz", expect: {skills: [dance_style], args: {0: {style: "~waltz", bars: 4}}}}
 - {id: ds3, cat: style, text: "dance a salsa, then tell me how in sync you were on luca", expect: {skills: [dance_style, mqtt_publish], args: {0: {style: "~salsa"}, 1: {topic: luca}}}}
+
+# ---------------- matrix dances and tempo (added with where / bpm)
+- {id: mx1, cat: matrix, text: "make a stick figure dance on the LED matrix at 120 bpm", expect: {skills: [dance], args: {0: {bpm: 120, where: matrix}}}, also_ok: [[dance_style]]}
+- {id: mx2, cat: matrix, text: "make the figure on the LED matrix dance like a ballet dancer at 120 bpm", expect: {skills: [dance_style], args: {0: {style: "~ballet", bpm: 120, where: matrix}}}}
+- {id: mx3, cat: matrix, text: "have the robots and the LED matrix dance a salsa together", expect: {skills: [dance_style], args: {0: {style: "~salsa", where: all}}}}

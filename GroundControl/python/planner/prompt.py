@@ -20,7 +20,7 @@ RULES_PARTS = [
     "mqtt_publish only when the user asks to tell, send, reply or report. A \"done\" reply is sent automatically.",
     "Publish to the topic the user names, else topic \"reply\". {imu.yaw} {imu.pitch} {imu.roll} in a message are filled in.",
     "Time, date, weather, forecast, or your apps and what they do: lookup. Math, or letters in a word: compute. Anything the user asks you to remember, or asks about themselves (my ...): memory.",
-    "Facts about the world (people, places, history, science, products): wikipedia. Dancing in a named style (waltz, salsa, west african...): dance_style.",
+    "Facts about the world (people, places, history, science, products): wikipedia. Dancing in a named style (waltz, salsa, west african...): dance_style. Dances on the LED matrix (a stick figure): where matrix; robots and matrix together: where all; otherwise where robots.",
     "Questions about yourself (your board, pins, devices, software, health, network): self_report. Other questions or chat: answer in words. Impossible or unsafe requests: no parts, no steps. Never publish to a topic ending in /cmd.",
 ]
 
@@ -39,7 +39,7 @@ EXAMPLES_PARTS = [
     ("dance 2 bars at 120 bpm with the lego bot mirroring you, then tell luca finished",
      {"parts": ["dance 2 bars at 120 bpm with the lego bot mirroring you", "tell luca finished"],
       "steps": [{"skill": "dance", "args": {"bpm": 120, "sections": [
-          {"bars": 2, "mode": "mirror", "car": "wiggle", "lego": "pump"}]}},
+          {"bars": 2, "mode": "mirror", "car": "wiggle", "lego": "pump"}], "where": "robots"}},
                 {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "finished"}}]}),
     ("what board are you running on, and is anything plugged into your pins?",
      {"parts": ["what board are you running on", "is anything plugged into your pins"],
@@ -57,7 +57,10 @@ EXAMPLES_PARTS = [
       "steps": [{"skill": "wikipedia", "args": {"query": "blue whale"}}]}),
     ("dance like a tango for 4 bars",
      {"parts": ["dance like a tango for 4 bars"],
-      "steps": [{"skill": "dance_style", "args": {"style": "tango", "bars": 4}}]}),
+      "steps": [{"skill": "dance_style", "args": {"style": "tango", "bars": 4, "bpm": 0, "where": "robots"}}]}),
+    ("make a stick figure on the LED matrix dance a waltz at 90 bpm",
+     {"parts": ["make a stick figure on the LED matrix dance a waltz at 90 bpm"],
+      "steps": [{"skill": "dance_style", "args": {"style": "waltz", "bars": 2, "bpm": 90, "where": "matrix"}}]}),
     ("hi, how's it going?",
      {"parts": ["hi, how's it going?"],
       "steps": [{"skill": "answer", "args": {"text": "Going great, my motors are warm and ready to dance!"}}]}),
@@ -75,7 +78,7 @@ RULES_THINK = [
     "Reply with mqtt_publish to the topic the user names, else topic \"reply\".",
     "To report a value, read it first, then use its {placeholder} in the message.",
     "Time, date, weather, forecast, or your apps and what they do: lookup. Math, or letters in a word: compute. Anything the user asks you to remember, or asks about themselves (my ...): memory.",
-    "Facts about the world (people, places, history, science, products): wikipedia. Dancing in a named style (waltz, salsa, west african...): dance_style.",
+    "Facts about the world (people, places, history, science, products): wikipedia. Dancing in a named style (waltz, salsa, west african...): dance_style. Dances on the LED matrix (a stick figure): where matrix; robots and matrix together: where all; otherwise where robots.",
     "Questions about yourself (your board, pins, devices, software, health, network): self_report. Other questions or chat: answer. Impossible or unsafe requests: no steps. Never publish to a topic ending in /cmd.",
 ]
 
@@ -97,7 +100,7 @@ EXAMPLES_THINK = [
     ("dance 2 bars at 120 bpm with the lego bot mirroring you",
      {"think": "dance, one mirror section",
       "steps": [{"skill": "dance", "args": {"bpm": 120, "sections": [
-          {"bars": 2, "mode": "mirror", "car": "shimmy", "lego": "wave"}]}}]}),
+          {"bars": 2, "mode": "mirror", "car": "shimmy", "lego": "wave"}], "where": "robots"}}]}),
     ("what board are you running on, and is anything plugged into your pins?",
      {"think": "self_report board, then self_report pins",
       "steps": [{"skill": "self_report", "args": {"topic": "board"}},
@@ -112,7 +115,9 @@ EXAMPLES_THINK = [
     ("how heavy is a blue whale?",
      {"think": "wikipedia", "steps": [{"skill": "wikipedia", "args": {"query": "blue whale"}}]}),
     ("dance like a tango for 4 bars",
-     {"think": "dance_style", "steps": [{"skill": "dance_style", "args": {"style": "tango", "bars": 4}}]}),
+     {"think": "dance_style", "steps": [{"skill": "dance_style", "args": {"style": "tango", "bars": 4, "bpm": 0, "where": "robots"}}]}),
+    ("make a stick figure on the LED matrix dance a waltz at 90 bpm",
+     {"think": "dance_style on the matrix", "steps": [{"skill": "dance_style", "args": {"style": "waltz", "bars": 2, "bpm": 90, "where": "matrix"}}]}),
     ("hi, how's it going?",
      {"think": "answer", "steps": [{"skill": "answer", "args": {"text": "Going great, my motors are warm and ready to dance!"}}]}),
     ("make me a sandwich",

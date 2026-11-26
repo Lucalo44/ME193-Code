@@ -100,6 +100,8 @@ Questions like "how heavy is an Arduino UNO Q?" used to fail. The model had neve
 
 The same lookup grounds the dances. "Dance like traditional West African dance" fetches the article on African dance ("polyrhythm", "collective activity", "interaction between dancers and onlookers"), and a second, grammar-constrained generation turns that description into a score, with one line explaining its choices, before the conductor performs it.
 
+One test exposed a gap: "make a stick figure dance at 120bpm on the LED matrix, like a ballet dancer" sent the robots dancing a 60 bpm ballet instead. The model had no way to say "matrix", and no way to pass the tempo along. So the LED matrix became a third dancer ([python/dance/figure.py](python/dance/figure.py)): a little stick figure built from pixel-art layers, whose legs follow the car's moves and whose arms follow the LEGO bot's. Both dance skills now take `where` (robots, matrix or all), and `dance_style` takes the user's `bpm` (0 lets the style decide). That same command now plans `dance_style(ballet, 4 bars, 120 bpm, matrix)`, and the figure dances 31 frames on the real matrix, each within 0.6 ms of its beat, without moving a motor.
+
 The composer still likes to fill gaps with numbers it made up ("a common Arduino UNO weighs approximately 100-120 grams"). So any sentence with a number that isn't in the source text is removed. The dashboard shows each removal struck through in the Thinking lane, with the reason, so the reply and the token stream never silently disagree.
 
 ### The duet

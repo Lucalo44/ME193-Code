@@ -9,6 +9,8 @@ import time
 CANNED = [
     (r"yaw|heading", {"parts": ["what is your yaw? reply on luca"], "steps": [
         {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "yaw is {imu.yaw} deg"}}]}),
+    (r"stick figure|danc.*(led matrix|on the matrix)|(led matrix|on the matrix).*danc", {"think": "dance_style on the matrix", "steps": [
+        {"skill": "dance_style", "args": {"style": "ballet", "bars": 2, "bpm": 120, "where": "matrix"}}]}),
     (r"west african|waltz|salsa|tango", {"think": "dance_style", "steps": [
         {"skill": "dance_style", "args": {"style": "west african", "bars": 4}}]}),
     (r"everest|blue whale", {"think": "wikipedia", "steps": [{"skill": "wikipedia", "args": {"query": "Mount Everest"}}]}),

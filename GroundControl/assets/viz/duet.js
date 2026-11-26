@@ -71,8 +71,8 @@ const Duet = (() => {
     // lane labels
     ctx.fillStyle = Draw.css("--cv-ink");
     ctx.font = `bold 12px ${F}`;
-    ctx.fillText("CAR", 6, 42);
-    ctx.fillText("LEGO", 6, 90);
+    ctx.fillText(D.where === "matrix" ? "LEGS" : "CAR", 6, 42);       // on the matrix the figure's legs/arms
+    ctx.fillText(D.where === "matrix" ? "ARMS" : "LEGO", 6, 90);       // follow the car/LEGO lanes
     ctx.font = `12px ${F}`;
     // blocks
     for (const bl of D.blocks) {
@@ -118,7 +118,7 @@ const Duet = (() => {
 
   function step(dt) {
     let l = stage.live.l, r = stage.live.r;
-    if (playing()) {
+    if (playing() && D.where !== "matrix") {
       const st = stateAt(elapsed());
       if (st.wheels) { l = st.wheels.l; r = st.wheels.r; } else { l = r = 0; }
       if (st.pose) { stage.arms.ta = st.pose.a; stage.arms.tb = st.pose.b; stage.arms.va = st.pose.speed * 6; stage.arms.vb = st.pose.speed * 6; }
@@ -195,6 +195,8 @@ const Duet = (() => {
       const beat = elapsed() / D.spb - D.count_in;
       ctx.fillStyle = Draw.css("--cv-ink"); ctx.font = `bold 16px ${F}`;
       ctx.fillText(beat < 0 ? `count-in ${Math.ceil(-beat)}` : `beat ${Math.floor(beat) + 1} / ${D.beats}`, 8, 20);
+      if (D.where === "matrix") { ctx.font = `13px ${F}`; ctx.fillText("dancing on the LED matrix: robots stay still", 8, 40); }
+      else if (D.where === "all") { ctx.font = `13px ${F}`; ctx.fillText("robots + the stick figure on the LED matrix", 8, 40); }
     }
   }
 

@@ -32,19 +32,32 @@ class Conductor:
             except Exception as e:  # noqa: BLE001
                 print(f"[conductor] stop {p.name}: {e!r}", flush=True)
 
-    def perform(self, score, cancel=None, build=None):
+    def perform(self, score, cancel=None, build=None, where="robots"):
+        """where: "robots" (car + LEGO, matrix flashes the downbeats), "matrix" (only the
+        stick figure on the LED matrix, no motors move), "all" (robots + figure)."""
         cancel = cancel or threading.Event()
         if not self._lock.acquire(blocking=False):
             raise RuntimeError("already dancing")
         try:
             self._cancel = cancel
             comp = compile_score(score, build=build)
-            car = self.performers.get("car")
+            from dance.figure import figure_timeline
+            timelines = dict(comp["timelines"])
+            if where in ("matrix", "all"):
+                timelines["figure"] = figure_timeline(comp)
+                # the figure owns the matrix: drop the car lane's count-in/downbeat flashes
+                timelines["car"] = [k for k in timelines["car"] if k["action"] != "matrix"]
+            names = {"robots": ["car", "lego"], "matrix": ["figure"], "all": ["car", "lego", "figure"]}[where]
+            active = {n: p for n, p in self.performers.items() if n in names and n in timelines}
+            comp = {**comp, "timelines": {n: timelines[n] for n in active}, "where": where}
+            car = active.get("car")
             if car is not None and hasattr(car, "calibrate"):
                 car.calibrate()
             t_start = time.time() + PREP_S
-            self.emit("dance.timeline", {**comp, "t_start": t_start, "server_now": time.time(),
-                                         "performers": {n: p.state() for n, p in self.performers.items()}})
+            view = {**comp, "timelines": {n: [k for k in t if k["action"] != "frame"] if n == "figure" else t
+                                          for n, t in comp["timelines"].items()}}       # frames are big; the mirror shows them
+            self.emit("dance.timeline", {**view, "t_start": t_start, "server_now": time.time(),
+                                         "performers": {n: p.state() for n, p in active.items()}})
             reports = {}
             threads = []
 
@@ -63,7 +76,7 @@ class Conductor:
                     print(f"[conductor] {name} failed: {e!r}", flush=True)
                     reports[name] = []
 
-            for name, perf in self.performers.items():
+            for name, perf in active.items():
                 th = threading.Thread(target=run, args=(name, perf), daemon=True, name=f"perf-{name}")
                 th.start()
                 threads.append(th)
@@ -72,7 +85,7 @@ class Conductor:
                 th.join(max(0.0, deadline - time.time()))
             if cancel.is_set():
                 self.stop_all()
-            result = self.summarize(comp, reports, completed=not cancel.is_set())
+            result = {**self.summarize(comp, reports, completed=not cancel.is_set()), "where": where}
             self.last = result
             self.emit("dance.done", result)
             return result

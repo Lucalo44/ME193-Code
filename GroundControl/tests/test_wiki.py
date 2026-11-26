@@ -89,3 +89,14 @@ def test_get_retries_once_on_429(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
     monkeypatch.setattr(wiki.time, "sleep", lambda s: None)
     assert wiki.Wiki._get("https://en.wikipedia.org/x") == {"ok": 1} and len(calls) == 2
+
+
+
+def test_stick_figure_ballet_at_user_tempo_on_matrix(gc):
+    gc.wiki, _ = fake_wiki()
+    gc.submit("make a stick figure dance at 120bpm on the led matrix like a ballet dancer")
+    assert wait_for(lambda: any(p.startswith("Ballet on the LED matrix: 2 bars at 120 bpm") for _, p in gc.sent),
+                    timeout=30)
+    assert gc.hal.drive_log == []                                        # matrix only: no motors
+    reply = next(p for _, p in gc.sent if p.startswith("Ballet on the LED matrix"))
+    assert "legs calling, arms answering" in reply and "car" not in reply.lower()

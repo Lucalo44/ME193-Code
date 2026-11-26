@@ -24,7 +24,7 @@ import time
 
 import config
 
-MOTION = {"wheels", "pose", "run", "tank", "stop"}
+MOTION = {"wheels", "pose", "run", "tank", "stop", "frame"}
 
 
 def _wait_until(t, cancel):
@@ -112,6 +112,23 @@ class CarPerformer(LocalPerformer):
 
     def stop(self):
         self.hal.stop()
+
+
+class MatrixFigurePerformer(LocalPerformer):
+    """The stick figure on the LED matrix (dance/figure.py). Draw time is the
+    actual time; the Bridge draw call takes a few ms."""
+    name, kind = "figure", "matrix"
+    connected = True
+
+    def __init__(self, matrix):
+        self.matrix = matrix
+
+    def _exec(self, kf, t_sent):
+        self.matrix.show_frame(kf["params"]["frame"], {"kind": "figure"})
+        return time.time()
+
+    def stop(self):
+        pass
 
 
 class SimLegoPerformer(LocalPerformer):

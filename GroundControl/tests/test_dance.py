@@ -73,3 +73,37 @@ def test_conductor_stop_mid_dance():
     assert not r["completed"]
     assert time.time() - t0 < 1.6
     assert hal.left == 0
+
+
+
+def test_figure_frames_are_valid_and_follow_the_lanes():
+    from dance.figure import figure_timeline
+    comp = compile_score({"bpm": 120, "sections": [{"bars": 1, "mode": "unison", "car": "shimmy", "lego": "pump"},
+                                                    {"bars": 1, "mode": "unison", "car": "bow", "lego": "bow"}]})
+    tl = figure_timeline(comp)
+    assert all(len(k["params"]["frame"]) == 104 and set(k["params"]["frame"]) <= {0, 7} for k in tl)
+    assert [k["beat"] for k in tl[:3]] == [-3, -2, -1]                  # 3-2-1 count-in
+    assert len({tuple(k["params"]["frame"]) for k in tl}) >= 5           # it actually moves
+    assert tl == sorted(tl, key=lambda k: k["t"])
+
+
+def test_matrix_only_dance_moves_no_motors():
+    hal = SimHal(latency_ms=1)
+    m = Matrix(hal)
+    from hal.performers import MatrixFigurePerformer
+    c = Conductor({"car": CarPerformer(hal, m), "lego": SimLegoPerformer(), "figure": MatrixFigurePerformer(m)})
+    r = c.perform({"bpm": 160, "sections": [{"bars": 1, "mode": "unison", "car": "spin", "lego": "windmill"}]},
+                  where="matrix")
+    assert r["completed"] and r["where"] == "matrix"
+    assert hal.drive_log == []                                          # wheels never touched
+    assert r["performers"].keys() == {"figure"}
+
+
+def test_where_all_runs_robots_and_figure():
+    hal = SimHal(latency_ms=1)
+    m = Matrix(hal)
+    from hal.performers import MatrixFigurePerformer
+    c = Conductor({"car": CarPerformer(hal, m), "lego": SimLegoPerformer(), "figure": MatrixFigurePerformer(m)})
+    r = c.perform({"bpm": 160, "sections": [{"bars": 1, "mode": "unison", "car": "shimmy", "lego": "wave"}]},
+                  where="all")
+    assert r["performers"].keys() == {"car", "lego", "figure"} and hal.drive_log

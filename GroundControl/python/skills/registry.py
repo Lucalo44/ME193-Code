@@ -31,13 +31,15 @@ class Str:
 
 
 class Int:
-    def __init__(self, lo, hi):
-        self.lo, self.hi = lo, hi
+    def __init__(self, lo, hi, default=None):
+        self.lo, self.hi, self.default = lo, hi, default
 
     def schema(self):
         return {"type": "integer", "minimum": self.lo, "maximum": self.hi}
 
     def coerce(self, v):
+        if v is None and self.default is not None:
+            return self.default
         try:
             v = int(round(float(v)))
         except (TypeError, ValueError):
@@ -61,13 +63,16 @@ class Num(Int):
 
 
 class Enum:
-    def __init__(self, values):
+    def __init__(self, values, default=None):
         self.values = list(values)
+        self.default = default
 
     def schema(self):
         return {"enum": self.values}
 
     def coerce(self, v):
+        if v is None and self.default is not None:
+            return self.default
         if v not in self.values:
             raise ArgError(f"{v!r} not one of {self.values}")
         return v

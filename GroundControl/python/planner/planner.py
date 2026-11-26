@@ -360,7 +360,7 @@ class Planner:
         "sections. In why, say in one short sentence how the style shaped your choices. "
         "Reply with compact JSON on a single line, no spaces or line breaks between fields.")
 
-    def choreograph(self, style, extract, bars, job_id=None, cancel=None):
+    def choreograph(self, style, extract, bars, bpm=0, job_id=None, cancel=None):
         """-> {"why", "bpm", "sections"} with sections summing to `bars`, or None."""
         from skills.dance_skill import SECTION
         schema = {"type": "object", "properties": {
@@ -369,7 +369,8 @@ class Planner:
             "sections": {"type": "array", "minItems": 1, "maxItems": config.MAX_SECTIONS, "items": SECTION.schema()}},
             "required": ["why", "bpm", "sections"], "additionalProperties": False}
         user = (f"Style: {style}\nDescription (Wikipedia): {extract or 'none found; use what the name suggests'}\n"
-                f"Length: {bars} bars in total.")
+                f"Length: {bars} bars in total."
+                + (f"\nTempo: {bpm} bpm (the user asked for this)." if bpm else ""))
         msgs = [{"role": "system", "content": self.CHOREO_SYSTEM}, {"role": "user", "content": user}]
         with self.llm_lock:
             self.emit("llm.compose", {"id": job_id, "label": "choreographing from Wikipedia",
@@ -401,6 +402,8 @@ class Planner:
         if total < bars and secs:
             secs[-1]["bars"] += bars - total
         score["sections"] = secs
+        if bpm:
+            score["bpm"] = int(bpm)                 # the user's tempo wins over the model's
         return score
 
     # ---- Baseline B: native tool calling loop (what the LLM Brick does) ----

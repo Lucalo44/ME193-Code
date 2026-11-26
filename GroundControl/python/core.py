@@ -21,7 +21,7 @@ from introspect import SelfModel
 from lookup import Lookup, describe_apps_in_catalog, ground_app_questions
 from memory_store import Memory
 from wiki import Wiki
-from hal.performers import CarPerformer, LegoPerformer, SimLegoPerformer
+from hal.performers import CarPerformer, LegoPerformer, MatrixFigurePerformer, SimLegoPerformer
 from jobs import Job, JobQueue, QueueFull
 from mqtt_io import MqttIO
 from planner.llm_client import LlmClient, LlmError
@@ -50,7 +50,7 @@ class GroundControl:
         self.car = CarPerformer(hal, self.matrix)
         self.sim_lego = SimLegoPerformer()
         self.real_lego = LegoPerformer() if lego else None
-        self.performers = {"car": self.car, "lego": self.sim_lego}
+        self.performers = {"car": self.car, "lego": self.sim_lego, "figure": MatrixFigurePerformer(self.matrix)}
         self.conductor = Conductor(self.performers, emit=self.viz.emit, status=self.status)
         self.executor = Executor(self.make_ctx, emit=self.viz.emit, status=self.status)
         self.self_model = SelfModel(hal, self.status)
@@ -145,8 +145,8 @@ class GroundControl:
                    question=job.text,
                    compose=lambda q, facts: self.planner.compose(q, facts, job_id=job.id, cancel=job.cancel),
                    wiki=self.wiki,
-                   choreograph=lambda style, extract, bars: self.planner.choreograph(
-                       style, extract, bars, job_id=job.id, cancel=job.cancel))
+                   choreograph=lambda style, extract, bars, bpm=0: self.planner.choreograph(
+                       style, extract, bars, bpm, job_id=job.id, cancel=job.cancel))
 
     def _worker(self):
         while not self._stop.is_set():
