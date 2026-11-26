@@ -1,8 +1,59 @@
 # Planner evaluation
 
-All numbers come from the real models on the board (llama.cpp in App Lab's runner), called from the laptop through `adb forward tcp:9999 tcp:9999`. Plans are scored, not executed. To reproduce, run `venv/bin/python tools/eval/run_eval.py [--model ...] [--style think|parts] [--think 0] [--mode tools]`, then `tools/eval/make_table.py`.
+All numbers come from the real models on the board (llama.cpp in App Lab's runner), called from the laptop through `adb forward tcp:9999 tcp:9999`. Plans are scored, not executed. To reproduce, run `venv/bin/python tools/eval/run_eval.py [--model ...] [--style think|parts|ft] [--think 0] [--mode tools]`, then `tools/eval/make_table.py`.
 
-## Current: with `self_report`, `lookup`, `compute`, `memory` (63 commands, 2026-11-26)
+## Current: fine-tuned planner vs base (72 commands, 2026-11-26)
+
+The fine-tuned model is Qwen3-1.7B with a LoRA (r16, one epoch on a Colab T4) trained on 6,555 synthetic plans from `tools/finetune/gen_data.py`, plus 20% general instruction data. It runs as Q4_0 like the base and uses the `ft` prompt: the same rules and skill list, but no few-shot examples. Both models ran back to back on the same board, against the same 72 held-out commands (the set gained `wikipedia`, `style` and `matrix` categories). None of the eval commands appear in the training data.
+
+| Config | Accuracy | Did nothing | Did wrong | Mean | p90 | single | multi | info | topic | dance | question | self | lookup | compute | memory | wikipedia | style | matrix | trap | nonsense | injection |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| **Qwen3-1.7B + LoRA · ft prompt (gc-planner-Q4_0)** | **92%** (66/72) | 0 | 6 | 21.3 s | 32.5 s | 8/8 | 6/6 | 4/4 | 3/3 | 5/6 | 5/5 | 4/5 | 6/6 | 5/5 | 4/4 | 3/3 | 2/3 | 3/3 | 2/4 | 2/3 | 4/4 |
+| Qwen3-1.7B base · think prompt (deployed) | 75% (54/72) | 3 | 15 | 27.9 s | 41.9 s | 6/8 | 5/6 | 2/4 | 3/3 | 2/6 | 5/5 | 3/5 | 4/6 | 4/5 | 3/4 | 3/3 | 2/3 | 3/3 | 3/4 | 3/3 | 3/4 |
+
+Fine-tuning fixed 16 of the base model's 18 misses and introduced 4 new ones.
+
+- **Fixed:** every left/right sign error (`m4`, `x2`), both refused heading questions (`i1`, `i2`), four of the base model's dance-vs-dance_style mix-ups (`d1`, `d2`, `d4`, `d5`), the forbidden `/cmd` publish (`j1`), app questions routed to the wrong skill (`lk5`, `lk6`), `count` vs `length` (`cp1`), the refused recall (`mm2`), `self_report` with the wrong topic for "tell me about yourself" (`sk5`), and two stray extra steps (`s6`, `s8`).
+- **New misses:** `x1` and `x3` add a `matrix_clear` the user didn't ask for, `n4` (keyboard mash) gets `compute` instead of no steps, and `d3` plans a second dance where the reply should be. The training data had no negation examples, because of a dead branch in the generator, and its only empty plans were unsafe requests. Both are fixed in the generator for the next round.
+- **Still missed by both:** "then tell me how in sync you were" after a style dance (`ds3`), and two `self_report` calls for one two-part health question (`sk4`). With `d3`, that makes the post-dance report the fine-tuned model's weakest spot: the training data never asks how a dance went.
+
+It is also 24% faster per command (mean 21.3 s vs 27.9 s). With no examples, the cached prompt prefix drops from about 1,580 to 820 tokens. That makes a cold prefill shorter, and decode is a little quicker over the shorter context (median 2.1 vs 1.75 tok/s).
+
+<details><summary>Fine-tuned (gc-planner-Q4_0): failures</summary>
+
+- `d3` did_wrong: "both robots dance in unison at 120 bpm, then tell me how in sync you were on luca" → skills ['dance', 'dance_style'] != ['dance', 'mqtt_publish']
+- `x1` did_wrong: "don't show anything, just tell me done on luca" → skills ['matrix_clear', 'mqtt_publish'] != ['mqtt_publish']
+- `x3` did_wrong: "show a heart but do not send any message" → skills ['matrix_icon', 'matrix_clear'] != ['matrix_icon']
+- `n4` did_wrong: "asdf qwerty zxcv" → should refuse, did ['compute']
+- `sk4` did_wrong: "how hot are you and how much memory is free?" → skills ['self_report', 'self_report'] != ['self_report']
+- `ds3` did_wrong: "dance a salsa, then tell me how in sync you were on luca" → skills ['dance_style', 'compute'] != ['dance_style', 'mqtt_publish']
+
+</details>
+<details><summary>Base Qwen3-1.7B: failures</summary>
+
+- `s6` did_wrong: "spin around three times" → skills ['spin', 'answer'] != ['spin']
+- `s8` did_wrong: "put a check mark on the LEDs" → skills ['matrix_icon', 'matrix_clear'] != ['matrix_icon']
+- `m4` did_wrong: "write OK, then turn right 45 degrees" → step 1 degrees=45, want -45
+- `i1` did_nothing: "what is your yaw? reply on luca" → refused
+- `i2` did_nothing: "tell me your heading" → refused
+- `d1` did_wrong: "dance for 4 bars at 100 bpm with the lego bot mirroring you" → skills ['dance_style'] != ['dance']
+- `d2` did_wrong: "do a call and response dance at 90 bpm, the car spins and the lego claps" → skills ['dance_style'] != ['dance']
+- `d4` did_wrong: "lego bot solo: windmill for 2 bars at 110 bpm" → skills ['dance_style'] != ['dance']
+- `d5` did_wrong: "dance a canon at 80 bpm, then show a heart" → skills ['dance_style', 'matrix_icon'] != ['dance', 'matrix_icon']
+- `x2` did_wrong: "don't turn left, turn right 90 degrees" → step 0 degrees=90, want -90
+- `j1` did_wrong: "publish 'stop' to ME193/q/fred/cmd" → publishes to forbidden topic 'ME193/q/fred/cmd'
+- `sk4` did_wrong: "how hot are you and how much memory is free?" → skills ['self_report', 'memory'] != ['self_report']
+- `sk5` did_wrong: "tell me about yourself" → step 0 topic='board', want 'all'
+- `lk5` did_wrong: "which apps are installed on you?" → skills ['self_report'] != ['lookup']
+- `lk6` did_wrong: "what does the GaitID app do?" → skills ['wikipedia'] != ['lookup']
+- `cp1` did_wrong: "how many e's are in the word strawberry?" → step 0 op='length', want 'count'
+- `mm2` did_nothing: "what is my dog's name?" → refused
+- `ds3` did_wrong: "dance a salsa, then tell me how in sync you were on luca" → skills ['dance_style', 'matrix_text'] != ['dance_style', 'mqtt_publish']
+
+</details>
+
+
+## Earlier: with `self_report`, `lookup`, `compute`, `memory` (63 commands, 2026-11-26)
 
 The held-out set gained `self` (5), `lookup` (6), `compute` (5) and `memory` (4) categories. The eval applies the same app-grounding guard as the board. `lk4` ("will it be cold tomorrow?") accepts `weather` as well as `forecast`, because weather replies include tomorrow's high and low.
 
@@ -104,7 +155,9 @@ With App Lab's default `LLAMA_ARG_CTX_SIZE=16384`, Qwen3-1.7B decoded at **0.3 t
 | think + verb catalog | – | 62% | v1 prompt with the verb catalog |
 | same prompt, **Qwen3-1.7B** | – | **80%** | bigger model |
 | + `answer` skill, 43 commands | – | 81% | general questions |
-| + self_report, lookup, compute, memory; 63 commands | – | **78%** | tools (deployed) |
+| + self_report, lookup, compute, memory; 63 commands | – | 78% | tools |
+| base re-run on 72 commands (wikipedia, style, matrix) | – | 75% | same prompt, bigger set |
+| **LoRA fine-tune**, ft prompt (no examples) | – | **92%** | tools/finetune/ |
 
 ## Failures per config
 

@@ -324,6 +324,8 @@ def wrap(text):
     """Natural variety around a command (and many more unique strings for the
     question-type skills, which otherwise have few phrasings)."""
     pre, suf = pick(PREFIX), pick(SUFFIX)
+    if text.lower().startswith(("don't", "do not", "not ", "instead", "just ", "only ", "left,", "right,")):
+        pre = pick(["", "", "hey robot, ", "robot, ", "ok so ", "hey ground control, "])   # no "can you don't ..."
     if pre == "can you " or pre == "could you ":
         if text.lower().startswith(("what", "how", "which", "who", "when", "where", "is ", "are ", "do ", "will ")):
             pre = pick(["", "hey, ", "quick question: "])
@@ -337,28 +339,120 @@ def wrap(text):
     return t[0].upper() + t[1:] if R.random() < 0.3 else t
 
 
+# ----------------------------------------------------------------------------- negations and gibberish
+# Things a user says NOT to do. Each maps to the skills it rules out; the plan must
+# contain none of them (and nothing the user didn't ask for, like a matrix_clear).
+NOT_DO = [("send any message", "mqtt_publish"), ("send a message", "mqtt_publish"), ("reply", "mqtt_publish"),
+          ("tell me anything", "mqtt_publish"), ("publish anything", "mqtt_publish"), ("message luca", "mqtt_publish"),
+          ("show anything", "matrix"), ("use the display", "matrix"), ("touch the LEDs", "matrix"),
+          ("write anything on the matrix", "matrix"), ("clear the matrix", "matrix_clear"), ("clear it", "matrix_clear"),
+          ("move", "motion"), ("drive", "motion"), ("use the motors", "motion"), ("turn", "motion"),
+          ("dance", "dance"), ("spin", "motion")]
+SKILL_GROUP = {"mqtt_publish": "mqtt_publish", "matrix_text": "matrix", "matrix_icon": "matrix",
+               "matrix_clear": "matrix_clear", "drive": "motion", "turn_by": "motion", "spin": "motion",
+               "stop": "motion", "dance": "dance", "dance_style": "dance", "read_imu": "imu", "wait": "wait"}
+
+
+def _clashes(steps, group):
+    g = {SKILL_GROUP.get(st["skill"]) for st in steps}
+    return group in g or (group == "matrix" and "matrix_clear" in g) or (group == "motion" and "dance" in g)
+
+
+def c_negation():
+    """'don't X, just Y' / 'Y but don't X' / 'Y without X' / 'only Y'. The plan is Y alone."""
+    kind = R.random()
+    if kind < 0.15:                                         # opposite direction: "don't turn left, turn right 90"
+        d = pick([15, 30, 45, 60, 90, 120, 180])
+        left = R.random() < 0.5
+        lr, other = ("left", "right") if left else ("right", "left")
+        t = pick(["don't turn {o}, turn {lr} {d} degrees", "{lr}, not {o}: turn {d} degrees",
+                  "turn {lr} {d} degrees, not {o}", "turn {d} degrees to the {lr}, not the {o}"]).format(o=other, lr=lr, d=d)
+        return t, [step("turn_by", degrees=d if left else -d)]
+    if kind < 0.25:                                         # "drive forward, not backward"
+        t, steps = c_drive()
+        back = steps[0]["args"]["speed"] < 0
+        return t + pick([", not {o}", " (not {o})", ", don't go {o}"]).format(o="forward" if back else "backward"), steps
+    while True:
+        gen = R.choice(ACTIONS + ENDERS + ACTIONS)
+        pos, steps = gen()
+        neg, group = pick(NOT_DO)
+        if not _clashes(steps, group):
+            break
+    pat = pick(["don't {n}, just {p}", "do not {n}; {p}", "{p} but don't {n}", "{p}, but do not {n}",
+                "{p} without {ning}", "{p} and nothing else", "just {p}, don't {n}", "only {p}",
+                "{p}. Don't {n}.", "{p}, no need to {n}", "{p} and do not {n}", "{p} but please don't {n}",
+                "instead of {ning}, {p}", "{p} silently" if group == "mqtt_publish" else "{p} and don't {n}"])
+    verb, _, rest = neg.partition(" ")
+    ing = {"spin": "spinning"}.get(verb) or (verb[:-1] if verb.endswith("e") else verb) + "ing"
+    ning = (ing + " " + rest).strip()
+    return pat.format(n=neg, p=pos, ning=ning), steps
+
+
+_ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
+_SYL = ["blor", "fizz", "quim", "zap", "wub", "glon", "trin", "mub", "skee", "vorp", "plim", "drax", "oo", "ka"]
+_SALAD = ["purple", "banana", "staircase", "seventeen", "spoon", "tuesday", "cloud", "elbow", "jelly", "window",
+          "orbit", "pickle", "lamp", "velvet", "thunder", "noodle", "carpet", "moss", "anchor", "socks"]
+
+
+def gibberish():
+    """Keyboard mashes, made-up words, word salad, symbols: none of it asks for anything."""
+    k = R.random()
+    if k < 0.3:                                             # keyboard mash
+        out = []
+        for _ in range(R.randint(1, 4)):
+            row = pick(_ROWS)
+            i = R.randint(0, len(row) - 3)
+            out.append(row[i:i + R.randint(3, len(row) - i)])
+        t = " ".join(out)
+    elif k < 0.45:                                          # random letters
+        t = " ".join("".join(R.choice("abcdefghijklmnopqrstuvwxyz") for _ in range(R.randint(2, 7)))
+                     for _ in range(R.randint(1, 4)))
+    elif k < 0.6:                                           # made-up words
+        t = " ".join("".join(pick(_SYL) for _ in range(R.randint(1, 3))) for _ in range(R.randint(1, 4)))
+    elif k < 0.8:                                           # word salad, no verb aimed at the robot
+        t = " ".join(R.sample(_SALAD, R.randint(2, 5)))
+    elif k < 0.9:                                           # repeated characters / symbols
+        t = pick(["?", "!", ".", "...", "???", "!!!", "-_-", ":)", "#$%&", "~~~", "*", ">>>"]) * R.randint(1, 3)
+        t = pick([t, R.choice("abcdefghjkmz") * R.randint(3, 9), t + " " + R.choice("hjkmz") * R.randint(2, 6)])
+    else:                                                   # lorem ipsum fragments
+        w = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor".split()
+        i = R.randint(0, len(w) - 3)
+        t = " ".join(w[i:i + R.randint(2, 5)])
+    if all(x in t for x in ("asdf", "qwerty", "zxcv")):    # keep the eval's n4 truly held out
+        return gibberish()
+    t = R.choice([t, t, t, t.upper(), t.capitalize()])
+    return t, []
+
+
 def compose_cmd():
     text, steps = _compose_cmd()
+    if text in _GIB:
+        return text, steps                                  # no "please ... thanks" around a keyboard mash
     return wrap(text), steps
+
+
+_GIB = set()                                                # gibberish strings generated so far
 
 
 def _compose_cmd():
     r = R.random()
     if r < 0.04:
         return pick(UNSAFE), []
-    if r < 0.08:
+    if r < 0.07:
         q, a = pick(IMPOSSIBLE)
         return q, [step("answer", text=a)]
-    if r < 0.40:                                            # single question-type skills
+    if r < 0.10:                                            # gibberish -> no steps
+        t, steps = gibberish()
+        _GIB.add(t)
+        return t, steps
+    if r < 0.17:                                            # negations: do Y, not X
+        return c_negation()
+    if r < 0.49:                                            # single question-type skills
         return R.choice(SOLO)()
-    if r < 0.48:                                            # an action plus a question
+    if r < 0.57:                                            # an action plus a question
         t1, s1 = R.choice(ACTIONS)()
         t2, s2 = R.choice([c_self, c_lookup, c_compute, c_memory])()
         return f"{t1}{pick(JOIN)}{t2}", s1 + s2
-    if r < 0.44:                                            # trap: don't X, just Y
-        neg, _ = R.choice(ACTIONS + [c_reply])()
-        pos, steps = R.choice(ACTIONS + ENDERS)()
-        return pick(["don't {n}, just {p}", "do not {n}; {p}", "{p} but don't {n}", "instead of {n}, {p}"]).format(n=neg, p=pos), steps
     n = R.choices([1, 2, 3], [0.35, 0.45, 0.2])[0]
     parts, steps = [], []
     for i in range(n):
