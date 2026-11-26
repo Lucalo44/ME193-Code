@@ -71,12 +71,15 @@ def install_model(board, path):
     name = p.stem
     kit.remote(board, f"mkdir -p {MODELS_DIR}/custom")
     kit.push(board, [str(p)], f"{MODELS_DIR}/custom")
-    meta = (f"# Written by Ground Control tools/deploy.py --model (copied over adb).\\n"
-            f"models:\\n- downloaded_at: \\042{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())}\\042\\n"   # \\042 = " for printf
-            f"  handler: hf-handler\\n  model_id: llamacpp:custom/{name}\\n  model_origin: user\\n"
-            f"  files:\\n  - {p.name}\\n  inputs:\\n    models_repository: llamacpp\\n"
-            f"    model_directory: custom\\n    model_url: llamacpp:custom/{p.name}\\n")
-    kit.remote(board, f"printf '{meta}' > {MODELS_DIR}/custom/.arduino_metadata.yaml", check=False)
+    # One record for every GGUF in custom/, so installing v2 doesn't hide v1 from App Lab
+    # (an app.yaml naming a model App Lab can't see refuses to start).
+    ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    entry = ("- downloaded_at: \\042%s\\042\\n  handler: hf-handler\\n  model_id: llamacpp:custom/%s\\n"
+             "  model_origin: user\\n  files:\\n  - %s\\n  inputs:\\n    models_repository: llamacpp\\n"
+             "    model_directory: custom\\n    model_url: llamacpp:custom/%s\\n")
+    kit.remote(board, f"cd {MODELS_DIR}/custom && {{ printf '# Written by Ground Control tools/deploy.py --model\\nmodels:\\n'; "
+                      f"for f in *.gguf; do n=${{f%.gguf}}; printf -- '{entry}' {ts} \"$n\" \"$f\" \"$f\"; done; }} "
+                      f"> .arduino_metadata.yaml", check=False)
     kit.remote(board, f"grep -q '^\\[custom/{name}\\]' {MODELS_DIR}/models.ini || "
                       f"printf '\\n[custom/{name}]\\nmodel = /models/custom/{p.name}\\n' >> {MODELS_DIR}/models.ini",
                check=False)
