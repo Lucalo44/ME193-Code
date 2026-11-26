@@ -59,7 +59,7 @@ train += extra
 random.Random(193).shuffle(train)
 print(len(train), "train /", len(val), "val")
 
-bf16 = torch.cuda.is_bf16_supported()
+bf16 = torch.cuda.get_device_capability()[0] >= 8   # is_bf16_supported() counts emulation
 model = AutoModelForCausalLM.from_pretrained(a.base, dtype=torch.bfloat16 if bf16 else torch.float32)
 cfg = SFTConfig(
     output_dir=a.out, num_train_epochs=a.epochs,

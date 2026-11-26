@@ -82,6 +82,7 @@ html.layout-mobile .brand .sub, html.layout-mobile .meta label, html.layout-mobi
 html.layout-mobile #explain-btn, html.layout-mobile header#top::after { display: none; }
 html.layout-mobile .pill { min-width: 0; padding: 4px 10px; font-size: 12px; }
 html.layout-mobile .doing { order: 10; flex-basis: 100%; font-size: 13px; white-space: normal; animation: none; text-indent: 0; }
+html.layout-mobile .doing #doing { animation: none; padding-left: 0; white-space: normal; display: inline; }
 html.layout-mobile .meta { margin-left: auto; gap: 6px; }
 html.layout-mobile .estop { padding: 10px 18px; font-size: 16px; }
 html.layout-mobile main { display: flex; flex-direction: column; gap: 10px; padding: 10px 12px; }

@@ -425,6 +425,17 @@
     }
     requestAnimationFrame(frame);
   }
+  // Web 1.0 marquee: constant scroll speed (~90 px/s) whatever the message length.
+  // Only re-time when the text actually changes; status ticks rewrite the same text.
+  let marqueeText = null;
+  new MutationObserver(() => {
+    const el = $("doing");
+    if (el.textContent === marqueeText) return;
+    marqueeText = el.textContent;
+    const travel = el.offsetWidth;            // the span's width = box width (its padding) + text width
+    el.style.setProperty("--marquee-s", `${Math.max(6, travel / 90).toFixed(1)}s`);
+  }).observe($("doing"), { childList: true, characterData: true, subtree: true });
+
   Draw.gantt($("gantt"), S.history);
   Draw.entropy($("entropy"), []);
   requestAnimationFrame(frame);

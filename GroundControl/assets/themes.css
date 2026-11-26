@@ -113,8 +113,14 @@
 [data-theme="geocities"] .brand .sub { color: #00ffff; font-family: "Times New Roman", serif; font-style: italic; font-size: 12px; text-shadow: none; }
 [data-theme="geocities"] .brand .sub::after { content: " · Best viewed in Netscape Navigator 4.0 at 800x600"; }
 [data-theme="geocities"] .doing { color: #00ff00; font-family: "Courier New", monospace; overflow: hidden; }
-[data-theme="geocities"] .doing { animation: gc-marquee 14s linear infinite; }
-@keyframes gc-marquee { from { text-indent: 100%; } to { text-indent: -100%; } }
+/* Marquee: the inner span starts one box-width to the right (padding-left: 100%)
+   and slides left by its own full width, so every message enters on the right and
+   leaves completely on the left, however long it is. app.js scales the duration
+   with the message length so long messages scroll at the same speed as short ones. */
+[data-theme="geocities"] .doing { text-overflow: clip; display: flex; align-items: center; }
+[data-theme="geocities"] .doing #doing { display: inline-block; flex: none; padding-left: 100%; white-space: nowrap;
+  animation: gc-marquee var(--marquee-s, 14s) linear infinite; }
+@keyframes gc-marquee { from { transform: translateX(0); } to { transform: translateX(-100%); } }
 [data-theme="geocities"] header#top::after { content: "Visitors: 000193"; font: bold 13px "Courier New", monospace; color: #00ff00;
   background: #000; border: 2px inset #c0c0c0; padding: 2px 8px; letter-spacing: 0.25em; }
 [data-theme="geocities"] .kv, [data-theme="geocities"] .meta label { color: #fff; }
@@ -314,8 +320,8 @@
 [data-theme="hud"] .opt.chosen .lbl .fill { background: rgba(255, 179, 0, 0.38); }
 [data-theme="geocities"] .doing { order: 10; flex-basis: 100%; background: #000; border: 2px inset #c0c0c0; padding: 2px 6px;
   font-size: 14px; white-space: nowrap; }
-[data-theme="geocities"] .doing::before { content: "★ NOW: "; color: #ffff00; }
-[data-theme="geocities"] .doing { animation-delay: -6s; }
+[data-theme="geocities"] .doing::before { content: "★ NOW: "; color: #ffff00; flex: none; position: relative; z-index: 1;
+  background: #000; padding: 0 6px; margin-left: -6px; }  /* covers the box padding too */
 /* token tooltip: readable in every theme */
 [data-theme="geocities"] .popover { background: #ffffe1; color: #000; border: 1px solid #000; box-shadow: 2px 2px 0 #000; }
 [data-theme="geocities"] .popover .r.chosen { color: #000080; }
