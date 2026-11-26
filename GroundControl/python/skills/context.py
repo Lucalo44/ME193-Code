@@ -25,6 +25,8 @@ class Ctx:
     memory: object = None                 # memory_store.Memory
     question: str = ""                     # the user's command, for composed answers
     compose: callable = None              # (question, facts) -> str | None
+    wiki: object = None                   # wiki.Wiki
+    choreograph: callable = None          # (style, extract, bars) -> score dict | None
     reply_to: str = ""
     cancel: threading.Event = field(default_factory=threading.Event)
     step_timeout: threading.Event = field(default_factory=threading.Event)

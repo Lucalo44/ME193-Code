@@ -123,6 +123,34 @@ def declared_in_think(think):
     return [n for _, n in sorted(hits)]
 
 
+_NUM = re.compile(r"\d+(?:[.,]\d+)*")
+
+
+def number_guard_detail(text, facts, question=""):
+    """-> (kept text, [(removed sentence, [unsupported numbers])]).
+    Drops sentences that state a number found in neither the facts nor the question.
+    A 1.7B model asked for a figure the facts don't contain will happily invent one
+    ("approximately 100-120 grams"); invented figures are the worst kind of error."""
+    if not text:
+        return text, []
+    known = {n.replace(",", "") for n in _NUM.findall(f"{facts} {question}")}
+    keep, removed = [], []
+    for sent in re.split(r"(?<=[.!?])\s+", text):
+        bad = sorted({n.replace(",", "") for n in _NUM.findall(sent)} - known)
+        if bad:
+            removed.append((sent, bad))
+            continue
+        keep.append(sent)
+    out = " ".join(keep).strip()
+    if removed and not out:
+        out = "My source doesn't give that number."
+    return out, removed
+
+
+def number_guard(text, facts, question=""):
+    return number_guard_detail(text, facts, question)[0]
+
+
 class Planner:
     def __init__(self, client, emit=None, think_chars=None, style=None):
         self.client = client
@@ -291,7 +319,8 @@ class Planner:
         msgs = [{"role": "system", "content": self.COMPOSE_SYSTEM},
                 {"role": "user", "content": f"Facts: {facts}\nQuestion: {question}"}]
         with self.llm_lock:
-            self.emit("llm.compose", {"id": job_id, "facts": facts[:600]})
+            self.emit("llm.compose", {"id": job_id, "label": "composing a direct answer from facts",
+                                      "facts": facts[:600]})
 
             def on_token(tok):
                 self.emit("llm.token", {"id": job_id, "attempt": 0, "compose": True, **tok})
@@ -313,7 +342,66 @@ class Planner:
             # "Yes. Nothing is plugged in." contradicts itself; the sentence after it is what the facts say.
             text = re.sub(r"^yes[.,!]?\s+(?=(nothing|no |none|not |there (is|are) no|i (do not|don't|have no)))",
                           "No. ", text, flags=re.I)
-        return text or None
+        kept, removed = number_guard_detail(text, facts, question)
+        if removed:
+            # Show the edit, so the reply and the token stream never silently disagree.
+            self.emit("llm.guard", {"id": job_id, "removed": [
+                {"sentence": s, "numbers": nums} for s, nums in removed]})
+        return kept or None
+
+    # ---- choreographer: a dance score grounded in a description of the style
+    CHOREO_SYSTEM = (
+        "You choreograph two robots. The car's moves: shimmy, spin, step, wiggle, freeze, bow. The LEGO bot "
+        "has two arms; its moves: wave, clap, pump, point, windmill, freeze, bow. Modes: unison (both together), "
+        "mirror (LEGO mirrors the car), call_response (car calls on beats 1-2, LEGO answers on 3-4), canon "
+        "(LEGO one beat behind), solo_car, solo_lego. Read the description of the dance style and write a score "
+        "that captures it: a tempo typical of the style (bpm 60-160), how dancers interact (groups, partners, "
+        "call and response, solos), and the movement quality (smooth, sharp, energetic, gentle). Vary the "
+        "sections. In why, say in one short sentence how the style shaped your choices. "
+        "Reply with compact JSON on a single line, no spaces or line breaks between fields.")
+
+    def choreograph(self, style, extract, bars, job_id=None, cancel=None):
+        """-> {"why", "bpm", "sections"} with sections summing to `bars`, or None."""
+        from skills.dance_skill import SECTION
+        schema = {"type": "object", "properties": {
+            "why": {"type": "string", "maxLength": 160},
+            "bpm": {"type": "integer", "minimum": config.BPM_RANGE[0], "maximum": config.BPM_RANGE[1]},
+            "sections": {"type": "array", "minItems": 1, "maxItems": config.MAX_SECTIONS, "items": SECTION.schema()}},
+            "required": ["why", "bpm", "sections"], "additionalProperties": False}
+        user = (f"Style: {style}\nDescription (Wikipedia): {extract or 'none found; use what the name suggests'}\n"
+                f"Length: {bars} bars in total.")
+        msgs = [{"role": "system", "content": self.CHOREO_SYSTEM}, {"role": "user", "content": user}]
+        with self.llm_lock:
+            self.emit("llm.compose", {"id": job_id, "label": "choreographing from Wikipedia",
+                                      "facts": extract[:600] or style})
+
+            def on_token(tok):
+                key, starts = tracker.feed(tok["piece"])
+                tok["key"], tok["decision"] = key, bool(starts and key in DECISION_KEYS)
+                if tok["decision"] and tok.get("top"):
+                    tok["choices"] = group_alternatives(key, tok["top"])
+                tok["entropy"] = entropy_bits(tok["top"]) if tok.get("top") else None
+                self.emit("llm.token", {"id": job_id, "attempt": 0, "compose": True, **tok})
+            tracker = JsonFieldTracker()
+            try:
+                r = self.client.chat_stream(msgs, schema=schema, max_tokens=200, temperature=0.3,
+                                            on_token=on_token, cancel=cancel)
+                score = json.loads(r["text"])
+            except Exception as e:  # noqa: BLE001
+                print(f"[choreograph] failed: {e!r}", flush=True)
+                return None
+        # make the sections add up to the requested length
+        secs, total = [], 0
+        for s in score.get("sections", []):
+            take = min(s["bars"], bars - total)
+            if take <= 0:
+                break
+            secs.append({**s, "bars": take})
+            total += take
+        if total < bars and secs:
+            secs[-1]["bars"] += bars - total
+        score["sections"] = secs
+        return score
 
     # ---- Baseline B: native tool calling loop (what the LLM Brick does) ----
     def plan_with_tools(self, text, max_rounds=4):

@@ -131,7 +131,7 @@
 
   // ------------------------------------------------------------ input lane
   function newJob(j) {
-    S.jobId = j.id; S.tokens = []; S.text = ""; S.prompt = null; S.plan = null; S.steps = {}; S.repair = null;
+    S.jobId = j.id; S.tokens = []; S.text = ""; S.prompt = null; S.plan = null; S.steps = {}; S.repair = null; S.guard = [];
     $("cmd-src").className = `badge ${j.source}`;
     $("cmd-src").textContent = (j.source || "").toUpperCase();
     $("cmd-id").textContent = j.id + (j.reply_to ? ` → ${j.reply_to}` : "");
@@ -321,12 +321,22 @@
     $("stream").appendChild(div);
   });
   socket.on("llm.done", llmDone);
+  socket.on("llm.guard", (g) => {
+    if (g.id !== S.jobId) return;
+    S.guard = g.removed;
+    for (const r of g.removed) {
+      const div = document.createElement("div");
+      div.className = "guard-note";
+      div.innerHTML = `✂ removed from the reply: <s>${esc(r.sentence)}</s> <span class="muted">(${esc(r.numbers.join(", "))} isn't in the source facts)</span>`;
+      $("stream").appendChild(div);
+    }
+  });
   socket.on("llm.compose", (c) => {
     if (c.id !== S.jobId) return;
     const div = document.createElement("div");
     div.className = "muted compose-note";
     div.style.width = "100%";
-    div.textContent = `↳ composing a direct answer from facts: ${c.facts.slice(0, 160)}${c.facts.length > 160 ? "…" : ""}`;
+    div.textContent = `↳ ${c.label || "composing from facts"}: ${c.facts.slice(0, 160)}${c.facts.length > 160 ? "…" : ""}`;
     $("stream").appendChild(div);
   });
   socket.on("plan.grounded", (g) => {
@@ -338,7 +348,9 @@
   socket.on("plan.step", (s) => { if (s.id !== S.jobId) return; S.steps[s.i] = { ...(S.steps[s.i] || {}), ...s }; renderPlan(); });
   socket.on("job.done", (j) => {
     if (j.id === S.jobId && j.reply) {
-      $("cmd-reply").innerHTML = `<b>REPLY</b>${esc(j.reply)}`;
+      const note = (S.guard || []).length
+        ? `<div class="guard-reply">✂ ${S.guard.length} sentence${S.guard.length > 1 ? "s" : ""} with a number not found in the source ${S.guard.length > 1 ? "were" : "was"} removed (shown in Thinking)</div>` : "";
+      $("cmd-reply").innerHTML = `<b>REPLY</b>${esc(j.reply)}${note}`;
       $("cmd-reply").classList.remove("hidden");
     }
     S.history.push(j);

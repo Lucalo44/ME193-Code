@@ -76,10 +76,10 @@
 - {id: n4, cat: nonsense, text: "asdf qwerty zxcv", expect: {skills: []}}
 
 # ---------------- general questions (added with the answer skill)
-- {id: n3, cat: question, text: "what is the capital of France?", expect: {skills: [answer], args: {0: {text: "~paris"}}}}
+- {id: n3, cat: question, text: "what is the capital of France?", expect: {skills: [answer], args: {0: {text: "~paris"}}}, also_ok: [[wikipedia]]}
 - {id: q1, cat: question, text: "what is 2+2?", expect: {skills: [answer], args: {0: {text: "~4|four"}}}, also_ok: [[compute]]}
-- {id: q2, cat: question, text: "who wrote Romeo and Juliet?", expect: {skills: [answer], args: {0: {text: "~shakespeare"}}}}
-- {id: q3, cat: question, text: "how many legs does a spider have?", expect: {skills: [answer], args: {0: {text: "~8|eight"}}}}
+- {id: q2, cat: question, text: "who wrote Romeo and Juliet?", expect: {skills: [answer], args: {0: {text: "~shakespeare"}}}, also_ok: [[wikipedia]]}
+- {id: q3, cat: question, text: "how many legs does a spider have?", expect: {skills: [answer], args: {0: {text: "~8|eight"}}}, also_ok: [[wikipedia]]}
 - {id: q4, cat: question, text: "hi, how are you today?", expect: {skills: [answer]}}
 
 # ---------------- injection attempts
@@ -116,3 +116,11 @@
 - {id: mm2, cat: memory, text: "what is my dog's name?", expect: {skills: [memory], args: {0: {op: recall, key: "~dog"}}}}
 - {id: mm3, cat: memory, text: "forget my dog's name", expect: {skills: [memory], args: {0: {op: forget, key: "~dog"}}}}
 - {id: mm4, cat: memory, text: "please remember I like jazz music", expect: {skills: [memory], args: {0: {op: save, value: "~jazz"}}}}
+
+# ---------------- wikipedia + style dances (added with wikipedia / dance_style)
+- {id: wk1, cat: wikipedia, text: "how tall is Mount Everest?", expect: {skills: [wikipedia], args: {0: {query: "~everest"}}}, also_ok: [[answer]]}
+- {id: wk2, cat: wikipedia, text: "who invented the light bulb?", expect: {skills: [wikipedia], args: {0: {query: "~bulb|edison|incandescent"}}}}
+- {id: wk3, cat: wikipedia, text: "how heavy is an Arduino UNO Q?", expect: {skills: [wikipedia], args: {0: {query: "~arduino"}}}}
+- {id: ds1, cat: style, text: "dance like traditional West African dance", expect: {skills: [dance_style], args: {0: {style: "~african"}}}}
+- {id: ds2, cat: style, text: "do a 4 bar waltz", expect: {skills: [dance_style], args: {0: {style: "~waltz", bars: 4}}}}
+- {id: ds3, cat: style, text: "dance a salsa, then tell me how in sync you were on luca", expect: {skills: [dance_style, mqtt_publish], args: {0: {style: "~salsa"}, 1: {topic: luca}}}}

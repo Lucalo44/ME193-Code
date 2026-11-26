@@ -94,6 +94,14 @@ The first version of those tools answered every question about pins with the sam
 
 Math, memory and the time stay deterministic, since rephrasing those could only add errors. Composing costs about 20–40 s per question on the board, so this is where the speed went.
 
+### Looking things up, and dancing from what it reads
+
+Questions like "how heavy is an Arduino UNO Q?" used to fail. The model had never heard of the board (it came out after the model's training data was collected), and the prompt taught it to refuse when unsure. Now a `wikipedia` skill fetches the intros of the top three articles in one request ([python/wiki.py](python/wiki.py)), and the composer answers from them: "The number of countries in Europe is 51. (source: Wikipedia)". It reads three articles instead of one because Wikipedia's best match isn't always ranked first ("capital of Peru" puts "Capital punishment in Peru" above "Peru").
+
+The same lookup grounds the dances. "Dance like traditional West African dance" fetches the article on African dance ("polyrhythm", "collective activity", "interaction between dancers and onlookers"), and a second, grammar-constrained generation turns that description into a score, with one line explaining its choices, before the conductor performs it.
+
+The composer still likes to fill gaps with numbers it made up ("a common Arduino UNO weighs approximately 100-120 grams"). So any sentence with a number that isn't in the source text is removed. The dashboard shows each removal struck through in the Thinking lane, with the reason, so the reply and the token stream never silently disagree.
+
 ### The duet
 
 At 3 to 4 tokens per second, the LLM can't keep time, so it never sends a motor command. It writes a score of about 60 tokens (bpm, sections, a mode and a move per robot), and [python/dance/compiler.py](python/dance/compiler.py) turns that into 70-plus timed keyframes with a 3-2-1 count-in on the matrix. [python/dance/conductor.py](python/dance/conductor.py) gives every performer the same wall-clock start time. The car's keyframes fire from a local thread. The LEGO bot gets its whole timeline ahead of time, and the host service schedules it locally and fires each move early by half the measured BLE round trip. The board host and the app container share one kernel clock, which is what makes this work at all. After each dance, the service learns how long the motor takes to actually start moving and leads by that next time, so the second dance should be tighter than the first.

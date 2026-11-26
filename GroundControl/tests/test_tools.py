@@ -137,8 +137,8 @@ def test_composer_drops_reflexive_yes():
         def chat_stream(self, *a, **k):
             return {"text": "Yes. There are 14 open pins.", "tokens": []}
     p = Planner(C())
-    assert p.compose("how many open pins are there?", "facts") == "There are 14 open pins."
-    assert p.compose("is anything plugged in?", "facts").startswith("Yes.")
+    assert p.compose("how many open pins are there?", "open pins: 14") == "There are 14 open pins."
+    assert p.compose("is anything plugged in?", "open pins: 14").startswith("Yes.")
 
 
 def test_composer_fixes_self_contradicting_yes():
@@ -147,5 +147,15 @@ def test_composer_fixes_self_contradicting_yes():
     class C:
         def chat_stream(self, *a, **k):
             return {"text": "Yes. Nothing is plugged into any of my 14 free pins.", "tokens": []}
-    assert Planner(C()).compose("is anything plugged into your pins?", "f") == \
+    assert Planner(C()).compose("is anything plugged into your pins?", "all 14 free pins are open") == \
         "No. Nothing is plugged into any of my 14 free pins."
+
+
+def test_number_guard_drops_invented_figures():
+    from planner.planner import number_guard
+    facts = "Wikipedia article 'Arduino Uno': a microcontroller board based on the ATmega328P with 14 digital pins."
+    t = "The weight isn't in the facts. A common Arduino UNO board weighs approximately 100-120 grams."
+    assert number_guard(t, facts, "how heavy is an Arduino UNO Q?") == "The weight isn't in the facts."
+    assert number_guard("It has 14 digital pins.", facts) == "It has 14 digital pins."
+    assert number_guard("It weighs 25 g.", facts) == "My source doesn't give that number."
+    assert number_guard("Mount Everest is 8,848.86 meters tall.", "height 8,848.86 m") == "Mount Everest is 8,848.86 meters tall."

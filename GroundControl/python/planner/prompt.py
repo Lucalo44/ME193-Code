@@ -20,6 +20,7 @@ RULES_PARTS = [
     "mqtt_publish only when the user asks to tell, send, reply or report. A \"done\" reply is sent automatically.",
     "Publish to the topic the user names, else topic \"reply\". {imu.yaw} {imu.pitch} {imu.roll} in a message are filled in.",
     "Time, date, weather, forecast, or your apps and what they do: lookup. Math, or letters in a word: compute. Anything the user asks you to remember, or asks about themselves (my ...): memory.",
+    "Facts about the world (people, places, history, science, products): wikipedia. Dancing in a named style (waltz, salsa, west african...): dance_style.",
     "Questions about yourself (your board, pins, devices, software, health, network): self_report. Other questions or chat: answer in words. Impossible or unsafe requests: no parts, no steps. Never publish to a topic ending in /cmd.",
 ]
 
@@ -51,9 +52,15 @@ EXAMPLES_PARTS = [
     ("remember that my favorite color is green",
      {"parts": ["remember that my favorite color is green"],
       "steps": [{"skill": "memory", "args": {"op": "save", "key": "favorite color", "value": "green"}}]}),
-    ("who painted the Mona Lisa?",
-     {"parts": ["who painted the Mona Lisa?"],
-      "steps": [{"skill": "answer", "args": {"text": "Leonardo da Vinci painted the Mona Lisa."}}]}),
+    ("how heavy is a blue whale?",
+     {"parts": ["how heavy is a blue whale?"],
+      "steps": [{"skill": "wikipedia", "args": {"query": "blue whale"}}]}),
+    ("dance like a tango for 4 bars",
+     {"parts": ["dance like a tango for 4 bars"],
+      "steps": [{"skill": "dance_style", "args": {"style": "tango", "bars": 4}}]}),
+    ("hi, how's it going?",
+     {"parts": ["hi, how's it going?"],
+      "steps": [{"skill": "answer", "args": {"text": "Going great, my motors are warm and ready to dance!"}}]}),
     ("make me a sandwich",
      {"parts": [], "steps": []}),
 ]
@@ -68,6 +75,7 @@ RULES_THINK = [
     "Reply with mqtt_publish to the topic the user names, else topic \"reply\".",
     "To report a value, read it first, then use its {placeholder} in the message.",
     "Time, date, weather, forecast, or your apps and what they do: lookup. Math, or letters in a word: compute. Anything the user asks you to remember, or asks about themselves (my ...): memory.",
+    "Facts about the world (people, places, history, science, products): wikipedia. Dancing in a named style (waltz, salsa, west african...): dance_style.",
     "Questions about yourself (your board, pins, devices, software, health, network): self_report. Other questions or chat: answer. Impossible or unsafe requests: no steps. Never publish to a topic ending in /cmd.",
 ]
 
@@ -101,8 +109,12 @@ EXAMPLES_THINK = [
     ("remember that my favorite color is green",
      {"think": "memory save",
       "steps": [{"skill": "memory", "args": {"op": "save", "key": "favorite color", "value": "green"}}]}),
-    ("who painted the Mona Lisa?",
-     {"think": "answer", "steps": [{"skill": "answer", "args": {"text": "Leonardo da Vinci painted the Mona Lisa."}}]}),
+    ("how heavy is a blue whale?",
+     {"think": "wikipedia", "steps": [{"skill": "wikipedia", "args": {"query": "blue whale"}}]}),
+    ("dance like a tango for 4 bars",
+     {"think": "dance_style", "steps": [{"skill": "dance_style", "args": {"style": "tango", "bars": 4}}]}),
+    ("hi, how's it going?",
+     {"think": "answer", "steps": [{"skill": "answer", "args": {"text": "Going great, my motors are warm and ready to dance!"}}]}),
     ("make me a sandwich",
      {"think": "no skill for that", "steps": []}),
 ]

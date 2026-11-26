@@ -9,6 +9,9 @@ import time
 CANNED = [
     (r"yaw|heading", {"parts": ["what is your yaw? reply on luca"], "steps": [
         {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "yaw is {imu.yaw} deg"}}]}),
+    (r"west african|waltz|salsa|tango", {"think": "dance_style", "steps": [
+        {"skill": "dance_style", "args": {"style": "west african", "bars": 4}}]}),
+    (r"everest|blue whale", {"think": "wikipedia", "steps": [{"skill": "wikipedia", "args": {"query": "Mount Everest"}}]}),
     (r"danc", {"parts": ["dance with the lego bot", "tell me how in sync you were on luca"], "steps": [{"skill": "dance", "args": {"bpm": 110, "sections": [
         {"bars": 2, "mode": "mirror", "car": "shimmy", "lego": "wave"},
         {"bars": 1, "mode": "call_response", "car": "spin", "lego": "clap"},
@@ -58,6 +61,16 @@ class FakeLLM:
     def chat_stream(self, messages, schema=None, max_tokens=200, on_token=None, temperature=0.0,
                     top_k=5, cancel=None):
         cmd = messages[-1]["content"]
+        if schema is not None and cmd.startswith("Style: "):         # choreographer
+            text = json.dumps({"why": "polyrhythm and call and response between dancers", "bpm": 126,
+                               "sections": [{"bars": 2, "mode": "call_response", "car": "shimmy", "lego": "clap"},
+                                            {"bars": 2, "mode": "canon", "car": "step", "lego": "pump"}]})
+            toks = [{"i": i, "piece": p, "logprob": None, "p": 0.9, "top": [{"piece": p, "p": 0.9}], "t_ms": 1}
+                    for i, p in enumerate(_split(text))]
+            for t in toks:
+                if on_token:
+                    on_token(t)
+            return {"text": text, "tokens": toks, "timings": {}, "wall_ms": 1, "first_token_ms": 1}
         if schema is None and cmd.startswith("Facts: "):           # answer composer
             facts = cmd[len("Facts: "):].split("\nQuestion: ")[0]
             text = f"Here's what I found: {facts}"

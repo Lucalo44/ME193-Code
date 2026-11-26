@@ -56,3 +56,32 @@ def memory(ctx, op, key, value):
     out = ctx.memory.do(op, key, value)
     _reply(ctx, out)
     return {"op": op, "text": out}
+
+
+@skill("wikipedia", "look up facts on Wikipedia: people, places, history, science, products, anything you're unsure of",
+       args={"query": Str(60)}, timeout_s=60)
+def wikipedia(ctx, query):
+    if ctx.wiki is None:
+        raise SkillError("Wikipedia isn't available")
+    try:
+        res = ctx.wiki.lookup(query)
+    except Exception as e:  # noqa: BLE001  no network shouldn't kill the job
+        res, err = None, e
+    else:
+        err = None
+    if res is None:
+        text = (f"I couldn't reach Wikipedia ({err})." if err
+                else f"I couldn't find a Wikipedia article about {query}.")
+        _reply(ctx, text)
+        return {"query": query, "text": text}
+    # The top few articles, not just one: the best match isn't always ranked first
+    # ("capital of Peru" ranks "Capital punishment in Peru" above "Peru").
+    results = res.get("results") or [res]
+    facts = " | ".join(f"Wikipedia '{r['title']}': {r['extract'][:280]}" for r in results)
+    text = ctx.compose(ctx.question, facts) if ctx.compose is not None and ctx.question else None
+    text = text or res["extract"].split(". ")[0].rstrip(".") + "."
+    if "wikipedia" not in text.lower():
+        text += " (source: Wikipedia)"
+    _reply(ctx, text)
+    return {"query": query, "articles": [r["title"] for r in results], "urls": [r["url"] for r in results],
+            "text": text}

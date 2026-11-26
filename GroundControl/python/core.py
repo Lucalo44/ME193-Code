@@ -20,6 +20,7 @@ from executor import Executor
 from introspect import SelfModel
 from lookup import Lookup, describe_apps_in_catalog, ground_app_questions
 from memory_store import Memory
+from wiki import Wiki
 from hal.performers import CarPerformer, LegoPerformer, SimLegoPerformer
 from jobs import Job, JobQueue, QueueFull
 from mqtt_io import MqttIO
@@ -56,6 +57,7 @@ class GroundControl:
         self.lookup = Lookup()
         self.app_names = describe_apps_in_catalog(self.lookup)
         self.memory = Memory()
+        self.wiki = Wiki()
         self.status.on_change(self._on_status)
         self.status.update(car={"connected": hal.connected, "left": 0, "right": 0},
                            imu=hal.imu(), lego={"connected": False, "state": "sim"})
@@ -141,7 +143,10 @@ class GroundControl:
                    conductor=self.conductor, reply_to=job.reply_to, cancel=job.cancel,
                    self_model=self.self_model, lookup=self.lookup, memory=self.memory,
                    question=job.text,
-                   compose=lambda q, facts: self.planner.compose(q, facts, job_id=job.id, cancel=job.cancel))
+                   compose=lambda q, facts: self.planner.compose(q, facts, job_id=job.id, cancel=job.cancel),
+                   wiki=self.wiki,
+                   choreograph=lambda style, extract, bars: self.planner.choreograph(
+                       style, extract, bars, job_id=job.id, cancel=job.cancel))
 
     def _worker(self):
         while not self._stop.is_set():
