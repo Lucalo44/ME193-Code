@@ -129,3 +129,17 @@
 - {id: mx1, cat: matrix, text: "make a stick figure dance on the LED matrix at 120 bpm", expect: {skills: [dance], args: {0: {bpm: 120, where: matrix}}}, also_ok: [[dance_style]]}
 - {id: mx2, cat: matrix, text: "make the figure on the LED matrix dance like a ballet dancer at 120 bpm", expect: {skills: [dance_style], args: {0: {style: "~ballet", bpm: 120, where: matrix}}}}
 - {id: mx3, cat: matrix, text: "have the robots and the LED matrix dance a salsa together", expect: {skills: [dance_style], args: {0: {style: "~salsa", where: all}}}}
+
+# ---------------- added for the second fine-tune (worded unlike the training templates)
+- {id: du1, cat: duo, text: "the robot spins in place while the lego bot claps along, 2 bars at 100 bpm", expect: {skills: [dance], args: {0: {bpm: 100, sections.0.mode: unison, sections.0.car: spin, sections.0.lego: clap}}}}
+- {id: du2, cat: duo, text: "have the UNO Q car march and the lego answer by pumping its arms, at 90 bpm", expect: {skills: [dance], args: {0: {bpm: 90, sections.0.mode: call_response, sections.0.car: step, sections.0.lego: pump}}}}
+- {id: du3, cat: duo, text: "only the lego bot dances: windmills for 4 bars", expect: {skills: [dance], args: {0: {sections.0.mode: solo_lego, sections.0.lego: windmill}}}}
+- {id: rp1, cat: report, text: "do a quick unison dance at 110 bpm and then tell luca the max sync error", expect: {skills: [dance, mqtt_publish], args: {1: {topic: luca, message: "~{dance."}}}}
+- {id: wd1, cat: combo, text: "how tall is the Space Needle? then draw it on the LEDs", expect: {skills: [wikipedia, matrix_icon], args: {0: {query: "~space needle"}, 1: {name: building}}}}
+- {id: dw1, cat: combo, text: "draw a giraffe on the matrix", expect: {skills: [matrix_text], args: {0: {text: "~giraffe"}}}}
+- {id: ti1, cat: voice, text: "do a quarter turn to the left", expect: {skills: [turn_by], args: {0: {degrees: 90}}}}
+- {id: vc1, cat: voice, text: "right hello on the l e d matrix", expect: {skills: [matrix_text], args: {0: {text: "~hello"}}}}
+- {id: vc2, cat: voice, text: "spin to times and then dance at one hundred twenty bpm", expect: {skills: [spin, dance], args: {0: {times: 2}, 1: {bpm: 120}}}}
+- {id: vc3, cat: voice, text: "turn ninety degrees to the right", expect: {skills: [turn_by], args: {0: {degrees: -90}}}}
+- {id: sf1, cat: matrix, text: "dance on the matrix as a stick figure, ninety bpm", expect: {skills: [dance], args: {0: {bpm: 90, where: matrix}}}}
+- {id: sk6, cat: self, text: "what's your temperature and how much disk is left?", expect: {skills: [self_report], args: {0: {topic: health}}}}

@@ -10,6 +10,8 @@ Threads
   viz       forwards events to the dashboard
   matrix    animates the LED matrix
 """
+import copy
+import re
 import threading
 import time
 
@@ -142,11 +144,17 @@ class GroundControl:
             self.status.set_state("IDLE", "Waiting for a command")
 
     # ---------------------------------------------------------------- worker
+    # "do it again": the model has no memory of the last command, so deterministic code
+    # replays the last plan (with its original wording, so loops and answers still work).
+    AGAIN = re.compile(r"^\W*(please\s+|ok\s+|okay\s+|now\s+|hey\s+robot,?\s+)*(do\s+(it|that|this)\s+again|again|"
+                       r"one\s+more\s+time|once\s+more|encore|same\s+(thing\s+)?again|repeat\s+(that|it|the\s+last\s+(one|command))|"
+                       r"(do\s+)?the\s+same\s+thing(\s+again)?|replay(\s+(that|it))?)(\s+please)?\W*$", re.I)
+
     def make_ctx(self, job):
         return Ctx(hal=self.hal, matrix=self.matrix, publish=self.mqtt.publish, status=self.status,
                    conductor=self.conductor, reply_to=job.reply_to, cancel=job.cancel,
                    self_model=self.self_model, lookup=self.lookup, memory=self.memory,
-                   question=job.text,
+                   question=getattr(job, "replay_of", None) or job.text,
                    compose=lambda q, facts: self.planner.compose(q, facts, job_id=job.id, cancel=job.cancel),
                    wiki=self.wiki,
                    choreograph=lambda style, extract, bars, bpm=0: self.planner.choreograph(
@@ -174,7 +182,18 @@ class GroundControl:
         self.status.set_state("PLANNING", f"Planning: '{job.text[:60]}'",
                               job={"id": job.id, "step": 0, "of": 0, "skill": None},
                               queue=len(self.queue))
-        if job.plan is not None:                      # hand-written plan: no LLM
+        if job.plan is None and self.AGAIN.match(job.text or ""):
+            last = getattr(self, "last_command", None)
+            if last is None:
+                reply = "There's nothing to repeat yet."
+                self.mqtt.publish(job.reply_to, reply)
+                self._finish(job, reply, t_start, {}, [])
+                return
+            job.plan, job.replay_of = copy.deepcopy(last["plan"]), last["text"]
+            self.viz.emit("llm.done", {"id": job.id, "plan": job.plan, "raw_text": f"(replay of: {last['text']})",
+                                       "timings": {}, "decisions": []})
+            plan, info = job.plan, {}
+        elif job.plan is not None:                      # hand-written plan: no LLM
             plan, info = job.plan, {}
             self.viz.emit("llm.done", {"id": job.id, "plan": plan, "raw_text": "(hand-written plan)",
                                        "timings": {}, "decisions": []})
@@ -202,6 +221,8 @@ class GroundControl:
         job.plan = plan
         self.status.set_state("EXECUTING", f"Executing {len(plan.get('steps', []))} step(s)")
         res = self.executor.run(job, plan)
+        if plan.get("steps"):
+            self.last_command = {"text": getattr(job, "replay_of", None) or job.text, "plan": copy.deepcopy(plan)}
         if self.matrix.content.get("kind") == "thinking" and not job.cancel.is_set():
             self.matrix.icon("check" if not res["errors"] else "x")   # plan didn't use the matrix
         self._finish(job, res["reply"], t_start, llm_t, res.get("steps", []), res)

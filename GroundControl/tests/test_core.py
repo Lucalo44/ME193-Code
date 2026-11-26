@@ -278,3 +278,26 @@ def test_new_icons_exist_and_fit_the_matrix():
     from skills.font import ICON_NAMES, ICONS, icon_frame
     assert "building" in ICON_NAMES and all(len(icon_frame(n)) == 104 for n in ICON_NAMES)
     assert set(ICON_NAMES) <= set(ICONS)
+
+
+def test_do_it_again_replays_the_last_plan(gc):
+    gc.submit("again")                                              # nothing yet
+    assert wait_for(lambda: any("nothing to repeat" in p for _, p in gc.sent))
+    gc.submit("Type Hi on the LED matrix and then send back on MQTT on topic luca message 'I am done'")
+    assert wait_for(lambda: sum(p == "I am done" for t, p in gc.sent if t == "luca") == 1)
+    calls = gc.llm.calls if hasattr(gc.llm, "calls") else None
+    gc.submit("do it again")
+    assert wait_for(lambda: sum(p == "I am done" for t, p in gc.sent if t == "luca") == 2)
+    if calls is not None:
+        assert gc.llm.calls == calls                                # replayed, no LLM call
+    assert gc.AGAIN.match("one more time please") and not gc.AGAIN.match("spin again and again")
+
+
+
+def test_truncated_think_is_a_prefix_not_a_mismatch():
+    import sys
+    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent.parent / "tools" / "finetune"))
+    from gen_data import think_for
+    steps = [{"skill": s} for s in ["turn_by", "dance", "stop", "turn_by", "dance_style", "matrix_icon"]]
+    t = think_for(steps)
+    assert t.endswith("...") and len(t) <= 60 and "dance_sty" not in t.replace("dance_style", "")

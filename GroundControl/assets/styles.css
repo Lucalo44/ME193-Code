@@ -213,7 +213,7 @@ canvas#matrix { width: 260px; height: 160px; }
 .sync { font-family: var(--mono); font-size: 14px; color: var(--ok); }
 
 /* overlay */
-.overlay { position: fixed; inset: 0; background: #05070bee; z-index: 20; padding: 30px; overflow-y: auto; }
+.overlay { position: fixed; inset: 0; background: #05070bee; z-index: 70; padding: 30px; overflow-y: auto; }
 .overlay.hidden, .popover.hidden { display: none; }
 .explain-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 1300px; margin: 0 auto 16px; }
 .ex { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
@@ -226,7 +226,7 @@ canvas#matrix { width: 260px; height: 160px; }
 .svg-cached { fill: #3a4a66; }
 .svg-new { fill: var(--seg-command); }
 #explain-close { display: block; margin: 0 auto; }
-.popover { position: fixed; z-index: 30; background: var(--bg); color: var(--text); border: 1px solid var(--accent); border-radius: var(--radius); padding: 8px 10px;
+.popover { position: fixed; z-index: 60;   /* above an expanded panel (50) */ background: var(--bg); color: var(--text); border: 1px solid var(--accent); border-radius: var(--radius); padding: 8px 10px;
   font-family: var(--mono); font-size: 13px; pointer-events: none; min-width: 200px; box-shadow: 0 8px 30px #000a; }
 .popover .r { display: grid; grid-template-columns: 1fr 60px; gap: 8px; }
 .popover .r.chosen { color: var(--accent); font-weight: 700; }

@@ -269,8 +269,13 @@ class Planner:
                     need = bool(parts) and len(parts) != len(actual)
                     fixed = parts
                 else:
-                    declared = declared_in_think(plan.get("think", ""))
-                    need = bool(declared) and declared != actual
+                    think = plan.get("think", "") or ""
+                    declared = declared_in_think(think)
+                    # A long plan's think ends in "..." (or hits the length cap): it names only
+                    # the first skills, so only those must match. Repairing to the short list
+                    # would drop the plan's last steps.
+                    cut = think.rstrip().endswith("...") or len(think) >= self.think_chars - 1
+                    need = bool(declared) and declared != (actual[:len(declared)] if cut else actual)
                     fixed = (plan.get("think", ""), declared)
                 if need and not job.cancel.is_set():
                     plan, r2 = self._repair(job, msgs, plan, fixed, on_token)

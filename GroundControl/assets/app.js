@@ -224,9 +224,11 @@
     pop.innerHTML = `<div class="muted">token #${t.i}${t.key ? ` · ${esc(t.key)}` : ""}${t.forced ? " · ⚑ grammar override" : ""}</div>` +
       t.top.map((a) => `<div class="r${a.piece === t.piece ? " chosen" : ""}"><span>${esc(JSON.stringify(a.piece))}</span><span>${(a.p * 100).toFixed(1)}%</span></div>`).join("") +
       (t.entropy != null ? `<div class="muted">entropy ${t.entropy} bits</div>` : "");
-    pop.style.left = `${e.clientX + 14}px`;
-    pop.style.top = `${e.clientY + 14}px`;
     pop.classList.remove("hidden");
+    // keep it on screen (an expanded panel fills the window, so the cursor is often near an edge)
+    const w = pop.offsetWidth, h = pop.offsetHeight;
+    pop.style.left = `${Math.min(e.clientX + 14, window.innerWidth - w - 8)}px`;
+    pop.style.top = `${e.clientY + 14 + h > window.innerHeight ? e.clientY - h - 10 : e.clientY + 14}px`;
   });
   $("stream").addEventListener("mouseleave", () => $("popover").classList.add("hidden"));
 
