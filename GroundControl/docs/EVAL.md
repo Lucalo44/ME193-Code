@@ -2,13 +2,31 @@
 
 All numbers come from the real models on the board (llama.cpp in App Lab's runner), called from the laptop through `adb forward tcp:9999 tcp:9999`. Plans are scored, not executed. To reproduce, run `venv/bin/python tools/eval/run_eval.py [--model ...] [--style think|parts|ft] [--think 0] [--mode tools]`, then `tools/eval/make_table.py`.
 
-## Current: fine-tuned planner vs base (72 commands, 2026-11-26)
+## Current: fine-tuned v2 vs v1 (84 commands, 2026-11-26)
+
+v2 is the same recipe as v1 (LoRA r16, one epoch, Qwen3-1.7B, Q4_0), trained on the second data set: 8,930 examples that add two performers told what to do, negations, gibberish, post-dance reports, lookup plus draw, voice transcripts, numbers as words, turn idioms, typos and 5-6 step chains (tools/finetune/README.md). It trained in 26 minutes on an A100 80 GB on the Tufts HPC cluster (validation loss 0.019). The held-out set gained 12 commands for the new skills, worded unlike the training templates; near-duplicates of every eval command are held out of training.
+
+| Config | All 84 | Original 72 | New 12 | Mean | p90 |
+|---|---|---|---|---|---|
+| **v2 · ft prompt (custom/gc-planner-v2-Q4_0, deployed)** | **98%** (82/84) | 71/72 | 11/12 | 21.5 s | 31.9 s |
+| v1 · ft prompt (custom/gc-planner-Q4_0) | 87% (73/84) | 66/72 | 7/12 | 22.6 s | 36.9 s |
+| v2 · few-shot "think" prompt (wrong prompt, for reference) | 90% (76/84) | | | 27.3 s | 42.0 s |
+
+v2 fixed 11 of v1's misses and introduced 2.
+
+- **Fixed:** the two-performer duets (`du1` "the robot spins while the lego bot claps", `du2`), post-dance reports (`d3`, `ds3`, `rp1`), the negations (`x1`, `x3`), the keyboard mash (`n4`), two-part self questions as one `self_report` (`sk4`, `sk6`), and "draw a giraffe" writing the word (`dw1`).
+- **New misses:** `i4` "turn 180 degrees" with no direction went to -180 (the same rotation the other way; the eval wants +180), and `vc2` "spin to times" spun 3 times instead of 2.
+- **Prompt matters:** run with the few-shot prompt it was never trained on, v2 drops to 90% and invents topics like `ME193/q/luca/mean`. The planner now picks the `ft` prompt for every `gc-planner*` model (`config.style_for`).
+
+The v1 row combines v1's 72-command run (earlier today) with its run on the 12 new commands; the code between them changed only in places these commands don't exercise.
+
+## Earlier: fine-tuned v1 vs base (72 commands, 2026-11-26)
 
 The fine-tuned model is Qwen3-1.7B with a LoRA (r16, one epoch on a Colab T4) trained on 6,555 synthetic plans from `tools/finetune/gen_data.py`, plus 20% general instruction data. It runs as Q4_0 like the base and uses the `ft` prompt: the same rules and skill list, but no few-shot examples. Both models ran back to back on the same board, against the same 72 held-out commands (the set gained `wikipedia`, `style` and `matrix` categories). None of the eval commands appear in the training data.
 
 | Config | Accuracy | Did nothing | Did wrong | Mean | p90 | single | multi | info | topic | dance | question | self | lookup | compute | memory | wikipedia | style | matrix | trap | nonsense | injection |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **Qwen3-1.7B + LoRA · ft prompt (custom/gc-planner-Q4_0, deployed)** | **92%** (66/72) | 0 | 6 | 21.3 s | 32.5 s | 8/8 | 6/6 | 4/4 | 3/3 | 5/6 | 5/5 | 4/5 | 6/6 | 5/5 | 4/4 | 3/3 | 2/3 | 3/3 | 2/4 | 2/3 | 4/4 |
+| **Qwen3-1.7B + LoRA · ft prompt (custom/gc-planner-Q4_0)** | **92%** (66/72) | 0 | 6 | 21.3 s | 32.5 s | 8/8 | 6/6 | 4/4 | 3/3 | 5/6 | 5/5 | 4/5 | 6/6 | 5/5 | 4/4 | 3/3 | 2/3 | 3/3 | 2/4 | 2/3 | 4/4 |
 | Qwen3-1.7B base · think prompt | 75% (54/72) | 3 | 15 | 27.9 s | 41.9 s | 6/8 | 5/6 | 2/4 | 3/3 | 2/6 | 5/5 | 3/5 | 4/6 | 4/5 | 3/4 | 3/3 | 2/3 | 3/3 | 3/4 | 3/3 | 3/4 |
 
 Fine-tuning fixed 16 of the base model's 18 misses and introduced 4 new ones.
@@ -157,7 +175,8 @@ With App Lab's default `LLAMA_ARG_CTX_SIZE=16384`, Qwen3-1.7B decoded at **0.3 t
 | + `answer` skill, 43 commands | – | 81% | general questions |
 | + self_report, lookup, compute, memory; 63 commands | – | 78% | tools |
 | base re-run on 72 commands (wikipedia, style, matrix) | – | 75% | same prompt, bigger set |
-| **LoRA fine-tune**, ft prompt (no examples) | – | **92%** | tools/finetune/ |
+| LoRA fine-tune v1, ft prompt (no examples) | – | 92% | tools/finetune/ |
+| **LoRA fine-tune v2**, second data set, 84 commands | – | **98%** | trained on the Tufts HPC cluster |
 
 ## Failures per config
 

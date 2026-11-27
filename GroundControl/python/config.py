@@ -28,8 +28,8 @@ QUEUE_CAP = 5
 
 # --- LLM ------------------------------------------------------------------------
 LLM_URL = os.environ.get("GC_LLM_URL", "http://llamacpp-models-runner:9999")
-LLM_MODEL = os.environ.get("GC_LLM_MODEL", "custom/gc-planner-Q4_0")   # fine-tuned: 92% held-out vs 75% base (docs/EVAL.md)
-LLM_MODELS = ["custom/gc-planner-Q4_0"]   # dashboard picker (the base Qwen3-1.7B was removed to free disk)
+LLM_MODEL = os.environ.get("GC_LLM_MODEL", "custom/gc-planner-v2-Q4_0")   # fine-tuned v2: 98% held-out (docs/EVAL.md)
+LLM_MODELS = ["custom/gc-planner-v2-Q4_0", "custom/gc-planner-Q4_0"]   # dashboard picker: v2, v1 (base Qwen3-1.7B removed)
 THINK_MAX_CHARS = int(os.environ.get("GC_THINK_CHARS", "60"))   # 0 = no think field
 MAX_STEPS = 8
 # "think": the model names the skills it will use in a short think, then writes steps
@@ -42,7 +42,11 @@ FT_MODEL = "custom/gc-planner-Q4_0"     # App Lab names it after its folder: mod
 
 
 def style_for(model):
-    return "ft" if model == FT_MODEL else ("think" if PLAN_STYLE == "ft" else PLAN_STYLE)
+    # Every fine-tuned planner (v1, v2, ...) was trained on the "ft" prompt; matching v1's
+    # exact name alone sent v2 the few-shot prompt in its first eval.
+    if model == FT_MODEL or str(model).split("/")[-1].startswith("gc-planner"):
+        return "ft"
+    return "think" if PLAN_STYLE == "ft" else PLAN_STYLE
 LLM_MAX_TOKENS = 220
 LLM_TIMEOUT_S = 180
 LLM_TOP_K = 5

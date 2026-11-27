@@ -226,6 +226,7 @@ def test_ft_prompt_matches_training_and_has_no_examples():
     assert [m["role"] for m in msgs] == ["system", "user"]              # no few-shot turns
     assert msgs[0]["content"] == P.system_prompt(60, "think")            # == gen_data.py's SYSTEM
     assert config.style_for(config.FT_MODEL) == "ft" and config.style_for("other") == "think"
+    assert config.style_for("custom/gc-planner-v2-Q4_0") == "ft"
 
 
 
