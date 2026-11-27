@@ -1,0 +1,12 @@
+# Strangers set (Part 2, A2): commands written by classmates who never saw the training
+# templates or the other eval sets. Second held-out column in docs/EVAL.md.
+# Never train on it, and never tune prompts or guards on it beyond reading the failures.
+#
+# To collect: give each person the one-paragraph description of what the robots can do
+# (docs/MODEL.md, "What it can do", without the examples), and ask for 10-15 commands,
+# about half typed and half spoken into the dashboard mic (keep the raw transcript).
+# Then label each with the expected plan, in the same format as commands.yaml:
+#   - {id: st1, cat: single, who: A, how: typed, text: "...", expect: {skills: [...], args: {...}}}
+#
+# Status: empty until classmates write commands (open question 2 in the Part 2 plan).
+[]

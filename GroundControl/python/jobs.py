@@ -21,6 +21,8 @@ class Job:
     plan: dict | None = None
     reply: str | None = None
     timings: dict = field(default_factory=dict)   # stage -> (start, end) epoch s
+    raw: str | None = None                # the text as it arrived (STT transcript), before normalize
+    changes: list = field(default_factory=list)   # what the normalizer changed: [(before, after)]
 
     def mark(self, stage, start, end=None):
         self.timings[stage] = (start, end if end is not None else time.time())

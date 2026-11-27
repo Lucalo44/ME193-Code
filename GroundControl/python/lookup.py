@@ -77,9 +77,9 @@ class Lookup:
         self._weather = (0.0, None, None)
 
     # ---------------------------------------------------------------- plumbing
-    def _host(self, op, **kw):
+    def _host(self, op, timeout=8, **kw):
         with socket.create_connection((self.host_addr, self.port), timeout=3) as s:
-            s.settimeout(8)
+            s.settimeout(timeout)
             s.sendall((json.dumps({"op": op, "rid": 1, **kw}) + "\n").encode())
             buf = b""
             while not buf.endswith(b"\n"):
@@ -88,6 +88,13 @@ class Lookup:
                     break
                 buf += chunk
         return json.loads(buf)
+
+    def model_hash(self, model):
+        """sha256 of the model's GGUF (host service; ~15 s the first time, then cached)."""
+        try:
+            return self._host("model_hash", timeout=60, model=model).get("sha256")
+        except (OSError, ValueError):
+            return None
 
     @staticmethod
     def _http_json(url):

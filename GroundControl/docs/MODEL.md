@@ -1,8 +1,8 @@
 # The planner: what it can and can't do
 
-Ground Control's brain is a 1.7-billion-parameter language model running on the UNO Q itself, with no cloud and no laptop in the loop. I was honestly surprised how far it got. It started as a model that would type "Hi" and then forget the rest of the command, and two days later it plans 98% of my held-out commands correctly. It's still a small model on a 4 GB board, though, so this page is as much about what it can't do as what it can, and about how much of the "intelligence" is actually ordinary code standing around it.
+Ground Control's brain is a 1.7-billion-parameter language model running on the UNO Q itself, with no cloud and no laptop in the loop. I was honestly surprised how far it got. It started as a model that would type "Hi" and then forget the rest of the command, and two days later it plans every one of my 84 held-out commands correctly (98% from the model alone, 100% with two small pieces of code around it). It's still a small model on a 4 GB board, though, so this page is as much about what it can't do as what it can, and about how much of the "intelligence" is actually ordinary code standing around it.
 
-The model is Qwen3-1.7B with my own LoRA fine-tune (v2), quantized to 4-bit (Q4_0, about 1 GB). It runs in llama.cpp inside App Lab's model runner with a 2,048-token context. It reads a prompt at about 5 tokens per second and writes at about 2, so a typical command takes 21.5 s from send to plan, and the board needs about 3 minutes to warm up after every boot.
+The model is Qwen3-1.7B with my own LoRA fine-tune (v2), quantized to 4-bit (Q4_0, about 1 GB). It runs in llama.cpp inside App Lab's model runner with a 2,048-token context. It reads a prompt at about 5 tokens per second and writes at about 2, so a typical command takes about 21 s from send to plan. After the very first boot, the warm-up takes 4 seconds, because the prompt cache is restored from disk.
 
 ## What it can do
 
@@ -37,8 +37,8 @@ Every command becomes one JSON plan: a short `think` naming the skills, then up 
 2. **It can't keep time.** At 2 tokens per second, the model never sends a motor command. It writes a score of about 60 tokens, and the compiler and conductor turn that into about 110 timed keyframes for a 4-bar duet.
 3. **It can't see letters or know facts after its training.** "strawberry" reaches it as `str`, `aw` and `berry`, so counting letters goes to `compute`. It had never heard of the UNO Q, so facts go to Wikipedia. When it answers from facts, any sentence with a number that isn't in the source gets removed.
 4. **It only knows the skills it was trained on.** A new skill means new training data and a new fine-tune (26 minutes on the Tufts HPC cluster). That's why "the previous dance" is handled in code and not by the model.
-5. **It's slow, and it's one model at a time.** About 21.5 s per command, with a p90 of 32 s, and a 3-minute warm-up after every boot. While it plans one command, the next one waits (or cancels it). The board froze once during a warm-up and needed a power cycle.
-6. **It still makes mistakes.** On the held-out set, it turned "turn 180 degrees" (no direction) into -180, and heard "spin to times" (speech-to-text for "two times") as three. For styles outside the library, it guessed polka is in 3/4 (it's 2/4).
+5. **It's slow, and it's one model at a time.** About 21 s per command, with a p90 of 31 s. About 70% of that is writing the plan, at 2.2 tokens per second. While it plans one command, the next one waits (or cancels it). The warm-up is 4 s now, but a new model or a prompt change means one 3-minute cold warm-up before the cache is saved again. The board froze once during a warm-up and needed a power cycle.
+6. **It still makes mistakes.** On the held-out set, it turned "turn 180 degrees" (no direction) into -180, and heard "spin to times" (speech-to-text for "two times") as three. Both are now handled in code, before and after the model: see the normalizer and the turn rule below. For styles outside the library, it guessed polka is in 3/4 (it's 2/4).
 7. **The stick figures are tiny.** Each dancer is 5 LEDs wide and 8 tall, and the matrix fits at most two side by side.
 8. **Not yet verified on the motors.** Everything up to the motors is tested on the board. The car's wiring is still unconfirmed, and the LEGO bot runs simulated until the Double Motor is connected. So the 16th-note rhythms drive only the matrix figures for now, and the robots dance on the beat.
 9. **Limits on purpose.** Commands are capped at 300 characters, plans at 8 steps, the queue at 5 jobs, and dances at 60 s (5 minutes looped). A plan can only publish to `luca` or `ME193/q/luca/*`, never to a `/cmd` topic, because everything arrives on a public broker.
@@ -47,14 +47,15 @@ Every command becomes one JSON plan: a short `think` naming the skills, then up 
 
 A command goes through six stages. Only the third one is the model.
 
-1. **Reflexes** ([python/mqtt_io.py](../python/mqtt_io.py), [python/core.py](../python/core.py)). Status, stop, "do it again" and "the previous dance" are caught here with plain pattern matching. A new command cancels the running one first.
-2. **The prompt** ([python/planner/prompt.py](../python/planner/prompt.py)). The rules and the skill list come to 867 tokens, with no few-shot examples, since the fine-tune moved those into the weights. llama.cpp keeps that prefix in its KV cache, so after the warm-up only the 20-odd tokens of the command itself cost anything.
+1. **Reflexes** ([python/mqtt_io.py](../python/mqtt_io.py), [python/core.py](../python/core.py)). Status, stop, "do it again" and "the previous dance" are caught here with plain pattern matching. A new command cancels the running one first. Before anything else, a normalizer ([python/planner/normalize.py](../python/planner/normalize.py)) fixes speech-to-text slips, but only where a unit word makes the reading certain: "spin to times" becomes "spin two times", while "go to the left" is left alone. Across all 84 held-out and the dev commands, it changes exactly one.
+2. **The prompt** ([python/planner/prompt.py](../python/planner/prompt.py)). The rules and the skill list come to 867 tokens, with no few-shot examples, since the fine-tune moved those into the weights. llama.cpp keeps that prefix in its KV cache, so only the 20-odd tokens of the command itself cost anything. The cache is also saved to disk (100 MB) and restored at boot, keyed to the exact weights, prefix tokens and server settings, so a stale cache can never be used ([docs/SPIKES.md](SPIKES.md)).
 3. **Constrained generation** ([python/planner/planner.py](../python/planner/planner.py)). A JSON grammar built from the skill registry ([python/skills/registry.py](../python/skills/registry.py)) means the model can only write a valid plan: real skill names, arguments inside their ranges. It writes the `think` first, which works as a scratchpad. If the steps don't match the skills it named, a repair pass pins the think and forces exactly that sequence.
 4. **Guards.** Small pieces of code catch the mistakes the model makes most:
    1. Questions about my installed apps get a real lookup instead of an imagined answer.
    2. Composed answers lose any sentence with an invented number.
    3. A think cut off at its length cap is matched as a prefix, not treated as a mismatch.
-   4. A named style or "two dancers" in the user's own words wins over a generic dance plan. "Breakdancers" reaches the model as "break" + "d" + "ancers", and it once came back as a plain dance.
+   4. Turns follow one rule: positive is left, and a turn with no direction ("turn 180 degrees") goes left. The eval scores turns by final heading.
+   5. A named style or "two dancers" in the user's own words wins over a generic dance plan. "Breakdancers" reaches the model as "break" + "d" + "ancers", and it once came back as a plain dance.
 5. **Execution** ([python/executor.py](../python/executor.py)). Each step runs with its own timeout, placeholders like `{imu.yaw}` and `{dance.max_sync_error_ms}` are filled in with live values, and a plan that sends nothing still replies "done".
 6. **Dancing** ([python/dance/](../python/dance/)). The compiler turns a score into keyframes per performer, with a count-in (4-3-2-1, or 3-2-1 for a waltz). The conductor gives every performer the same start time and measures how in sync they were. The matrix figures run on a 16th-note grid: a pose changes only on a rhythm hit, the figure flashes on the hit, and corner lights mark every beat.
 
@@ -91,6 +92,17 @@ With planning solved, the weak spot moved to the performance. Testing showed v2 
 
 Alongside that came looping, a stop that understands "stop dancing", new commands that replace old ones, and "the previous dance".
 
+### Part 2: measuring first, then the warm-up
+
+The next round started with measurement instead of features. A benchmark split every command into reading and writing: 30% of the 20.8 s is reading the command, 70% is writing the plan, and 28 of the 32 tokens it writes are JSON for the steps. That points the next fine-tune at a shorter plan format, not at the prompt.
+
+The 3-minute warm-up turned out to be the easiest win. It was only llama.cpp re-reading the same 867 tokens, and its server can save that state to a file. App Lab passes the setting through like the context size, so the warm-up is now 4 seconds, with a key that refuses to restore a cache from different weights or a different prompt. Two other findings came out of the same measurements:
+
+1. A stand-in perception model made the planner 2.7 times slower, because numpy quietly used all four cores.
+2. The "freeze" I had blamed on the board looks more like the laptop: the journal shows the Mac suspending the board's USB link, and then the board simply losing power, with no crash in its logs.
+
+With a normalizer for speech-to-text slips and a rule for turns without a direction, the same v2 model now plans all 84 held-out commands correctly.
+
 ## Planner evaluation
 
 **Abstract.** I measured how often the planner turns a natural-language command into the right plan, on 84 held-out commands, comparing the fine-tuned v2 against v1 and the earlier base models. Full tables and every failure are in [EVAL.md](EVAL.md).
@@ -105,7 +117,8 @@ Alongside that came looping, a stop that understands "stop dancing", new command
 | Qwen3-1.7B, same prompt | 80% (31/39) | 23.6 s |
 | Qwen3-1.7B, base, after the tools were added | 75% (54/72) | 27.9 s |
 | Fine-tune v1 | 92% (66/72) | 21.3 s |
-| **Fine-tune v2 (deployed)** | **98% (82/84)** | **21.5 s** |
+| Fine-tune v2 | 98% (82/84) | 21.5 s |
+| **v2 + normalizer + turn rule (deployed)** | **100% (84/84)** | **20.7 s** (benchmark) |
 
 **Error.** With 84 commands, one command is 1.2 points, so v2's lead over v1 (87% on the same 84) is 9 commands, not noise. The 12 newest commands are my own wording, written to differ from the training templates, but I wrote both, so the held-out set is probably still closer to the training data than a stranger's commands would be. The set also grew between rows, so only rows on the same set compare directly.
 

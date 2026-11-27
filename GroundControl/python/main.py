@@ -6,6 +6,7 @@ On a laptop:  python3 devserver.py  (sim HAL + same dashboard)
 import sys
 import time
 
+import perception  # noqa: F401  first: keeps numpy's BLAS on one thread (docs/SPIKES.md, Part 2 A0)
 from arduino.app_bricks.web_ui import WebUI
 from arduino.app_utils import App, Bridge
 

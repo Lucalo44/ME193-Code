@@ -1,0 +1,42 @@
+{
+ "commands": "s1,s5,m1,d1",
+ "results": [
+  {
+   "condition": "no load",
+   "decode_tok_s": 2.21,
+   "prefill_tok_s": 3.01,
+   "mean_ms": 22459,
+   "correct": 4
+  },
+  {
+   "condition": "1 load, BLAS on all cores (default), pinning attempted after import",
+   "decode_tok_s": 0.83,
+   "prefill_tok_s": 1.36,
+   "mean_ms": 57300,
+   "correct": 4,
+   "note": "from the first, interrupted run"
+  },
+  {
+   "condition": "1 load, 1 thread, unpinned",
+   "decode_tok_s": 1.35,
+   "prefill_tok_s": 2.09,
+   "mean_ms": 36118,
+   "correct": 4
+  },
+  {
+   "condition": "1 load, 1 thread, pinned to core 3",
+   "decode_tok_s": 1.39,
+   "prefill_tok_s": 2.17,
+   "mean_ms": 34856,
+   "correct": 4
+  },
+  {
+   "condition": "1 load at 30% duty, 1 thread, pinned to core 3",
+   "decode_tok_s": 1.91,
+   "prefill_tok_s": 2.66,
+   "mean_ms": 26111,
+   "correct": 4
+  }
+ ],
+ "llama_threads": 4
+}

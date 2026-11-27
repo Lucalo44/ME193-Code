@@ -82,3 +82,61 @@ With the default `LLAMA_ARG_CTX_SIZE=16384`, Qwen3-1.7B decoded at **0.3 tok/s**
 ## Open questions this didn't answer
 
 See the "Questions for Luca" list in the README.
+
+# Part 2 spikes (2026-11-27)
+
+## A1: saving the prompt cache to disk
+
+The 3-minute warm-up was only llama.cpp re-reading the same 867-token prefix, so I wanted to save that state once and load it at boot.
+
+1. **The runner takes the flag.** App Lab's runner starts `llama-server` from `/run-model-router.sh` with only `--models-preset`, but the binary reads `LLAMA_ARG_SLOT_SAVE_PATH` from the environment, and App Lab passes every `variables:` entry in `app.yaml` through, the same way `LLAMA_ARG_CTX_SIZE` already works. So no sidecar server was needed. The files go to `/models/slots`, which is the host's `models/llamacpp/slots` folder, so they survive restarts.
+2. **The router passes `/slots` through,** but only with the model named: `?model=` on a GET, `"model"` in the body of a POST. There is exactly one slot (id 0) at ctx 2048.
+3. **The numbers.** Saving 904 tokens wrote 103.7 MB in 0.19 s, close to the estimated 112 KB per token. Restoring took 0.12 s from the file cache.
+4. **Cold runner.** After `docker restart` of the runner: the router answered in 1.0 s, the restore (including loading the model) took 3.6 s, and the first plan took 14.1 s with 855 tokens reused. That is 18.7 s from restart to a planned command, down from 3–7 minutes. `docker restart` keeps the GGUF in the kernel's file cache, so a real power-on also pays to read 1 GB from eMMC.
+5. **In the app.** The first boot finds no file, warms up cold (184 s) and saves. Every boot after that restores: **warm-up done in 4.0 s**, with 866 of 867 tokens reused by the check request.
+
+The file name is a hash of everything that changes the cached state: the GGUF's sha256 (from the host service, cached by size and mtime, since the app container can't read the models folder), the exact prefix token ids, the context size, the llama.cpp build and the runner's `variables:` block. A mismatch just means a cold warm-up and a new save. A stale restore would give silently wrong plans, so nothing is ever restored without a matching key, and a restore only counts if the check request reuses the prefix.
+
+The same file fixes a slowdown I hadn't noticed. Answers and Wikipedia choreography use other prompts, and with one slot they pushed the planner's prefix out, so the command after a question re-read all 867 tokens. Now the prefix is restored in the background right after those calls.
+
+## A0: what the planner's time goes to
+
+[tools/bench/latency.py](../tools/bench/latency.py) plans a fixed 20-command subset against the board and splits every command into prefill, think tokens, step tokens and everything else. The v2 baseline ([bench/2026-11-26_baseline-v2.json](bench/2026-11-26_baseline-v2.json), with a chart next to it):
+
+1. **20/20 correct, mean 20.8 s** (p50 19.9 s, p90 31.0 s). No repair passes.
+2. **Prefill is 30%** (6.2 s): the command's 11–31 new tokens at about 3 tokens per second, with 855 tokens reused from the cache every time.
+3. **Decode is 70%** (14.5 s): 32 tokens on average at 2.18 tokens per second. Only 2 of those are the think. The other 28 are the steps' JSON, so a shorter plan encoding (A5) is where the time is.
+
+## A0: sharing the CPU with perception
+
+The board has 4 Cortex-A53 cores, and llama.cpp uses all of them. Keyword spotting, pose and beat tracking don't exist yet, so [tools/bench/contention.py](../tools/bench/contention.py) stands in for one with a numpy matrix-multiply loop in the app container, and plans the same 4 commands under each condition.
+
+| Load | llama.cpp on 4 threads | llama.cpp on 3 threads |
+|---|---|---|
+| none | **2.21 tok/s** (22.5 s per command) | 1.68 tok/s (29.8 s) |
+| 1 load, numpy's default (BLAS on every core) | 0.83 tok/s (57.3 s) | – |
+| 1 load, 1 thread, unpinned | 1.35 tok/s (36.1 s) | – |
+| 1 load, 1 thread, pinned to core 3 | 1.39 tok/s (34.9 s) | **1.53 tok/s** (32.9 s) |
+| 1 load at 30% duty, 1 thread, pinned | **1.91 tok/s** (26.1 s) | 1.67 tok/s (30.2 s) |
+
+What this means for every perception model:
+
+1. **One thread, always.** numpy's BLAS quietly spreads one matrix multiply over all four cores, and that alone made the planner 2.7 times slower. Perception code sets `OPENBLAS_NUM_THREADS=1` (and onnxruntime's intra-op threads to 1), and pins itself to core 3 *before* importing numpy, because BLAS starts its threads at import.
+2. **Pinning alone barely helps** (1.35 → 1.39). llama.cpp's four threads wait for each other at every step, so one busy core holds up all of them.
+3. **Giving llama.cpp only 3 threads is worse** unless a perception model runs flat out. With nothing else running it decodes 24% slower, so it stays on 4.
+4. **Duty cycle is what matters.** At 30% duty, the planner keeps 86% of its speed. That's what [python/perception/budget.py](../python/perception/budget.py) enforces: while the LLM is decoding, pose drops to 2 fps and keyword spotting (small and essential) keeps running.
+
+I'll measure each real model against this table when it lands.
+
+## A0: the freeze
+
+On 2026-11-26 the board stopped answering during testing. The dashboard went down, `adb shell` hung, then adb reported the device offline, and only a power cycle brought it back. This is what I found:
+
+1. **It isn't memory.** The journal is persistent, so the boot that froze is still readable (`journalctl -b -1`). It has no OOM kills, no hung-task or RCU-stall warnings and no I/O errors, and systemd kept running its scheduled jobs (man-db, fwupd) until the power cycle at 00:43:21 UTC. The kernel was alive; the app and adb's shell were not.
+2. **I couldn't reproduce it.** [tools/bench/freeze_watch.sh](../tools/bench/freeze_watch.sh) restarts the app and its model runner the way a boot does and logs memory, swap, temperature, load and new kernel messages every second. 20 rounds in a row came back clean: ready in 35–37 s every time, at most 1.07 GB used with 2.6 GB available, zram swap unused, under 64 °C, no kernel warnings. Four cold warm-ups during the day's benchmarks (184–236 s) were clean too.
+3. **The board already has the safety net I was going to add:** a 1.8 GB zram swap (`/dev/zram0`, priority 100). Its kernel has no `/proc/pressure`, so memory pressure has to be read from `free` instead.
+4. **What changed since then.** The 3-minute warm-up, the longest stretch of all four cores at 100%, is down to 4 s after the first boot. A supervisor in the app now checks that the model runner answers every 10 s. After three misses in a row, it shows a restart icon on the matrix, has the host service restart the runner, and restores the prompt cache.
+
+5. **It happened again, and this time the logs pointed at the laptop.** During the held-out eval on 2026-11-27, adb dropped after 67 commands. The board's journal shows the USB host suspending and resuming the link (`FUNCTIONFS_SUSPEND` / `RESUME`) from 04:01, which is what a Mac does as it idles toward sleep, and suspended USB kills adb and its port forwards. The board kept logging normally (cron at 04:17, fwupd at 04:24), and then the journal simply stops, with no error, until a new boot at 04:31. A clean stop like that looks like the power going away, not a crash. The first "freeze" matches the same pattern: normal logs, then nothing.
+
+My best explanation is the laptop, not the board: the Mac sleeping suspends the USB link, and the board may lose power if it is powered from that port. That still needs confirming (where the board gets its power, and whether the Mac slept). The 20 rounds above were app and runner restarts, not power cycles, because I can't power-cycle the board remotely. A true cold-boot loop needs a passwordless `reboot` rule like the existing `poweroff` one. The eval and benchmark tools now keep the Mac awake while they run.

@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="430" font-family="sans-serif" font-size="11">
+<rect width="900" height="430" fill="white"/>
+<rect x="240" y="8" width="10" height="10" fill="#4c78a8"/><text x="254" y="17">prefill</text>
+<rect x="350" y="8" width="10" height="10" fill="#f58518"/><text x="364" y="17">think</text>
+<rect x="460" y="8" width="10" height="10" fill="#54a24b"/><text x="474" y="17">steps</text>
+<rect x="570" y="8" width="10" height="10" fill="#bab0ac"/><text x="584" y="17">other</text>
+<text x="4" y="41">s1 show a smiley face</text>
+<rect x="240.0" y="30" width="76.5" height="14" fill="#4c78a8"/>
+<rect x="316.5" y="30" width="19.4" height="14" fill="#f58518"/>
+<rect x="335.9" y="30" width="184.8" height="14" fill="#54a24b"/>
+<rect x="520.7" y="30" width="3.1" height="14" fill="#bab0ac"/>
+<text x="527.8" y="41">14.0 s</text>
+<text x="4" y="59">s2 write HELLO on the matrix</text>
+<rect x="240.0" y="48" width="102.4" height="14" fill="#4c78a8"/>
+<rect x="342.4" y="48" width="19.3" height="14" fill="#f58518"/>
+<rect x="361.7" y="48" width="183.7" height="14" fill="#54a24b"/>
+<rect x="545.4" y="48" width="1.6" height="14" fill="#bab0ac"/>
+<text x="551.0" y="59">15.1 s</text>
+<text x="4" y="77">s4 drive backwards for 3 seconds</text>
+<rect x="240.0" y="66" width="102.8" height="14" fill="#4c78a8"/>
+<rect x="342.8" y="66" width="9.7" height="14" fill="#f58518"/>
+<rect x="352.5" y="66" width="212.6" height="14" fill="#54a24b"/>
+<rect x="565.0" y="66" width="1.7" height="14" fill="#bab0ac"/>
+<text x="570.8" y="77">16.1 s</text>
+<text x="4" y="95">s5 turn left 90 degrees</text>
+<rect x="240.0" y="84" width="103.1" height="14" fill="#4c78a8"/>
+<rect x="343.1" y="84" width="19.3" height="14" fill="#f58518"/>
+<rect x="362.4" y="84" width="183.6" height="14" fill="#54a24b"/>
+<rect x="546.1" y="84" width="1.7" height="14" fill="#bab0ac"/>
+<text x="551.8" y="95">15.2 s</text>
+<text x="4" y="113">m1 Type Hi on the LED matrix and then </text>
+<rect x="240.0" y="102" width="213.2" height="14" fill="#4c78a8"/>
+<rect x="453.2" y="102" width="57.9" height="14" fill="#f58518"/>
+<rect x="511.1" y="102" width="357.1" height="14" fill="#54a24b"/>
+<rect x="868.2" y="102" width="1.6" height="14" fill="#bab0ac"/>
+<text x="873.8" y="113">31.0 s</text>
+<text x="4" y="131">m3 drive forward for one second and th</text>
+<rect x="240.0" y="120" width="125.6" height="14" fill="#4c78a8"/>
+<rect x="365.6" y="120" width="38.4" height="14" fill="#f58518"/>
+<rect x="404.0" y="120" width="316.4" height="14" fill="#54a24b"/>
+<rect x="720.4" y="120" width="1.6" height="14" fill="#bab0ac"/>
+<text x="725.9" y="131">23.7 s</text>
+<text x="4" y="149">m4 write OK, then turn right 45 degree</text>
+<rect x="240.0" y="138" width="128.7" height="14" fill="#4c78a8"/>
+<rect x="368.7" y="138" width="57.5" height="14" fill="#f58518"/>
+<rect x="426.2" y="138" width="296.9" height="14" fill="#54a24b"/>
+<rect x="723.1" y="138" width="1.6" height="14" fill="#bab0ac"/>
+<text x="728.7" y="149">23.9 s</text>
+<text x="4" y="167">i1 what is your yaw? reply on luca</text>
+<rect x="240.0" y="156" width="123.8" height="14" fill="#4c78a8"/>
+<rect x="363.8" y="156" width="66.6" height="14" fill="#f58518"/>
+<rect x="430.4" y="156" width="371.2" height="14" fill="#54a24b"/>
+<rect x="801.5" y="156" width="1.6" height="14" fill="#bab0ac"/>
+<text x="807.2" y="167">27.7 s</text>
+<text x="4" y="185">t1 say hello on topic ME193/q/luca/cha</text>
+<rect x="240.0" y="174" width="152.1" height="14" fill="#4c78a8"/>
+<rect x="392.1" y="174" width="19.3" height="14" fill="#f58518"/>
+<rect x="411.4" y="174" width="289.3" height="14" fill="#54a24b"/>
+<rect x="700.7" y="174" width="1.7" height="14" fill="#bab0ac"/>
+<text x="706.4" y="185">22.8 s</text>
+<text x="4" y="203">d1 dance for 4 bars at 100 bpm with th</text>
+<rect x="240.0" y="192" width="189.2" height="14" fill="#4c78a8"/>
+<rect x="429.2" y="192" width="9.4" height="14" fill="#f58518"/>
+<rect x="438.6" y="192" width="434.1" height="14" fill="#54a24b"/>
+<rect x="872.7" y="192" width="1.6" height="14" fill="#bab0ac"/>
+<text x="878.3" y="203">31.2 s</text>
+<text x="4" y="221">d2 do a call and response dance at 90 </text>
+<rect x="240.0" y="210" width="203.9" height="14" fill="#4c78a8"/>
+<rect x="443.9" y="210" width="9.4" height="14" fill="#f58518"/>
+<rect x="453.4" y="210" width="425.1" height="14" fill="#54a24b"/>
+<rect x="878.4" y="210" width="1.6" height="14" fill="#bab0ac"/>
+<text x="884.0" y="221">31.5 s</text>
+<text x="4" y="239">x1 don't show anything, just tell me d</text>
+<rect x="240.0" y="228" width="142.7" height="14" fill="#4c78a8"/>
+<rect x="382.7" y="228" width="19.4" height="14" fill="#f58518"/>
+<rect x="402.1" y="228" width="222.6" height="14" fill="#54a24b"/>
+<rect x="624.6" y="228" width="1.8" height="14" fill="#bab0ac"/>
+<text x="630.4" y="239">19.0 s</text>
+<text x="4" y="257">n1 make me a cup of coffee</text>
+<rect x="240.0" y="246" width="102.2" height="14" fill="#4c78a8"/>
+<rect x="342.2" y="246" width="9.7" height="14" fill="#f58518"/>
+<rect x="351.8" y="246" width="290.0" height="14" fill="#54a24b"/>
+<rect x="641.8" y="246" width="1.6" height="14" fill="#bab0ac"/>
+<text x="647.4" y="257">19.9 s</text>
+<text x="4" y="275">q1 what is 2+2?</text>
+<rect x="240.0" y="264" width="109.3" height="14" fill="#4c78a8"/>
+<rect x="349.3" y="264" width="9.7" height="14" fill="#f58518"/>
+<rect x="359.0" y="264" width="252.6" height="14" fill="#54a24b"/>
+<rect x="611.6" y="264" width="1.6" height="14" fill="#bab0ac"/>
+<text x="617.2" y="275">18.4 s</text>
+<text x="4" y="293">sk1 which board are you?</text>
+<rect x="240.0" y="282" width="96.6" height="14" fill="#4c78a8"/>
+<rect x="336.6" y="282" width="19.3" height="14" fill="#f58518"/>
+<rect x="355.9" y="282" width="173.9" height="14" fill="#54a24b"/>
+<rect x="529.8" y="282" width="1.8" height="14" fill="#bab0ac"/>
+<text x="535.6" y="293">14.4 s</text>
+<text x="4" y="311">lk1 what time is it?</text>
+<rect x="240.0" y="300" width="96.4" height="14" fill="#4c78a8"/>
+<rect x="336.4" y="300" width="9.7" height="14" fill="#f58518"/>
+<rect x="346.1" y="300" width="193.4" height="14" fill="#54a24b"/>
+<rect x="539.4" y="300" width="1.7" height="14" fill="#bab0ac"/>
+<text x="545.1" y="311">14.8 s</text>
+<text x="4" y="329">cp1 how many e's are in the word straw</text>
+<rect x="240.0" y="318" width="129.4" height="14" fill="#4c78a8"/>
+<rect x="369.4" y="318" width="9.7" height="14" fill="#f58518"/>
+<rect x="379.1" y="318" width="260.6" height="14" fill="#54a24b"/>
+<rect x="639.6" y="318" width="1.8" height="14" fill="#bab0ac"/>
+<text x="645.5" y="329">19.8 s</text>
+<text x="4" y="347">mm1 remember that my dog's name is Bis</text>
+<rect x="240.0" y="336" width="130.6" height="14" fill="#4c78a8"/>
+<rect x="370.6" y="336" width="9.6" height="14" fill="#f58518"/>
+<rect x="380.2" y="336" width="279.6" height="14" fill="#54a24b"/>
+<rect x="659.8" y="336" width="1.6" height="14" fill="#bab0ac"/>
+<text x="665.4" y="347">20.7 s</text>
+<text x="4" y="365">wk1 how tall is Mount Everest?</text>
+<rect x="240.0" y="354" width="105.3" height="14" fill="#4c78a8"/>
+<rect x="345.3" y="354" width="20.0" height="14" fill="#f58518"/>
+<rect x="365.3" y="354" width="189.9" height="14" fill="#54a24b"/>
+<rect x="555.2" y="354" width="1.6" height="14" fill="#bab0ac"/>
+<text x="560.8" y="365">15.6 s</text>
+<text x="4" y="383">ds1 dance like traditional West Africa</text>
+<rect x="240.0" y="372" width="103.1" height="14" fill="#4c78a8"/>
+<rect x="343.1" y="372" width="19.3" height="14" fill="#f58518"/>
+<rect x="362.4" y="372" width="308.5" height="14" fill="#54a24b"/>
+<rect x="670.9" y="372" width="1.6" height="14" fill="#bab0ac"/>
+<text x="676.5" y="383">21.3 s</text>
+<text x="240" y="418">seconds per command (prefill = reading the prompt; think/steps = writing the plan)</text></svg>

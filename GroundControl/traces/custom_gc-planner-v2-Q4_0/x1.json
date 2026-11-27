@@ -1,0 +1,4412 @@
+{
+ "model": "custom/gc-planner-v2-Q4_0",
+ "gguf_sha256": "961ba90ff0f5d77f433ae73dd439c4ebcaac4bca221b384b53d2ca06be71539a",
+ "where": "board",
+ "style": "ft",
+ "recorded": "2026-11-26 23:56",
+ "temperature": 0,
+ "command": {
+  "id": "x1",
+  "cat": "trap",
+  "text": "don't show anything, just tell me done on luca",
+  "expect": {
+   "skills": [
+    "mqtt_publish"
+   ],
+   "args": {
+    "0": {
+     "topic": "luca",
+     "message": "~done"
+    }
+   }
+  }
+ },
+ "prompt_tokens": [
+  {
+   "id": 151644,
+   "piece": "<|im_start|>"
+  },
+  {
+   "id": 8948,
+   "piece": "system"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 2610,
+   "piece": "You"
+  },
+  {
+   "id": 3119,
+   "piece": " plan"
+  },
+  {
+   "id": 6168,
+   "piece": " actions"
+  },
+  {
+   "id": 369,
+   "piece": " for"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 27966,
+   "piece": " dancing"
+  },
+  {
+   "id": 12305,
+   "piece": " robot"
+  },
+  {
+   "id": 1803,
+   "piece": " car"
+  },
+  {
+   "id": 323,
+   "piece": " and"
+  },
+  {
+   "id": 1181,
+   "piece": " its"
+  },
+  {
+   "id": 55801,
+   "piece": " LEGO"
+  },
+  {
+   "id": 8263,
+   "piece": " partner"
+  },
+  {
+   "id": 12305,
+   "piece": " robot"
+  },
+  {
+   "id": 624,
+   "piece": ".\n"
+  },
+  {
+   "id": 20841,
+   "piece": "Reply"
+  },
+  {
+   "id": 448,
+   "piece": " with"
+  },
+  {
+   "id": 24038,
+   "piece": " ONE"
+  },
+  {
+   "id": 4718,
+   "piece": " JSON"
+  },
+  {
+   "id": 3119,
+   "piece": " plan"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 758,
+   "piece": " In"
+  },
+  {
+   "id": 1744,
+   "piece": " think"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 829,
+   "piece": " name"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 7361,
+   "piece": " skills"
+  },
+  {
+   "id": 498,
+   "piece": " you"
+  },
+  {
+   "id": 686,
+   "piece": " will"
+  },
+  {
+   "id": 990,
+   "piece": " use"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 1973,
+   "piece": " order"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 30240,
+   "piece": " Skills"
+  },
+  {
+   "id": 510,
+   "piece": ":\n"
+  },
+  {
+   "id": 18110,
+   "piece": "matrix"
+  },
+  {
+   "id": 4326,
+   "piece": "_text"
+  },
+  {
+   "id": 7235,
+   "piece": "(text"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 3270,
+   "piece": " write"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 943,
+   "piece": " type"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 3037,
+   "piece": " display"
+  },
+  {
+   "id": 1467,
+   "piece": " text"
+  },
+  {
+   "id": 389,
+   "piece": " on"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 13113,
+   "piece": " LED"
+  },
+  {
+   "id": 6172,
+   "piece": " matrix"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 18110,
+   "piece": "matrix"
+  },
+  {
+   "id": 15648,
+   "piece": "_icon"
+  },
+  {
+   "id": 3153,
+   "piece": "(name"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 4746,
+   "piece": " heart"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 3563,
+   "piece": "sm"
+  },
+  {
+   "id": 457,
+   "piece": "ile"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 82114,
+   "piece": "sad"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 6044,
+   "piece": "arrow"
+  },
+  {
+   "id": 9579,
+   "piece": "_left"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 6044,
+   "piece": "arrow"
+  },
+  {
+   "id": 10539,
+   "piece": "_right"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 6044,
+   "piece": "arrow"
+  },
+  {
+   "id": 8237,
+   "piece": "_up"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 6044,
+   "piece": "arrow"
+  },
+  {
+   "id": 13998,
+   "piece": "_down"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 2028,
+   "piece": "check"
+  },
+  {
+   "id": 62827,
+   "piece": "|x"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 7841,
+   "piece": "question"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 9974,
+   "piece": "note"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 11870,
+   "piece": "star"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 23296,
+   "piece": "building"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 7675,
+   "piece": "house"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 9344,
+   "piece": "tree"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 39519,
+   "piece": "sun"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 67269,
+   "piece": "moon"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 12361,
+   "piece": "cloud"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 4145,
+   "piece": "light"
+  },
+  {
+   "id": 1229,
+   "piece": "ning"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 6918,
+   "piece": "car"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 18247,
+   "piece": "robot"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 46790,
+   "piece": "rocket"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 38753,
+   "piece": "flower"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 38654,
+   "piece": "ghost"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 1473,
+   "piece": " show"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 6802,
+   "piece": " picture"
+  },
+  {
+   "id": 389,
+   "piece": " on"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 13113,
+   "piece": " LED"
+  },
+  {
+   "id": 6172,
+   "piece": " matrix"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 18110,
+   "piece": "matrix"
+  },
+  {
+   "id": 21811,
+   "piece": "_clear"
+  },
+  {
+   "id": 368,
+   "piece": "()"
+  },
+  {
+   "id": 10113,
+   "piece": " blank"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 13113,
+   "piece": " LED"
+  },
+  {
+   "id": 6172,
+   "piece": " matrix"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 86576,
+   "piece": "mqtt"
+  },
+  {
+   "id": 58779,
+   "piece": "_publish"
+  },
+  {
+   "id": 43839,
+   "piece": "(topic"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 1943,
+   "piece": " message"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 3291,
+   "piece": " tell"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 1977,
+   "piece": " say"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 3624,
+   "piece": " send"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 9851,
+   "piece": " reply"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 1895,
+   "piece": " report"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 1943,
+   "piece": " message"
+  },
+  {
+   "id": 389,
+   "piece": " on"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 8544,
+   "piece": " topic"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 9217,
+   "piece": "answer"
+  },
+  {
+   "id": 7235,
+   "piece": "(text"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 4226,
+   "piece": " answer"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 3405,
+   "piece": " question"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 6236,
+   "piece": " chat"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 4244,
+   "piece": " words"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 721,
+   "piece": "self"
+  },
+  {
+   "id": 14813,
+   "piece": "_report"
+  },
+  {
+   "id": 43839,
+   "piece": "(topic"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 4479,
+   "piece": " board"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 74558,
+   "piece": "pins"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 46966,
+   "piece": "devices"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 36651,
+   "piece": "software"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 12120,
+   "piece": "health"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 17511,
+   "piece": "network"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 541,
+   "piece": "all"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 13064,
+   "piece": " facts"
+  },
+  {
+   "id": 911,
+   "piece": " about"
+  },
+  {
+   "id": 6133,
+   "piece": " yourself"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 4479,
+   "piece": " board"
+  },
+  {
+   "id": 323,
+   "piece": " and"
+  },
+  {
+   "id": 17654,
+   "piece": " processor"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 26944,
+   "piece": " pins"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 7611,
+   "piece": " devices"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 3162,
+   "piece": " software"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 2820,
+   "piece": " health"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 33905,
+   "piece": "RAM"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 13364,
+   "piece": " disk"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 697,
+   "piece": " your"
+  },
+  {
+   "id": 1828,
+   "piece": " own"
+  },
+  {
+   "id": 9315,
+   "piece": " temperature"
+  },
+  {
+   "id": 701,
+   "piece": "),"
+  },
+  {
+   "id": 3922,
+   "piece": " network"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 11489,
+   "piece": "wait"
+  },
+  {
+   "id": 44608,
+   "piece": "(seconds"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 496,
+   "piece": ".."
+  },
+  {
+   "id": 16,
+   "piece": "1"
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 18087,
+   "piece": " pause"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 21020,
+   "piece": "lookup"
+  },
+  {
+   "id": 7,
+   "piece": "("
+  },
+  {
+   "id": 12555,
+   "piece": "what"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 882,
+   "piece": " time"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 1028,
+   "piece": "date"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 15206,
+   "piece": "weather"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 58984,
+   "piece": "forecast"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 27635,
+   "piece": "apps"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 676,
+   "piece": "app"
+  },
+  {
+   "id": 3109,
+   "piece": "_info"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 911,
+   "piece": " about"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 1931,
+   "piece": " real"
+  },
+  {
+   "id": 13064,
+   "piece": " facts"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 882,
+   "piece": " time"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 2400,
+   "piece": " date"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 9104,
+   "piece": " weather"
+  },
+  {
+   "id": 4889,
+   "piece": " outside"
+  },
+  {
+   "id": 1431,
+   "piece": " now"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 17595,
+   "piece": " forecast"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 67576,
+   "piece": "later"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 16577,
+   "piece": " tomorrow"
+  },
+  {
+   "id": 701,
+   "piece": "),"
+  },
+  {
+   "id": 697,
+   "piece": " your"
+  },
+  {
+   "id": 10500,
+   "piece": " apps"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 1128,
+   "piece": " what"
+  },
+  {
+   "id": 825,
+   "piece": " one"
+  },
+  {
+   "id": 315,
+   "piece": " of"
+  },
+  {
+   "id": 1105,
+   "piece": " them"
+  },
+  {
+   "id": 1558,
+   "piece": " does"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 27706,
+   "piece": "compute"
+  },
+  {
+   "id": 17096,
+   "piece": "(op"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 6888,
+   "piece": " math"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 1830,
+   "piece": "count"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 4129,
+   "piece": "length"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 37655,
+   "piece": "spell"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 25903,
+   "piece": "reverse"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 1467,
+   "piece": " text"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 315,
+   "piece": " of"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 4734,
+   "piece": " exact"
+  },
+  {
+   "id": 6888,
+   "piece": " math"
+  },
+  {
+   "id": 26,
+   "piece": ";"
+  },
+  {
+   "id": 1760,
+   "piece": " count"
+  },
+  {
+   "id": 284,
+   "piece": " ="
+  },
+  {
+   "id": 1246,
+   "piece": " how"
+  },
+  {
+   "id": 1657,
+   "piece": " many"
+  },
+  {
+   "id": 3039,
+   "piece": " times"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 6524,
+   "piece": " letter"
+  },
+  {
+   "id": 374,
+   "piece": " is"
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 3409,
+   "piece": " word"
+  },
+  {
+   "id": 26,
+   "piece": ";"
+  },
+  {
+   "id": 3084,
+   "piece": " length"
+  },
+  {
+   "id": 284,
+   "piece": " ="
+  },
+  {
+   "id": 1246,
+   "piece": " how"
+  },
+  {
+   "id": 1657,
+   "piece": " many"
+  },
+  {
+   "id": 11931,
+   "piece": " letters"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 17269,
+   "piece": "memory"
+  },
+  {
+   "id": 17096,
+   "piece": "(op"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 3581,
+   "piece": " save"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 93828,
+   "piece": "recall"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 40019,
+   "piece": "forget"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 1376,
+   "piece": " key"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 897,
+   "piece": " value"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 6099,
+   "piece": " remember"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 19091,
+   "piece": " recall"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 10667,
+   "piece": " forget"
+  },
+  {
+   "id": 1128,
+   "piece": " what"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 1196,
+   "piece": " user"
+  },
+  {
+   "id": 10742,
+   "piece": " tells"
+  },
+  {
+   "id": 498,
+   "piece": " you"
+  },
+  {
+   "id": 911,
+   "piece": " about"
+  },
+  {
+   "id": 5577,
+   "piece": " themselves"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 2408,
+   "piece": "my"
+  },
+  {
+   "id": 829,
+   "piece": " name"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 847,
+   "piece": " my"
+  },
+  {
+   "id": 6930,
+   "piece": " favorite"
+  },
+  {
+   "id": 52268,
+   "piece": " ...)\n"
+  },
+  {
+   "id": 86,
+   "piece": "w"
+  },
+  {
+   "id": 14939,
+   "piece": "ikipedia"
+  },
+  {
+   "id": 10741,
+   "piece": "(query"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 1401,
+   "piece": " look"
+  },
+  {
+   "id": 705,
+   "piece": " up"
+  },
+  {
+   "id": 13064,
+   "piece": " facts"
+  },
+  {
+   "id": 389,
+   "piece": " on"
+  },
+  {
+   "id": 26587,
+   "piece": " Wikipedia"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 1251,
+   "piece": " people"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 7482,
+   "piece": " places"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 3840,
+   "piece": " history"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 8038,
+   "piece": " science"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 3871,
+   "piece": " products"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 4113,
+   "piece": " anything"
+  },
+  {
+   "id": 498,
+   "piece": " you"
+  },
+  {
+   "id": 2299,
+   "piece": "'re"
+  },
+  {
+   "id": 42903,
+   "piece": " unsure"
+  },
+  {
+   "id": 315,
+   "piece": " of"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 878,
+   "piece": "read"
+  },
+  {
+   "id": 17895,
+   "piece": "_im"
+  },
+  {
+   "id": 84,
+   "piece": "u"
+  },
+  {
+   "id": 368,
+   "piece": "()"
+  },
+  {
+   "id": 7289,
+   "piece": " sets"
+  },
+  {
+   "id": 314,
+   "piece": " {"
+  },
+  {
+   "id": 78326,
+   "piece": "imu"
+  },
+  {
+   "id": 2384,
+   "piece": ".y"
+  },
+  {
+   "id": 672,
+   "piece": "aw"
+  },
+  {
+   "id": 92,
+   "piece": "}"
+  },
+  {
+   "id": 314,
+   "piece": " {"
+  },
+  {
+   "id": 78326,
+   "piece": "imu"
+  },
+  {
+   "id": 81344,
+   "piece": ".pitch"
+  },
+  {
+   "id": 92,
+   "piece": "}"
+  },
+  {
+   "id": 314,
+   "piece": " {"
+  },
+  {
+   "id": 78326,
+   "piece": "imu"
+  },
+  {
+   "id": 62614,
+   "piece": ".roll"
+  },
+  {
+   "id": 532,
+   "piece": "}\n"
+  },
+  {
+   "id": 31967,
+   "piece": "drive"
+  },
+  {
+   "id": 60156,
+   "piece": "(speed"
+  },
+  {
+   "id": 481,
+   "piece": " -"
+  },
+  {
+   "id": 16,
+   "piece": "1"
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 496,
+   "piece": ".."
+  },
+  {
+   "id": 16,
+   "piece": "1"
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 6486,
+   "piece": " seconds"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 496,
+   "piece": ".."
+  },
+  {
+   "id": 20,
+   "piece": "5"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 3271,
+   "piece": " move"
+  },
+  {
+   "id": 4637,
+   "piece": " forward"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 20374,
+   "piece": "speed"
+  },
+  {
+   "id": 861,
+   "piece": " >"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 27555,
+   "piece": " backward"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 20374,
+   "piece": "speed"
+  },
+  {
+   "id": 366,
+   "piece": " <"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 340,
+   "piece": ")\n"
+  },
+  {
+   "id": 412,
+   "piece": "turn"
+  },
+  {
+   "id": 3710,
+   "piece": "_by"
+  },
+  {
+   "id": 77127,
+   "piece": "(deg"
+  },
+  {
+   "id": 7858,
+   "piece": "rees"
+  },
+  {
+   "id": 481,
+   "piece": " -"
+  },
+  {
+   "id": 18,
+   "piece": "3"
+  },
+  {
+   "id": 21,
+   "piece": "6"
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 496,
+   "piece": ".."
+  },
+  {
+   "id": 18,
+   "piece": "3"
+  },
+  {
+   "id": 21,
+   "piece": "6"
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 2484,
+   "piece": " turn"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 16919,
+   "piece": " rotate"
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 1992,
+   "piece": " place"
+  },
+  {
+   "id": 26,
+   "piece": ";"
+  },
+  {
+   "id": 2115,
+   "piece": " left"
+  },
+  {
+   "id": 861,
+   "piece": " >"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 1290,
+   "piece": " right"
+  },
+  {
+   "id": 366,
+   "piece": " <"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 41582,
+   "piece": "spin"
+  },
+  {
+   "id": 61118,
+   "piece": "(times"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 16,
+   "piece": "1"
+  },
+  {
+   "id": 496,
+   "piece": ".."
+  },
+  {
+   "id": 18,
+   "piece": "3"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 12616,
+   "piece": " spin"
+  },
+  {
+   "id": 2163,
+   "piece": " around"
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 1992,
+   "piece": " place"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 9495,
+   "piece": "stop"
+  },
+  {
+   "id": 368,
+   "piece": "()"
+  },
+  {
+   "id": 2936,
+   "piece": " stop"
+  },
+  {
+   "id": 7218,
+   "piece": " moving"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 98875,
+   "piece": "dance"
+  },
+  {
+   "id": 1883,
+   "piece": "(b"
+  },
+  {
+   "id": 5187,
+   "piece": "pm"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 21,
+   "piece": "6"
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 496,
+   "piece": ".."
+  },
+  {
+   "id": 16,
+   "piece": "1"
+  },
+  {
+   "id": 21,
+   "piece": "6"
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 14158,
+   "piece": " sections"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 18466,
+   "piece": " [{"
+  },
+  {
+   "id": 24950,
+   "piece": "bars"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 16,
+   "piece": "1"
+  },
+  {
+   "id": 496,
+   "piece": ".."
+  },
+  {
+   "id": 19,
+   "piece": "4"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 3856,
+   "piece": " mode"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 1803,
+   "piece": " car"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 2472,
+   "piece": " leg"
+  },
+  {
+   "id": 78,
+   "piece": "o"
+  },
+  {
+   "id": 72441,
+   "piece": "}],"
+  },
+  {
+   "id": 1380,
+   "piece": " where"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 28707,
+   "piece": " robots"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 18110,
+   "piece": "matrix"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 541,
+   "piece": "all"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 15254,
+   "piece": " dance"
+  },
+  {
+   "id": 26,
+   "piece": ";"
+  },
+  {
+   "id": 1380,
+   "piece": " where"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 28707,
+   "piece": " robots"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 6172,
+   "piece": " matrix"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 64,
+   "piece": "a"
+  },
+  {
+   "id": 9214,
+   "piece": " stick"
+  },
+  {
+   "id": 7071,
+   "piece": " figure"
+  },
+  {
+   "id": 389,
+   "piece": " on"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 13113,
+   "piece": " LED"
+  },
+  {
+   "id": 6172,
+   "piece": " matrix"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 678,
+   "piece": " all"
+  },
+  {
+   "id": 26,
+   "piece": ";"
+  },
+  {
+   "id": 7289,
+   "piece": " sets"
+  },
+  {
+   "id": 314,
+   "piece": " {"
+  },
+  {
+   "id": 98875,
+   "piece": "dance"
+  },
+  {
+   "id": 6678,
+   "piece": ".max"
+  },
+  {
+   "id": 23008,
+   "piece": "_sync"
+  },
+  {
+   "id": 4096,
+   "piece": "_error"
+  },
+  {
+   "id": 21416,
+   "piece": "_ms"
+  },
+  {
+   "id": 532,
+   "piece": "}\n"
+  },
+  {
+   "id": 98875,
+   "piece": "dance"
+  },
+  {
+   "id": 15117,
+   "piece": "_style"
+  },
+  {
+   "id": 37283,
+   "piece": "(style"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 15904,
+   "piece": " bars"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 16,
+   "piece": "1"
+  },
+  {
+   "id": 496,
+   "piece": ".."
+  },
+  {
+   "id": 23,
+   "piece": "8"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 97724,
+   "piece": " bpm"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 496,
+   "piece": ".."
+  },
+  {
+   "id": 16,
+   "piece": "1"
+  },
+  {
+   "id": 21,
+   "piece": "6"
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 1380,
+   "piece": " where"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 28707,
+   "piece": " robots"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 18110,
+   "piece": "matrix"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 541,
+   "piece": "all"
+  },
+  {
+   "id": 8,
+   "piece": ")"
+  },
+  {
+   "id": 15254,
+   "piece": " dance"
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 6941,
+   "piece": " named"
+  },
+  {
+   "id": 1707,
+   "piece": " style"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 86,
+   "piece": "w"
+  },
+  {
+   "id": 3145,
+   "piece": "alt"
+  },
+  {
+   "id": 89,
+   "piece": "z"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 73214,
+   "piece": " salsa"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 70210,
+   "piece": " ballet"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 9710,
+   "piece": " west"
+  },
+  {
+   "id": 74400,
+   "piece": " african"
+  },
+  {
+   "id": 1112,
+   "piece": "..."
+  },
+  {
+   "id": 701,
+   "piece": "),"
+  },
+  {
+   "id": 49571,
+   "piece": " chore"
+  },
+  {
+   "id": 90573,
+   "piece": "ographed"
+  },
+  {
+   "id": 504,
+   "piece": " from"
+  },
+  {
+   "id": 26587,
+   "piece": " Wikipedia"
+  },
+  {
+   "id": 26,
+   "piece": ";"
+  },
+  {
+   "id": 97724,
+   "piece": " bpm"
+  },
+  {
+   "id": 220,
+   "piece": " "
+  },
+  {
+   "id": 15,
+   "piece": "0"
+  },
+  {
+   "id": 284,
+   "piece": " ="
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 1707,
+   "piece": " style"
+  },
+  {
+   "id": 594,
+   "piece": "'s"
+  },
+  {
+   "id": 1828,
+   "piece": " own"
+  },
+  {
+   "id": 23230,
+   "piece": " tempo"
+  },
+  {
+   "id": 26,
+   "piece": ";"
+  },
+  {
+   "id": 1380,
+   "piece": " where"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 28707,
+   "piece": " robots"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 18110,
+   "piece": "matrix"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 541,
+   "piece": "all"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 3856,
+   "piece": " mode"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 650,
+   "piece": " un"
+  },
+  {
+   "id": 3335,
+   "piece": "ison"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 73225,
+   "piece": "mirror"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 6659,
+   "piece": "call"
+  },
+  {
+   "id": 9655,
+   "piece": "_response"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 4814,
+   "piece": "can"
+  },
+  {
+   "id": 263,
+   "piece": "on"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 82,
+   "piece": "s"
+  },
+  {
+   "id": 10011,
+   "piece": "olo"
+  },
+  {
+   "id": 26616,
+   "piece": "_car"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 82,
+   "piece": "s"
+  },
+  {
+   "id": 10011,
+   "piece": "olo"
+  },
+  {
+   "id": 64122,
+   "piece": "_leg"
+  },
+  {
+   "id": 78,
+   "piece": "o"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 1803,
+   "piece": " car"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 62132,
+   "piece": " shim"
+  },
+  {
+   "id": 2408,
+   "piece": "my"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 41582,
+   "piece": "spin"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 9520,
+   "piece": "step"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 36922,
+   "piece": "wig"
+  },
+  {
+   "id": 3408,
+   "piece": "gle"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 51638,
+   "piece": "freeze"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 15439,
+   "piece": "bow"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 2472,
+   "piece": " leg"
+  },
+  {
+   "id": 78,
+   "piece": "o"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 12060,
+   "piece": " wave"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 564,
+   "piece": "cl"
+  },
+  {
+   "id": 391,
+   "piece": "ap"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 79,
+   "piece": "p"
+  },
+  {
+   "id": 1510,
+   "piece": "ump"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 2768,
+   "piece": "point"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 19154,
+   "piece": "wind"
+  },
+  {
+   "id": 25013,
+   "piece": "mill"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 51638,
+   "piece": "freeze"
+  },
+  {
+   "id": 91,
+   "piece": "|"
+  },
+  {
+   "id": 15439,
+   "piece": "bow"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 26008,
+   "piece": "Rules"
+  },
+  {
+   "id": 510,
+   "piece": ":\n"
+  },
+  {
+   "id": 16,
+   "piece": "1"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 3155,
+   "piece": " Do"
+  },
+  {
+   "id": 1172,
+   "piece": " only"
+  },
+  {
+   "id": 1128,
+   "piece": " what"
+  },
+  {
+   "id": 374,
+   "piece": " is"
+  },
+  {
+   "id": 4588,
+   "piece": " asked"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 1973,
+   "piece": " order"
+  },
+  {
+   "id": 624,
+   "piece": ".\n"
+  },
+  {
+   "id": 17,
+   "piece": "2"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 17841,
+   "piece": " Reply"
+  },
+  {
+   "id": 448,
+   "piece": " with"
+  },
+  {
+   "id": 59431,
+   "piece": " mqtt"
+  },
+  {
+   "id": 58779,
+   "piece": "_publish"
+  },
+  {
+   "id": 311,
+   "piece": " to"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 8544,
+   "piece": " topic"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 1196,
+   "piece": " user"
+  },
+  {
+   "id": 5036,
+   "piece": " names"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 770,
+   "piece": " else"
+  },
+  {
+   "id": 8544,
+   "piece": " topic"
+  },
+  {
+   "id": 330,
+   "piece": " \""
+  },
+  {
+   "id": 21034,
+   "piece": "reply"
+  },
+  {
+   "id": 22956,
+   "piece": "\".\n"
+  },
+  {
+   "id": 18,
+   "piece": "3"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 2014,
+   "piece": " To"
+  },
+  {
+   "id": 1895,
+   "piece": " report"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 897,
+   "piece": " value"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 1349,
+   "piece": " read"
+  },
+  {
+   "id": 432,
+   "piece": " it"
+  },
+  {
+   "id": 1156,
+   "piece": " first"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 1221,
+   "piece": " then"
+  },
+  {
+   "id": 990,
+   "piece": " use"
+  },
+  {
+   "id": 1181,
+   "piece": " its"
+  },
+  {
+   "id": 314,
+   "piece": " {"
+  },
+  {
+   "id": 12384,
+   "piece": "placeholder"
+  },
+  {
+   "id": 92,
+   "piece": "}"
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 1943,
+   "piece": " message"
+  },
+  {
+   "id": 624,
+   "piece": ".\n"
+  },
+  {
+   "id": 19,
+   "piece": "4"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 4120,
+   "piece": " Time"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 2400,
+   "piece": " date"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 9104,
+   "piece": " weather"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 17595,
+   "piece": " forecast"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 697,
+   "piece": " your"
+  },
+  {
+   "id": 10500,
+   "piece": " apps"
+  },
+  {
+   "id": 323,
+   "piece": " and"
+  },
+  {
+   "id": 1128,
+   "piece": " what"
+  },
+  {
+   "id": 807,
+   "piece": " they"
+  },
+  {
+   "id": 653,
+   "piece": " do"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 18615,
+   "piece": " lookup"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 4149,
+   "piece": " Math"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 11931,
+   "piece": " letters"
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 3409,
+   "piece": " word"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 12564,
+   "piece": " compute"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 40933,
+   "piece": " Anything"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 1196,
+   "piece": " user"
+  },
+  {
+   "id": 17064,
+   "piece": " asks"
+  },
+  {
+   "id": 498,
+   "piece": " you"
+  },
+  {
+   "id": 311,
+   "piece": " to"
+  },
+  {
+   "id": 6099,
+   "piece": " remember"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 17064,
+   "piece": " asks"
+  },
+  {
+   "id": 911,
+   "piece": " about"
+  },
+  {
+   "id": 5577,
+   "piece": " themselves"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 2408,
+   "piece": "my"
+  },
+  {
+   "id": 2503,
+   "piece": " ..."
+  },
+  {
+   "id": 1648,
+   "piece": "):"
+  },
+  {
+   "id": 4938,
+   "piece": " memory"
+  },
+  {
+   "id": 624,
+   "piece": ".\n"
+  },
+  {
+   "id": 20,
+   "piece": "5"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 44983,
+   "piece": " Facts"
+  },
+  {
+   "id": 911,
+   "piece": " about"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 1879,
+   "piece": " world"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 16069,
+   "piece": "people"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 7482,
+   "piece": " places"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 3840,
+   "piece": " history"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 8038,
+   "piece": " science"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 3871,
+   "piece": " products"
+  },
+  {
+   "id": 1648,
+   "piece": "):"
+  },
+  {
+   "id": 58218,
+   "piece": " wikipedia"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 69529,
+   "piece": " Dancing"
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 6941,
+   "piece": " named"
+  },
+  {
+   "id": 1707,
+   "piece": " style"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 86,
+   "piece": "w"
+  },
+  {
+   "id": 3145,
+   "piece": "alt"
+  },
+  {
+   "id": 89,
+   "piece": "z"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 73214,
+   "piece": " salsa"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 9710,
+   "piece": " west"
+  },
+  {
+   "id": 74400,
+   "piece": " african"
+  },
+  {
+   "id": 1112,
+   "piece": "..."
+  },
+  {
+   "id": 1648,
+   "piece": "):"
+  },
+  {
+   "id": 15254,
+   "piece": " dance"
+  },
+  {
+   "id": 15117,
+   "piece": "_style"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 422,
+   "piece": " D"
+  },
+  {
+   "id": 3020,
+   "piece": "ances"
+  },
+  {
+   "id": 389,
+   "piece": " on"
+  },
+  {
+   "id": 279,
+   "piece": " the"
+  },
+  {
+   "id": 13113,
+   "piece": " LED"
+  },
+  {
+   "id": 6172,
+   "piece": " matrix"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 64,
+   "piece": "a"
+  },
+  {
+   "id": 9214,
+   "piece": " stick"
+  },
+  {
+   "id": 7071,
+   "piece": " figure"
+  },
+  {
+   "id": 1648,
+   "piece": "):"
+  },
+  {
+   "id": 1380,
+   "piece": " where"
+  },
+  {
+   "id": 6172,
+   "piece": " matrix"
+  },
+  {
+   "id": 26,
+   "piece": ";"
+  },
+  {
+   "id": 28707,
+   "piece": " robots"
+  },
+  {
+   "id": 323,
+   "piece": " and"
+  },
+  {
+   "id": 6172,
+   "piece": " matrix"
+  },
+  {
+   "id": 3786,
+   "piece": " together"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 1380,
+   "piece": " where"
+  },
+  {
+   "id": 678,
+   "piece": " all"
+  },
+  {
+   "id": 26,
+   "piece": ";"
+  },
+  {
+   "id": 5937,
+   "piece": " otherwise"
+  },
+  {
+   "id": 1380,
+   "piece": " where"
+  },
+  {
+   "id": 28707,
+   "piece": " robots"
+  },
+  {
+   "id": 624,
+   "piece": ".\n"
+  },
+  {
+   "id": 21,
+   "piece": "6"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 23382,
+   "piece": " Questions"
+  },
+  {
+   "id": 911,
+   "piece": " about"
+  },
+  {
+   "id": 6133,
+   "piece": " yourself"
+  },
+  {
+   "id": 320,
+   "piece": " ("
+  },
+  {
+   "id": 21732,
+   "piece": "your"
+  },
+  {
+   "id": 4479,
+   "piece": " board"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 26944,
+   "piece": " pins"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 7611,
+   "piece": " devices"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 3162,
+   "piece": " software"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 2820,
+   "piece": " health"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 3922,
+   "piece": " network"
+  },
+  {
+   "id": 1648,
+   "piece": "):"
+  },
+  {
+   "id": 656,
+   "piece": " self"
+  },
+  {
+   "id": 14813,
+   "piece": "_report"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 6944,
+   "piece": " Other"
+  },
+  {
+   "id": 4755,
+   "piece": " questions"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 6236,
+   "piece": " chat"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 4226,
+   "piece": " answer"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 82652,
+   "piece": " Impossible"
+  },
+  {
+   "id": 476,
+   "piece": " or"
+  },
+  {
+   "id": 19860,
+   "piece": " unsafe"
+  },
+  {
+   "id": 7388,
+   "piece": " requests"
+  },
+  {
+   "id": 25,
+   "piece": ":"
+  },
+  {
+   "id": 902,
+   "piece": " no"
+  },
+  {
+   "id": 7354,
+   "piece": " steps"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 14695,
+   "piece": " Never"
+  },
+  {
+   "id": 3415,
+   "piece": " publish"
+  },
+  {
+   "id": 311,
+   "piece": " to"
+  },
+  {
+   "id": 264,
+   "piece": " a"
+  },
+  {
+   "id": 8544,
+   "piece": " topic"
+  },
+  {
+   "id": 13391,
+   "piece": " ending"
+  },
+  {
+   "id": 304,
+   "piece": " in"
+  },
+  {
+   "id": 608,
+   "piece": " /"
+  },
+  {
+   "id": 8710,
+   "piece": "cmd"
+  },
+  {
+   "id": 13,
+   "piece": "."
+  },
+  {
+   "id": 151645,
+   "piece": "<|im_end|>"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 151644,
+   "piece": "<|im_start|>"
+  },
+  {
+   "id": 872,
+   "piece": "user"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 15007,
+   "piece": "don"
+  },
+  {
+   "id": 944,
+   "piece": "'t"
+  },
+  {
+   "id": 1473,
+   "piece": " show"
+  },
+  {
+   "id": 4113,
+   "piece": " anything"
+  },
+  {
+   "id": 11,
+   "piece": ","
+  },
+  {
+   "id": 1101,
+   "piece": " just"
+  },
+  {
+   "id": 3291,
+   "piece": " tell"
+  },
+  {
+   "id": 752,
+   "piece": " me"
+  },
+  {
+   "id": 2814,
+   "piece": " done"
+  },
+  {
+   "id": 389,
+   "piece": " on"
+  },
+  {
+   "id": 24743,
+   "piece": " lu"
+  },
+  {
+   "id": 924,
+   "piece": "ca"
+  },
+  {
+   "id": 151645,
+   "piece": "<|im_end|>"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 151644,
+   "piece": "<|im_start|>"
+  },
+  {
+   "id": 77091,
+   "piece": "assistant"
+  },
+  {
+   "id": 198,
+   "piece": "\n"
+  },
+  {
+   "id": 151667,
+   "piece": "<think>"
+  },
+  {
+   "id": 271,
+   "piece": "\n\n"
+  },
+  {
+   "id": 151668,
+   "piece": "</think>"
+  },
+  {
+   "id": 271,
+   "piece": "\n\n"
+  }
+ ],
+ "tokens": [
+  {
+   "i": 0,
+   "attempt": 0,
+   "piece": "{\"",
+   "logprob": -1.9669725588755682e-05,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "{\"",
+     "p": 1.0
+    },
+    {
+     "piece": "```",
+     "p": 0.0
+    },
+    {
+     "piece": "{'",
+     "p": 0.0
+    },
+    {
+     "piece": " {\"",
+     "p": 0.0
+    },
+    {
+     "piece": "`",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 7007
+  },
+  {
+   "i": 1,
+   "attempt": 0,
+   "piece": "think",
+   "logprob": -4.410753263073275e-06,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "think",
+     "p": 1.0
+    },
+    {
+     "piece": "thought",
+     "p": 0.0
+    },
+    {
+     "piece": "should",
+     "p": 0.0
+    },
+    {
+     "piece": "task",
+     "p": 0.0
+    },
+    {
+     "piece": "skill",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 7493
+  },
+  {
+   "i": 2,
+   "attempt": 0,
+   "piece": "\":\"",
+   "logprob": -3.576279254957626e-07,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "\":\"",
+     "p": 1.0
+    },
+    {
+     "piece": "\":",
+     "p": 0.0
+    },
+    {
+     "piece": "\":\"/",
+     "p": 0.0
+    },
+    {
+     "piece": "\":\"\"",
+     "p": 0.0
+    },
+    {
+     "piece": "\":\"+",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 7978
+  },
+  {
+   "i": 3,
+   "attempt": 0,
+   "piece": "mqtt",
+   "logprob": -0.00036985561018809676,
+   "p": 0.9996,
+   "top": [
+    {
+     "piece": "mqtt",
+     "p": 0.9996
+    },
+    {
+     "piece": "matrix",
+     "p": 0.0002
+    },
+    {
+     "piece": "mq",
+     "p": 0.0001
+    },
+    {
+     "piece": " mqtt",
+     "p": 0.0
+    },
+    {
+     "piece": "qtt",
+     "p": 0.0
+    }
+   ],
+   "key": "think",
+   "decision": false,
+   "forced": false,
+   "entropy": 0.006,
+   "t_ms": 8456
+  },
+  {
+   "i": 4,
+   "attempt": 0,
+   "piece": "_publish",
+   "logprob": -1.9073668227065355e-05,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "_publish",
+     "p": 1.0
+    },
+    {
+     "piece": "_pub",
+     "p": 0.0
+    },
+    {
+     "piece": ".publish",
+     "p": 0.0
+    },
+    {
+     "piece": "-publish",
+     "p": 0.0
+    },
+    {
+     "piece": "Publish",
+     "p": 0.0
+    }
+   ],
+   "key": "think",
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 8936
+  },
+  {
+   "i": 5,
+   "attempt": 0,
+   "piece": "\",\"",
+   "logprob": -0.00010097536869579926,
+   "p": 0.9999,
+   "top": [
+    {
+     "piece": "\",\"",
+     "p": 0.9999
+    },
+    {
+     "piece": ",",
+     "p": 0.0001
+    },
+    {
+     "piece": "\"}",
+     "p": 0.0
+    },
+    {
+     "piece": ",\"",
+     "p": 0.0
+    },
+    {
+     "piece": " (",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": 0.001,
+   "t_ms": 9420
+  },
+  {
+   "i": 6,
+   "attempt": 0,
+   "piece": "steps",
+   "logprob": -1.4305124977909145e-06,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "steps",
+     "p": 1.0
+    },
+    {
+     "piece": "step",
+     "p": 0.0
+    },
+    {
+     "piece": "\u6b65\u9aa4",
+     "p": 0.0
+    },
+    {
+     "piece": " steps",
+     "p": 0.0
+    },
+    {
+     "piece": "_steps",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 9900
+  },
+  {
+   "i": 7,
+   "attempt": 0,
+   "piece": "\":[{\"",
+   "logprob": -0.0009785909205675125,
+   "p": 0.999,
+   "top": [
+    {
+     "piece": "\":[{\"",
+     "p": 0.999
+    },
+    {
+     "piece": "\":",
+     "p": 0.0009
+    },
+    {
+     "piece": "\":[",
+     "p": 0.0
+    },
+    {
+     "piece": "\":{\"",
+     "p": 0.0
+    },
+    {
+     "piece": "\":[\"",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": 0.012,
+   "t_ms": 10378
+  },
+  {
+   "i": 8,
+   "attempt": 0,
+   "piece": "skill",
+   "logprob": -2.3841860752327193e-07,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "skill",
+     "p": 1.0
+    },
+    {
+     "piece": "Skill",
+     "p": 0.0
+    },
+    {
+     "piece": "skills",
+     "p": 0.0
+    },
+    {
+     "piece": "task",
+     "p": 0.0
+    },
+    {
+     "piece": ".skill",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 10837
+  },
+  {
+   "i": 9,
+   "attempt": 0,
+   "piece": "\":\"",
+   "logprob": -3.099446303167497e-06,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "\":\"",
+     "p": 1.0
+    },
+    {
+     "piece": "\":\"/",
+     "p": 0.0
+    },
+    {
+     "piece": "\":\"+",
+     "p": 0.0
+    },
+    {
+     "piece": ":\"",
+     "p": 0.0
+    },
+    {
+     "piece": "':'",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 11313
+  },
+  {
+   "i": 10,
+   "attempt": 0,
+   "piece": "mqtt",
+   "logprob": -0.00015772633196320385,
+   "p": 0.9998,
+   "top": [
+    {
+     "piece": "mqtt",
+     "p": 0.9998
+    },
+    {
+     "piece": "matrix",
+     "p": 0.0001
+    },
+    {
+     "piece": "mq",
+     "p": 0.0
+    },
+    {
+     "piece": " mqtt",
+     "p": 0.0
+    },
+    {
+     "piece": "MQ",
+     "p": 0.0
+    }
+   ],
+   "key": "skill",
+   "decision": true,
+   "forced": false,
+   "entropy": 0.003,
+   "t_ms": 11791
+  },
+  {
+   "i": 11,
+   "attempt": 0,
+   "piece": "_publish",
+   "logprob": -1.3232318451628089e-05,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "_publish",
+     "p": 1.0
+    },
+    {
+     "piece": ".publish",
+     "p": 0.0
+    },
+    {
+     "piece": "Publish",
+     "p": 0.0
+    },
+    {
+     "piece": "-publish",
+     "p": 0.0
+    },
+    {
+     "piece": "_pub",
+     "p": 0.0
+    }
+   ],
+   "key": "skill",
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 12270
+  },
+  {
+   "i": 12,
+   "attempt": 0,
+   "piece": "\",\"",
+   "logprob": -3.576279254957626e-07,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "\",\"",
+     "p": 1.0
+    },
+    {
+     "piece": "\",\"\",\"",
+     "p": 0.0
+    },
+    {
+     "piece": "\":\"",
+     "p": 0.0
+    },
+    {
+     "piece": "\"},{\"",
+     "p": 0.0
+    },
+    {
+     "piece": " \",\"",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 12772
+  },
+  {
+   "i": 13,
+   "attempt": 0,
+   "piece": "args",
+   "logprob": -4.768372718899627e-07,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "args",
+     "p": 1.0
+    },
+    {
+     "piece": "arguments",
+     "p": 0.0
+    },
+    {
+     "piece": "arg",
+     "p": 0.0
+    },
+    {
+     "piece": " args",
+     "p": 0.0
+    },
+    {
+     "piece": ".args",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 13249
+  },
+  {
+   "i": 14,
+   "attempt": 0,
+   "piece": "\":{\"",
+   "logprob": -2.7418175250204513e-06,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "\":{\"",
+     "p": 1.0
+    },
+    {
+     "piece": "\\\":{\\\"",
+     "p": 0.0
+    },
+    {
+     "piece": "':{'",
+     "p": 0.0
+    },
+    {
+     "piece": "\":[{\"",
+     "p": 0.0
+    },
+    {
+     "piece": "\":\"",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 13730
+  },
+  {
+   "i": 15,
+   "attempt": 0,
+   "piece": "topic",
+   "logprob": -9.536747711536009e-07,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "topic",
+     "p": 1.0
+    },
+    {
+     "piece": "thing",
+     "p": 0.0
+    },
+    {
+     "piece": " topic",
+     "p": 0.0
+    },
+    {
+     "piece": "topics",
+     "p": 0.0
+    },
+    {
+     "piece": "theme",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 14210
+  },
+  {
+   "i": 16,
+   "attempt": 0,
+   "piece": "\":\"",
+   "logprob": -6.318112355074845e-06,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "\":\"",
+     "p": 1.0
+    },
+    {
+     "piece": "\":\"/",
+     "p": 0.0
+    },
+    {
+     "piece": "\":\"+",
+     "p": 0.0
+    },
+    {
+     "piece": "\":",
+     "p": 0.0
+    },
+    {
+     "piece": "\":\"\",\"",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 14688
+  },
+  {
+   "i": 17,
+   "attempt": 0,
+   "piece": "lu",
+   "logprob": -0.0005072449566796422,
+   "p": 0.9995,
+   "top": [
+    {
+     "piece": "lu",
+     "p": 0.9995
+    },
+    {
+     "piece": "reply",
+     "p": 0.0003
+    },
+    {
+     "piece": "Lu",
+     "p": 0.0002
+    },
+    {
+     "piece": "lua",
+     "p": 0.0
+    },
+    {
+     "piece": "LU",
+     "p": 0.0
+    }
+   ],
+   "key": "topic",
+   "decision": true,
+   "forced": false,
+   "entropy": 0.007,
+   "t_ms": 15170
+  },
+  {
+   "i": 18,
+   "attempt": 0,
+   "piece": "ca",
+   "logprob": -1.1920928955078125e-07,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "ca",
+     "p": 1.0
+    },
+    {
+     "piece": "CA",
+     "p": 0.0
+    },
+    {
+     "piece": "-ca",
+     "p": 0.0
+    },
+    {
+     "piece": "caa",
+     "p": 0.0
+    },
+    {
+     "piece": "cca",
+     "p": 0.0
+    }
+   ],
+   "key": "topic",
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 15659
+  },
+  {
+   "i": 19,
+   "attempt": 0,
+   "piece": "\",\"",
+   "logprob": -0.00039519727579317987,
+   "p": 0.9996,
+   "top": [
+    {
+     "piece": "\",\"",
+     "p": 0.9996
+    },
+    {
+     "piece": "/",
+     "p": 0.0001
+    },
+    {
+     "piece": ",",
+     "p": 0.0001
+    },
+    {
+     "piece": "/re",
+     "p": 0.0
+    },
+    {
+     "piece": "/report",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": 0.006,
+   "t_ms": 16142
+  },
+  {
+   "i": 20,
+   "attempt": 0,
+   "piece": "message",
+   "logprob": -0.00047742793685756624,
+   "p": 0.9995,
+   "top": [
+    {
+     "piece": "message",
+     "p": 0.9995
+    },
+    {
+     "piece": "msg",
+     "p": 0.0003
+    },
+    {
+     "piece": "payload",
+     "p": 0.0001
+    },
+    {
+     "piece": "messages",
+     "p": 0.0
+    },
+    {
+     "piece": "_message",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": 0.007,
+   "t_ms": 16622
+  },
+  {
+   "i": 21,
+   "attempt": 0,
+   "piece": "\":\"",
+   "logprob": -5.483642325998517e-06,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "\":\"",
+     "p": 1.0
+    },
+    {
+     "piece": "\":\"/",
+     "p": 0.0
+    },
+    {
+     "piece": "\":\"\"",
+     "p": 0.0
+    },
+    {
+     "piece": "\":[\"",
+     "p": 0.0
+    },
+    {
+     "piece": "\":",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 17098
+  },
+  {
+   "i": 22,
+   "attempt": 0,
+   "piece": "done",
+   "logprob": -0.00015689173596911132,
+   "p": 0.9998,
+   "top": [
+    {
+     "piece": "done",
+     "p": 0.9998
+    },
+    {
+     "piece": "dance",
+     "p": 0.0001
+    },
+    {
+     "piece": "Done",
+     "p": 0.0
+    },
+    {
+     "piece": " done",
+     "p": 0.0
+    },
+    {
+     "piece": "DONE",
+     "p": 0.0
+    }
+   ],
+   "key": "message",
+   "decision": false,
+   "forced": false,
+   "entropy": 0.003,
+   "t_ms": 17579
+  },
+  {
+   "i": 23,
+   "attempt": 0,
+   "piece": "\"}}",
+   "logprob": -4.768372718899627e-07,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "\"}}",
+     "p": 1.0
+    },
+    {
+     "piece": "\"}",
+     "p": 0.0
+    },
+    {
+     "piece": "}}",
+     "p": 0.0
+    },
+    {
+     "piece": "\",\"",
+     "p": 0.0
+    },
+    {
+     "piece": "\"},\"",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 18062
+  },
+  {
+   "i": 24,
+   "attempt": 0,
+   "piece": "]}",
+   "logprob": -1.0609683158691041e-05,
+   "p": 1.0,
+   "top": [
+    {
+     "piece": "]}",
+     "p": 1.0
+    },
+    {
+     "piece": "}]",
+     "p": 0.0
+    },
+    {
+     "piece": "]}\n",
+     "p": 0.0
+    },
+    {
+     "piece": "\"]}",
+     "p": 0.0
+    },
+    {
+     "piece": "]}\"",
+     "p": 0.0
+    }
+   ],
+   "key": null,
+   "decision": false,
+   "forced": false,
+   "entropy": -0.0,
+   "t_ms": 18554
+  }
+ ],
+ "decisions": [
+  10,
+  17
+ ],
+ "repaired": false,
+ "timings": {
+  "prefill_ms": 6961,
+  "prompt_n": 21,
+  "cache_n": 855,
+  "decode_ms": 12026,
+  "predicted_n": 26,
+  "tok_s": 2.08,
+  "prefill_tok_s": 3.0,
+  "wall_ms": 19038,
+  "first_token_ms": 7007
+ },
+ "plan": {
+  "think": "mqtt_publish",
+  "steps": [
+   {
+    "skill": "mqtt_publish",
+    "args": {
+     "topic": "luca",
+     "message": "done"
+    }
+   }
+  ]
+ },
+ "outcome": "correct",
+ "why": ""
+}

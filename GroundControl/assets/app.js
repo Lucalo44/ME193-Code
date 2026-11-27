@@ -119,7 +119,7 @@
     $("state").textContent = st;
     $("doing").textContent = s.doing || "";
     $("queue").textContent = `queue ${s.queue ?? 0}`;
-    $("toks").textContent = s.llm_tok_s ? `${s.llm_tok_s} tok/s` : "– tok/s";
+    $("toks").textContent = (s.llm_tok_s ? `${s.llm_tok_s} tok/s` : "– tok/s") + (s.llm_cache ? ` · cache: ${s.llm_cache}` : "");
     $("dot-mqtt").className = "dot" + (s.mqtt ? " on" : "");
     $("dot-llm").className = "dot" + (s.llm_ready ? " on" : "");
     const lg = s.lego || {};
@@ -365,7 +365,10 @@
   socket.on("dance.kf", Duet.addKf);
   socket.on("dance.done", Duet.finish);
   socket.on("drive", Duet.setLive);
-  socket.on("llm.warm", (w) => { $("doing").textContent = `model warm: prefix prefilled in ${(w.ms / 1000).toFixed(1)} s`; });
+  socket.on("llm.warm", (w) => {
+    $("doing").textContent = w.restored ? `model ready: cache ${w.cache_note}`
+      : `model warm: prefix prefilled in ${(w.ms / 1000).toFixed(1)} s (cache saved for next boot)`;
+  });
   socket.on("reflex.action", (r) => {
     $("cmd-src").className = "badge reflex"; $("cmd-src").textContent = "STOP";
     $("doing").textContent = `STOP from ${r.source}: everything halted in ${r.latency_ms} ms (no LLM involved)`;

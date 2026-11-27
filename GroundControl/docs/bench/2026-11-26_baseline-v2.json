@@ -1,0 +1,706 @@
+{
+ "date": "2026-11-26 21:55",
+ "model": "custom/gc-planner-v2-Q4_0",
+ "gguf_sha256": "961ba90ff0f5d77f433ae73dd439c4ebcaac4bca221b384b53d2ca06be71539a",
+ "style": "ft",
+ "n": 20,
+ "warm_ms": 439266,
+ "accuracy": 1.0,
+ "repair_rate": 0.0,
+ "decode_tok_s_mean": 2.18,
+ "summary": {
+  "total_ms": {
+   "mean": 20801,
+   "p50": 19862,
+   "p90": 31009
+  },
+  "prefill_ms": {
+   "mean": 6245,
+   "p50": 6093,
+   "p90": 9313
+  },
+  "decode_ms": {
+   "mean": 14471,
+   "p50": 14239,
+   "p90": 21393
+  },
+  "decode_n": {
+   "mean": 32,
+   "p50": 31,
+   "p90": 47
+  },
+  "think_tokens": {
+   "mean": 2,
+   "p50": 2,
+   "p90": 6
+  },
+  "step_tokens": {
+   "mean": 28,
+   "p50": 29,
+   "p90": 39
+  },
+  "prompt_n": {
+   "mean": 18,
+   "p50": 18,
+   "p90": 28
+  }
+ },
+ "rows": [
+  {
+   "id": "s1",
+   "cat": "single",
+   "text": "show a smiley face",
+   "queue_ms": 0,
+   "prompt_n": 11,
+   "cache_n": 858,
+   "prefill_ms": 3766,
+   "decode_ms": 10055,
+   "decode_n": 22,
+   "think_tokens": 2,
+   "step_tokens": 19,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 13973,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "matrix_icon",
+    "steps": [
+     {
+      "skill": "matrix_icon",
+      "args": {
+       "name": "smile"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "s2",
+   "cat": "single",
+   "text": "write HELLO on the matrix",
+   "queue_ms": 0,
+   "prompt_n": 15,
+   "cache_n": 855,
+   "prefill_ms": 5040,
+   "decode_ms": 9998,
+   "decode_n": 22,
+   "think_tokens": 2,
+   "step_tokens": 19,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 15116,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "matrix_text",
+    "steps": [
+     {
+      "skill": "matrix_text",
+      "args": {
+       "text": "HELLO"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "s4",
+   "cat": "single",
+   "text": "drive backwards for 3 seconds",
+   "queue_ms": 0,
+   "prompt_n": 15,
+   "cache_n": 855,
+   "prefill_ms": 5061,
+   "decode_ms": 10942,
+   "decode_n": 24,
+   "think_tokens": 1,
+   "step_tokens": 22,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 16089,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "drive",
+    "steps": [
+     {
+      "skill": "drive",
+      "args": {
+       "speed": -30,
+       "seconds": 3
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "s5",
+   "cat": "single",
+   "text": "turn left 90 degrees",
+   "queue_ms": 0,
+   "prompt_n": 15,
+   "cache_n": 855,
+   "prefill_ms": 5077,
+   "decode_ms": 9993,
+   "decode_n": 22,
+   "think_tokens": 2,
+   "step_tokens": 19,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 15155,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "turn_by",
+    "steps": [
+     {
+      "skill": "turn_by",
+      "args": {
+       "degrees": 90
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "m1",
+   "cat": "multi",
+   "text": "Type Hi on the LED matrix and then send back on MQTT on topic luca message 'I am done'",
+   "queue_ms": 0,
+   "prompt_n": 31,
+   "cache_n": 855,
+   "prefill_ms": 10497,
+   "decode_ms": 20431,
+   "decode_n": 44,
+   "think_tokens": 6,
+   "step_tokens": 37,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 31009,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "matrix_text, then mqtt_publish",
+    "steps": [
+     {
+      "skill": "matrix_text",
+      "args": {
+       "text": "Hi"
+      }
+     },
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "luca",
+       "message": "I am done"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "m3",
+   "cat": "multi",
+   "text": "drive forward for one second and then spin once",
+   "queue_ms": 0,
+   "prompt_n": 18,
+   "cache_n": 855,
+   "prefill_ms": 6184,
+   "decode_ms": 17467,
+   "decode_n": 38,
+   "think_tokens": 4,
+   "step_tokens": 33,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 23728,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "drive, then spin",
+    "steps": [
+     {
+      "skill": "drive",
+      "args": {
+       "speed": 60,
+       "seconds": 1
+      }
+     },
+     {
+      "skill": "spin",
+      "args": {
+       "times": 1
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "m4",
+   "cat": "multi",
+   "text": "write OK, then turn right 45 degrees",
+   "queue_ms": 0,
+   "prompt_n": 19,
+   "cache_n": 855,
+   "prefill_ms": 6339,
+   "decode_ms": 17445,
+   "decode_n": 38,
+   "think_tokens": 6,
+   "step_tokens": 31,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 23865,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "matrix_text, then turn_by",
+    "steps": [
+     {
+      "skill": "matrix_text",
+      "args": {
+       "text": "OK"
+      }
+     },
+     {
+      "skill": "turn_by",
+      "args": {
+       "degrees": -45
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "i1",
+   "cat": "info",
+   "text": "what is your yaw? reply on luca",
+   "queue_ms": 0,
+   "prompt_n": 18,
+   "cache_n": 855,
+   "prefill_ms": 6093,
+   "decode_ms": 21555,
+   "decode_n": 47,
+   "think_tokens": 7,
+   "step_tokens": 39,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 27728,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "read_imu, then mqtt_publish",
+    "steps": [
+     {
+      "skill": "read_imu",
+      "args": {}
+     },
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "luca",
+       "message": "yaw is {imu.yaw}"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "t1",
+   "cat": "topic",
+   "text": "say hello on topic ME193/q/luca/chat",
+   "queue_ms": 0,
+   "prompt_n": 22,
+   "cache_n": 855,
+   "prefill_ms": 7490,
+   "decode_ms": 15193,
+   "decode_n": 33,
+   "think_tokens": 2,
+   "step_tokens": 30,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 22767,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "mqtt_publish",
+    "steps": [
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "ME193/q/luca/chat",
+       "message": "hello"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "d1",
+   "cat": "dance",
+   "text": "dance for 4 bars at 100 bpm with the lego bot mirroring you",
+   "queue_ms": 0,
+   "prompt_n": 28,
+   "cache_n": 855,
+   "prefill_ms": 9313,
+   "decode_ms": 21840,
+   "decode_n": 48,
+   "think_tokens": 1,
+   "step_tokens": 46,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 31232,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 100,
+       "sections": [
+        {
+         "bars": 4,
+         "mode": "mirror",
+         "car": "shimmy",
+         "lego": "wave"
+        }
+       ],
+       "where": "robots"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "d2",
+   "cat": "dance",
+   "text": "do a call and response dance at 90 bpm, the car spins and the lego claps",
+   "queue_ms": 0,
+   "prompt_n": 30,
+   "cache_n": 855,
+   "prefill_ms": 10040,
+   "decode_ms": 21393,
+   "decode_n": 47,
+   "think_tokens": 1,
+   "step_tokens": 45,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 31511,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 90,
+       "sections": [
+        {
+         "bars": 4,
+         "mode": "call_response",
+         "car": "spin",
+         "lego": "clap"
+        }
+       ],
+       "where": "robots"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "x1",
+   "cat": "trap",
+   "text": "don't show anything, just tell me done on luca",
+   "queue_ms": 0,
+   "prompt_n": 21,
+   "cache_n": 855,
+   "prefill_ms": 7026,
+   "decode_ms": 11911,
+   "decode_n": 26,
+   "think_tokens": 2,
+   "step_tokens": 23,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 19025,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "mqtt_publish",
+    "steps": [
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "luca",
+       "message": "done"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "n1",
+   "cat": "nonsense",
+   "text": "make me a cup of coffee",
+   "queue_ms": 0,
+   "prompt_n": 15,
+   "cache_n": 855,
+   "prefill_ms": 5030,
+   "decode_ms": 14753,
+   "decode_n": 32,
+   "think_tokens": 1,
+   "step_tokens": 30,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 19862,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "answer",
+    "steps": [
+     {
+      "skill": "answer",
+      "args": {
+       "text": "I can't make coffee, but I can dance while you do."
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "q1",
+   "cat": "question",
+   "text": "what is 2+2?",
+   "queue_ms": 0,
+   "prompt_n": 16,
+   "cache_n": 855,
+   "prefill_ms": 5383,
+   "decode_ms": 12913,
+   "decode_n": 28,
+   "think_tokens": 1,
+   "step_tokens": 26,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 18373,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "compute",
+    "steps": [
+     {
+      "skill": "compute",
+      "args": {
+       "op": "math",
+       "text": "2+2",
+       "of": ""
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "sk1",
+   "cat": "self",
+   "text": "which board are you?",
+   "queue_ms": 0,
+   "prompt_n": 14,
+   "cache_n": 855,
+   "prefill_ms": 4755,
+   "decode_ms": 9513,
+   "decode_n": 21,
+   "think_tokens": 2,
+   "step_tokens": 18,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 14355,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "self_report",
+    "steps": [
+     {
+      "skill": "self_report",
+      "args": {
+       "topic": "board"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "lk1",
+   "cat": "lookup",
+   "text": "what time is it?",
+   "queue_ms": 0,
+   "prompt_n": 14,
+   "cache_n": 855,
+   "prefill_ms": 4746,
+   "decode_ms": 9996,
+   "decode_n": 22,
+   "think_tokens": 1,
+   "step_tokens": 20,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 14827,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "lookup",
+    "steps": [
+     {
+      "skill": "lookup",
+      "args": {
+       "what": "time",
+       "about": ""
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "cp1",
+   "cat": "compute",
+   "text": "how many e's are in the word strawberry?",
+   "queue_ms": 0,
+   "prompt_n": 19,
+   "cache_n": 855,
+   "prefill_ms": 6372,
+   "decode_ms": 13305,
+   "decode_n": 29,
+   "think_tokens": 1,
+   "step_tokens": 27,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 19766,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "compute",
+    "steps": [
+     {
+      "skill": "compute",
+      "args": {
+       "op": "count",
+       "text": "strawberry",
+       "of": "e"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "mm1",
+   "cat": "memory",
+   "text": "remember that my dog's name is Biscuit",
+   "queue_ms": 0,
+   "prompt_n": 19,
+   "cache_n": 855,
+   "prefill_ms": 6428,
+   "decode_ms": 14239,
+   "decode_n": 31,
+   "think_tokens": 1,
+   "step_tokens": 29,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 20747,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "memory",
+    "steps": [
+     {
+      "skill": "memory",
+      "args": {
+       "op": "save",
+       "key": "dog's name",
+       "value": "Biscuit"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "wk1",
+   "cat": "wikipedia",
+   "text": "how tall is Mount Everest?",
+   "queue_ms": 0,
+   "prompt_n": 15,
+   "cache_n": 855,
+   "prefill_ms": 5184,
+   "decode_ms": 10334,
+   "decode_n": 22,
+   "think_tokens": 2,
+   "step_tokens": 19,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 15598,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "wikipedia",
+    "steps": [
+     {
+      "skill": "wikipedia",
+      "args": {
+       "query": "Mount Everest"
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "ds1",
+   "cat": "style",
+   "text": "dance like traditional West African dance",
+   "queue_ms": 0,
+   "prompt_n": 15,
+   "cache_n": 855,
+   "prefill_ms": 5075,
+   "decode_ms": 16141,
+   "decode_n": 35,
+   "think_tokens": 2,
+   "step_tokens": 32,
+   "repairs": 0,
+   "retries": 0,
+   "guard_hits": [],
+   "total_ms": 21295,
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance_style",
+    "steps": [
+     {
+      "skill": "dance_style",
+      "args": {
+       "style": "west african",
+       "bars": 4,
+       "bpm": 0,
+       "where": "robots"
+      }
+     }
+    ]
+   }
+  }
+ ]
+}

@@ -74,6 +74,7 @@ MAX_SECTION_BARS = 4
 MAX_DANCE_S = 60
 MAX_LOOP_S = 300               # a looped dance ("loop it", "until I say stop") ends after 5 min or on STOP
 MAX_LOOPS = 20
+SUPERVISE_S = 10                # how often the supervisor checks the model runner answers (Part 2, A0)
 COUNT_IN_BEATS = 4              # matrix counts 4-3-2-1 before the first beat (one bar, like a band)
 LOOKAHEAD_S = 0.15
 

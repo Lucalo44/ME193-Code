@@ -2,7 +2,23 @@
 
 All numbers come from the real models on the board (llama.cpp in App Lab's runner), called from the laptop through `adb forward tcp:9999 tcp:9999`. Plans are scored, not executed. To reproduce, run `venv/bin/python tools/eval/run_eval.py [--model ...] [--style think|parts|ft] [--think 0] [--mode tools]`, then `tools/eval/make_table.py`.
 
-## Current: fine-tuned v2 vs v1 (84 commands, 2026-11-26)
+## Current: Part 2 checkpoint 1, same v2 model (84 commands, 2026-11-27)
+
+Nothing about the model changed. Two pieces of code now sit around it: a normalizer that fixes speech-to-text slips before planning (`python/planner/normalize.py`), and a turn rule (positive = left, no direction = left). Turns are now scored by final heading, so +180 and -180 both count. The run went through the same input path as the board (`run_eval.py` normalizes and applies the same guards).
+
+| Config | All 84 | Mean | p90 |
+|---|---|---|---|
+| **v2 + normalizer + turn rule (deployed)** | **100%** (84/84) | 23.9 s* | 33.7 s* |
+| v2 before Part 2 | 98% (82/84) | 21.5 s | 33.2 s |
+
+- **Fixed:** `vc2` "spin to times" (the normalizer reads it as "spin two times"; across all 84 held-out and the dev commands, it changes nothing else), and `i4` "turn 180 degrees" (the turn rule, and scoring by heading).
+- **\*The run was interrupted.** After 67 commands, the laptop idled toward sleep and suspended the USB link to the board (the board's journal shows `FUNCTIONFS_SUSPEND` from 04:01). The last 17 commands came back "connection refused" without ever reaching the model, and the 67 before them ran about 3 s slower each on wall time, while the model's own speed was unchanged (2.16 vs 2.19 tok/s decode, the same 32.9 tokens per plan). I re-ran those 17 with the Mac kept awake. All 17 were right, and they took exactly as long as before (26.4 s both times). `run_eval.py` and the benchmark now hold the Mac awake on their own.
+- **Regression gate:** the latency benchmark, run with the Mac kept awake (`docs/bench/2026-11-26_after-a1-a2.json`), shows **20.7 s mean against the 20.8 s baseline** (p90 30.9 vs 31.0 s), 20/20 correct. `/status` answering mid-plan and stop halting a dance are covered by the new end-to-end tests (`tests/e2e/`), which run through a real local MQTT broker. Both pass.
+- **Not yet:** the strangers set (commands from classmates who never saw the templates) is still empty. Until it exists, this 100% is on commands I wrote myself, so it's an optimistic number.
+
+Results: `tools/eval/results/commands_gc-planner-v2-Q4_0_json_think60_ft_part2-a2-combined.json`.
+
+## Earlier: fine-tuned v2 vs v1 (84 commands, 2026-11-26)
 
 v2 is the same recipe as v1 (LoRA r16, one epoch, Qwen3-1.7B, Q4_0), trained on the second data set: 8,930 examples that add two performers told what to do, negations, gibberish, post-dance reports, lookup plus draw, voice transcripts, numbers as words, turn idioms, typos and 5-6 step chains (tools/finetune/README.md). It trained in 26 minutes on an A100 80 GB on the Tufts HPC cluster (validation loss 0.019). The held-out set gained 12 commands for the new skills, worded unlike the training templates; near-duplicates of every eval command are held out of training.
 

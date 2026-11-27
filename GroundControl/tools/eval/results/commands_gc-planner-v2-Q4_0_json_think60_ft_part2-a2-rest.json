@@ -1,0 +1,638 @@
+{
+ "summary": {
+  "set": "commands",
+  "model": "custom/gc-planner-v2-Q4_0",
+  "mode": "json",
+  "think": 60,
+  "style": "ft",
+  "n": 17,
+  "accuracy": 1.0,
+  "did_nothing": 0,
+  "did_wrong": 0,
+  "mean_ms": 26386,
+  "p90_ms": 35477,
+  "by_cat": {
+   "style": "2/2",
+   "matrix": "4/4",
+   "duo": "3/3",
+   "report": "1/1",
+   "combo": "2/2",
+   "voice": "4/4",
+   "self": "1/1"
+  },
+  "when": "2026-11-26 23:46"
+ },
+ "rows": [
+  {
+   "id": "ds2",
+   "cat": "style",
+   "text": "do a 4 bar waltz",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance_style",
+    "steps": [
+     {
+      "skill": "dance_style",
+      "args": {
+       "style": "waltz",
+       "bars": 4,
+       "bpm": 0,
+       "where": "robots"
+      }
+     }
+    ]
+   },
+   "wall_ms": 22322,
+   "timings": {
+    "prefill_ms": 5611,
+    "prompt_n": 17,
+    "cache_n": 855,
+    "decode_ms": 16561,
+    "predicted_n": 36,
+    "tok_s": 2.11,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 22284,
+    "first_token_ms": 5724
+   }
+  },
+  {
+   "id": "ds3",
+   "cat": "style",
+   "text": "dance a salsa, then tell me how in sync you were on luca",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance_style, then mqtt_publish",
+    "steps": [
+     {
+      "skill": "dance_style",
+      "args": {
+       "style": "salsa",
+       "bars": 4,
+       "bpm": 0,
+       "where": "robots"
+      }
+     },
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "luca",
+       "message": "in sync within {dance.max_sync_error_ms} ms"
+      }
+     }
+    ]
+   },
+   "wall_ms": 37970,
+   "timings": {
+    "prefill_ms": 7974,
+    "prompt_n": 24,
+    "cache_n": 855,
+    "decode_ms": 29911,
+    "predicted_n": 66,
+    "tok_s": 2.17,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 37933,
+    "first_token_ms": 8021
+   }
+  },
+  {
+   "id": "mx1",
+   "cat": "matrix",
+   "text": "make a stick figure dance on the LED matrix at 120 bpm",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 120,
+       "sections": [
+        {
+         "bars": 4,
+         "mode": "unison",
+         "car": "shimmy",
+         "lego": "wave"
+        }
+       ],
+       "where": "matrix"
+      }
+     }
+    ]
+   },
+   "wall_ms": 30469,
+   "timings": {
+    "prefill_ms": 8032,
+    "prompt_n": 24,
+    "cache_n": 855,
+    "decode_ms": 22351,
+    "predicted_n": 49,
+    "tok_s": 2.15,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 30430,
+    "first_token_ms": 8079
+   }
+  },
+  {
+   "id": "mx2",
+   "cat": "matrix",
+   "text": "make the figure on the LED matrix dance like a ballet dancer at 120 bpm",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance_style",
+    "steps": [
+     {
+      "skill": "dance_style",
+      "args": {
+       "style": "ballet",
+       "bars": 4,
+       "bpm": 120,
+       "where": "matrix"
+      }
+     }
+    ]
+   },
+   "wall_ms": 25739,
+   "timings": {
+    "prefill_ms": 8725,
+    "prompt_n": 26,
+    "cache_n": 856,
+    "decode_ms": 16935,
+    "predicted_n": 37,
+    "tok_s": 2.13,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 25707,
+    "first_token_ms": 8778
+   }
+  },
+  {
+   "id": "mx3",
+   "cat": "matrix",
+   "text": "have the robots and the LED matrix dance a salsa together",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance_style",
+    "steps": [
+     {
+      "skill": "dance_style",
+      "args": {
+       "style": "salsa",
+       "bars": 4,
+       "bpm": 0,
+       "where": "all"
+      }
+     }
+    ]
+   },
+   "wall_ms": 22628,
+   "timings": {
+    "prefill_ms": 6558,
+    "prompt_n": 20,
+    "cache_n": 855,
+    "decode_ms": 15987,
+    "predicted_n": 35,
+    "tok_s": 2.13,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 22593,
+    "first_token_ms": 6603
+   }
+  },
+  {
+   "id": "du1",
+   "cat": "duo",
+   "text": "the robot spins in place while the lego bot claps along, 2 bars at 100 bpm",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 100,
+       "sections": [
+        {
+         "bars": 2,
+         "mode": "unison",
+         "car": "spin",
+         "lego": "clap"
+        }
+       ],
+       "where": "robots"
+      }
+     }
+    ]
+   },
+   "wall_ms": 33166,
+   "timings": {
+    "prefill_ms": 10572,
+    "prompt_n": 32,
+    "cache_n": 855,
+    "decode_ms": 22510,
+    "predicted_n": 48,
+    "tok_s": 2.09,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 33128,
+    "first_token_ms": 10616
+   }
+  },
+  {
+   "id": "du2",
+   "cat": "duo",
+   "text": "have the UNO Q car march and the lego answer by pumping its arms, at 90 bpm",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 90,
+       "sections": [
+        {
+         "bars": 4,
+         "mode": "call_response",
+         "car": "step",
+         "lego": "pump"
+        }
+       ],
+       "where": "robots"
+      }
+     }
+    ]
+   },
+   "wall_ms": 31764,
+   "timings": {
+    "prefill_ms": 10261,
+    "prompt_n": 31,
+    "cache_n": 855,
+    "decode_ms": 21416,
+    "predicted_n": 47,
+    "tok_s": 2.15,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 31724,
+    "first_token_ms": 10315
+   }
+  },
+  {
+   "id": "du3",
+   "cat": "duo",
+   "text": "only the lego bot dances: windmills for 4 bars",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 100,
+       "sections": [
+        {
+         "bars": 4,
+         "mode": "solo_lego",
+         "car": "freeze",
+         "lego": "windmill"
+        }
+       ],
+       "where": "robots"
+      }
+     }
+    ]
+   },
+   "wall_ms": 30438,
+   "timings": {
+    "prefill_ms": 7603,
+    "prompt_n": 23,
+    "cache_n": 855,
+    "decode_ms": 22754,
+    "predicted_n": 50,
+    "tok_s": 2.15,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 30403,
+    "first_token_ms": 7649
+   }
+  },
+  {
+   "id": "rp1",
+   "cat": "report",
+   "text": "do a quick unison dance at 110 bpm and then tell luca the max sync error",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance, then mqtt_publish",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 110,
+       "sections": [
+        {
+         "bars": 4,
+         "mode": "unison",
+         "car": "shimmy",
+         "lego": "wave"
+        }
+       ],
+       "where": "robots"
+      }
+     },
+     {
+      "skill": "mqtt_publish",
+      "args": {
+       "topic": "luca",
+       "message": "max sync error {dance.max_sync_error_ms} ms"
+      }
+     }
+    ]
+   },
+   "wall_ms": 46212,
+   "timings": {
+    "prefill_ms": 9905,
+    "prompt_n": 30,
+    "cache_n": 855,
+    "decode_ms": 36217,
+    "predicted_n": 80,
+    "tok_s": 2.18,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 46169,
+    "first_token_ms": 9951
+   }
+  },
+  {
+   "id": "wd1",
+   "cat": "combo",
+   "text": "how tall is the Space Needle? then draw it on the LEDs",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "wikipedia, then matrix_icon",
+    "steps": [
+     {
+      "skill": "wikipedia",
+      "args": {
+       "query": "Space Needle"
+      }
+     },
+     {
+      "skill": "matrix_icon",
+      "args": {
+       "name": "building"
+      }
+     }
+    ]
+   },
+   "wall_ms": 24697,
+   "timings": {
+    "prefill_ms": 7193,
+    "prompt_n": 22,
+    "cache_n": 855,
+    "decode_ms": 17413,
+    "predicted_n": 38,
+    "tok_s": 2.12,
+    "prefill_tok_s": 3.1,
+    "wall_ms": 24658,
+    "first_token_ms": 7239
+   }
+  },
+  {
+   "id": "dw1",
+   "cat": "combo",
+   "text": "draw a giraffe on the matrix",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "matrix_text",
+    "steps": [
+     {
+      "skill": "matrix_text",
+      "args": {
+       "text": "GIRAFFE"
+      }
+     }
+    ]
+   },
+   "wall_ms": 16363,
+   "timings": {
+    "prefill_ms": 5332,
+    "prompt_n": 16,
+    "cache_n": 855,
+    "decode_ms": 10949,
+    "predicted_n": 24,
+    "tok_s": 2.1,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 16326,
+    "first_token_ms": 5378
+   }
+  },
+  {
+   "id": "ti1",
+   "cat": "voice",
+   "text": "do a quarter turn to the left",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "turn_by",
+    "steps": [
+     {
+      "skill": "turn_by",
+      "args": {
+       "degrees": 90
+      }
+     }
+    ]
+   },
+   "wall_ms": 15377,
+   "timings": {
+    "prefill_ms": 5306,
+    "prompt_n": 16,
+    "cache_n": 855,
+    "decode_ms": 9985,
+    "predicted_n": 22,
+    "tok_s": 2.1,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 15338,
+    "first_token_ms": 5353
+   }
+  },
+  {
+   "id": "vc1",
+   "cat": "voice",
+   "text": "right hello on the l e d matrix",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "matrix_text",
+    "steps": [
+     {
+      "skill": "matrix_text",
+      "args": {
+       "text": "right hello"
+      }
+     }
+    ]
+   },
+   "wall_ms": 15832,
+   "timings": {
+    "prefill_ms": 5701,
+    "prompt_n": 17,
+    "cache_n": 855,
+    "decode_ms": 10039,
+    "predicted_n": 22,
+    "tok_s": 2.09,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 15790,
+    "first_token_ms": 5746
+   }
+  },
+  {
+   "id": "vc2",
+   "cat": "voice",
+   "text": "spin to times and then dance at one hundred twenty bpm",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "spin, then dance",
+    "steps": [
+     {
+      "skill": "spin",
+      "args": {
+       "times": 2
+      }
+     },
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 120,
+       "sections": [
+        {
+         "bars": 4,
+         "mode": "unison",
+         "car": "shimmy",
+         "lego": "wave"
+        }
+       ],
+       "where": "robots"
+      }
+     }
+    ]
+   },
+   "wall_ms": 35477,
+   "timings": {
+    "prefill_ms": 6623,
+    "prompt_n": 20,
+    "cache_n": 855,
+    "decode_ms": 28764,
+    "predicted_n": 63,
+    "tok_s": 2.16,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 35436,
+    "first_token_ms": 6669
+   }
+  },
+  {
+   "id": "vc3",
+   "cat": "voice",
+   "text": "turn ninety degrees to the right",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "turn_by",
+    "steps": [
+     {
+      "skill": "turn_by",
+      "args": {
+       "degrees": -90
+      }
+     }
+    ]
+   },
+   "wall_ms": 15073,
+   "timings": {
+    "prefill_ms": 5047,
+    "prompt_n": 15,
+    "cache_n": 855,
+    "decode_ms": 9942,
+    "predicted_n": 22,
+    "tok_s": 2.11,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 15034,
+    "first_token_ms": 5090
+   }
+  },
+  {
+   "id": "sf1",
+   "cat": "matrix",
+   "text": "dance on the matrix as a stick figure, ninety bpm",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "dance",
+    "steps": [
+     {
+      "skill": "dance",
+      "args": {
+       "bpm": 90,
+       "sections": [
+        {
+         "bars": 4,
+         "mode": "unison",
+         "car": "shimmy",
+         "lego": "wave"
+        }
+       ],
+       "where": "matrix"
+      }
+     }
+    ]
+   },
+   "wall_ms": 28791,
+   "timings": {
+    "prefill_ms": 6652,
+    "prompt_n": 20,
+    "cache_n": 855,
+    "decode_ms": 22055,
+    "predicted_n": 48,
+    "tok_s": 2.13,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 28755,
+    "first_token_ms": 6697
+   }
+  },
+  {
+   "id": "sk6",
+   "cat": "self",
+   "text": "what's your temperature and how much disk is left?",
+   "outcome": "correct",
+   "why": "",
+   "plan": {
+    "think": "self_report",
+    "steps": [
+     {
+      "skill": "self_report",
+      "args": {
+       "topic": "health"
+      }
+     }
+    ]
+   },
+   "wall_ms": 16249,
+   "timings": {
+    "prefill_ms": 6645,
+    "prompt_n": 20,
+    "cache_n": 855,
+    "decode_ms": 9516,
+    "predicted_n": 21,
+    "tok_s": 2.1,
+    "prefill_tok_s": 3.0,
+    "wall_ms": 16206,
+    "first_token_ms": 6690
+   }
+  }
+ ]
+}

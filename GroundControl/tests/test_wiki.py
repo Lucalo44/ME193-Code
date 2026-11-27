@@ -60,7 +60,7 @@ def test_wikipedia_skill_end_to_end(gc):
 def test_dance_style_outside_the_library_is_grounded_and_performed(gc):
     gc.wiki, urls = fake_wiki()
     gc.submit("dance an adowa")
-    assert wait_for(lambda: any(p.startswith("Adowa: 4 bars at 126 bpm") for _, p in gc.sent), timeout=30)
+    assert wait_for(lambda: any(p.startswith("Adowa: 4 bars at 126 bpm") for _, p in gc.sent), timeout=60)
     reply = next(p for _, p in gc.sent if p.startswith("Adowa"))
     assert "call response" in reply and "from Wikipedia: African dance" in reply
     assert "gsrsearch=adowa+dance" in urls[0]

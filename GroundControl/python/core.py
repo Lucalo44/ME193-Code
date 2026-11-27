@@ -28,9 +28,12 @@ from jobs import Job, JobQueue, QueueFull
 from mqtt_io import MqttIO
 from planner.llm_client import LlmClient, LlmError
 from planner.planner import Planner
+from command_log import CommandLog
+from planner.normalize import normalize, turn_default_left
 from skills.context import Ctx
 from skills.dance_skill import LAST_DANCE, only_previous, refers_to_previous
 from skills.matrix import Matrix
+from perception.budget import Budget, mode_for_state
 from status import Status
 from viz.bus import VizBus
 
@@ -51,6 +54,9 @@ def swap_in_previous(plan):
 class GroundControl:
     def __init__(self, hal, ui=None, llm=None, lego=config.LEGO_ENABLED, mqtt=True):
         self.status = Status()
+        # Perception priority policy (Part 2, A0): follows the app state; models ask it how often to run.
+        self.budget = Budget()
+        self.status.on_change(lambda snap: self.budget.set_mode(mode_for_state(snap.get("state"))))
         self.viz = VizBus(ui)
         self.ui = ui
         self.hal = hal
@@ -62,7 +68,9 @@ class GroundControl:
         self.mqtt = MqttIO(self.status, self.submit, self.estop)
         self.mqtt.on_publish_hook = self._on_publish
         self.llm = llm or LlmClient()
-        self.planner = Planner(self.llm, emit=self.viz.emit, style=config.style_for(self.llm.model))
+        # The fingerprint keys the saved prompt cache to the exact weights (Part 2, A1).
+        self.planner = Planner(self.llm, emit=self.viz.emit, style=config.style_for(self.llm.model),
+                               fingerprint=self._model_fingerprint)
         self.car = CarPerformer(hal, self.matrix)
         self.sim_lego = SimLegoPerformer()
         self.real_lego = LegoPerformer() if lego else None
@@ -71,6 +79,7 @@ class GroundControl:
         self.executor = Executor(self.make_ctx, emit=self.viz.emit, status=self.status)
         self.self_model = SelfModel(hal, self.status)
         self.lookup = Lookup()
+        self.command_log = CommandLog()
         # The fine-tuned model was trained without app names in its catalog; keep its prompt identical.
         self.app_names = describe_apps_in_catalog(self.lookup, patch=self.planner.style != "ft")
         self.memory = Memory()
@@ -90,12 +99,51 @@ class GroundControl:
             threading.Thread(target=self._lego_loop, daemon=True, name="lego").start()
         if warm:
             threading.Thread(target=self._warm, daemon=True, name="warm").start()
+            threading.Thread(target=self._supervise, daemon=True, name="supervise").start()
         else:
             self.status.update(llm_ready=True)
         if self.ui is not None:
             self._wire_ui()
         if not warm:
             self.matrix.icon("smile")                     # else _warm shows the hourglass, then the smiley
+
+    def _model_fingerprint(self):
+        """The GGUF's sha256 from the host service. At boot the service (started by cron) can
+        come up after the app, so wait up to a minute before giving up on the disk cache."""
+        for _ in range(12):
+            h = self.lookup.model_hash(self.llm.model)
+            if h:
+                return h
+            time.sleep(5)
+        print("[cache] host service unreachable: no fingerprint, so no disk cache", flush=True)
+        return None
+
+    def _supervise(self):
+        """Part 2, A0: if the model runner stops answering (crash, OOM, a frozen container),
+        show the restart icon, have the host service restart it, and warm up again, which
+        restores the prompt cache from disk in seconds."""
+        fails = 0
+        while not self._stop.wait(config.SUPERVISE_S):
+            if not self.status.get("llm_ready"):
+                continue                                  # the warm-up thread has it
+            try:
+                self.llm.models()
+                fails = 0
+                continue
+            except Exception:  # noqa: BLE001
+                fails += 1
+            if fails < 3:
+                continue
+            print("[supervise] model runner not answering: restarting it", flush=True)
+            self.status.update(llm_ready=False)
+            self.matrix.icon("restart")
+            self.viz.emit("llm.restart", {"reason": "runner not answering"})
+            try:
+                self.lookup._host("restart_runner", timeout=90)
+            except (OSError, ValueError) as e:
+                print(f"[supervise] restart request failed: {e!r}", flush=True)
+            fails = 0
+            self._warm()
 
     def heartbeat(self):
         """Call from the main loop every HEARTBEAT_S."""
@@ -111,9 +159,14 @@ class GroundControl:
         for attempt in range(30):
             try:
                 r = self.planner.warm()
-                print(f"[llm] warm-up done in {r['ms']} ms, timings {r['timings']}", flush=True)
+                print(f"[llm] warm-up done in {r['ms']} ms ({r.get('cache_note')}), timings {r['timings']}", flush=True)
                 self.viz.emit("llm.warm", r)
-                self.status.update(llm_ready=True)
+                self.status.update(llm_ready=True, llm_cache=r.get("cache_note"))
+                if self.planner.prefix_file and not r.get("restored"):
+                    try:                                  # a new cache file: drop the stale ones
+                        self.lookup._host("prune_slots", keep=self.planner.prefix_file)
+                    except (OSError, ValueError):
+                        pass
                 ready = True
                 break
             except (LlmError, OSError) as e:
@@ -127,14 +180,21 @@ class GroundControl:
         text = (text or "").strip()[: config.MAX_CMD_CHARS]
         if not text:
             return False, "empty command"
-        job = Job(text=text, source=source, reply_to=reply_to or config.TOPIC_REPLY, plan=plan)
+        raw = text
+        if plan is None:
+            text, changes = normalize(text)              # STT homophones etc. (Part 2, A2)
+        else:
+            changes = []
+        job = Job(text=text, source=source, reply_to=reply_to or config.TOPIC_REPLY, plan=plan,
+                  raw=raw, changes=changes)
         self.preempt(job)
         try:
             self.queue.put(job)
         except QueueFull as e:
             return False, str(e)
         self.status.update(queue=len(self.queue))
-        self.viz.emit("job.queued", {"id": job.id, "text": text, "source": source})
+        self.viz.emit("job.queued", {"id": job.id, "text": text, "source": source, "raw": raw,
+                                     "changes": changes})
         return True, job.id
 
     def preempt(self, job):
@@ -259,6 +319,7 @@ class GroundControl:
             self._finish(job, reply, t_start, llm_t, [])
             return
         plan, note = ground_app_questions(plan, job.text, self.app_names)
+        plan = turn_default_left(plan, job.text)
         if note:
             self.viz.emit("plan.grounded", {"id": job.id, "plan": plan, "note": note})
         job.plan = plan
@@ -288,6 +349,12 @@ class GroundControl:
                    "cache_n": llm_t.get("cache_n"), "prompt_n": llm_t.get("prompt_n"),
                    "tok_s": llm_t.get("tok_s"), "errors": (res or {}).get("errors", [])}
         self.viz.emit("job.done", payload)
+        self.command_log.write({
+            "id": job.id, "source": job.source, "raw": job.raw, "text": job.text,
+            "changes": job.changes, "skills": [st.get("skill") for st in (job.plan or {}).get("steps") or []],
+            "plan": job.plan, "reply": reply, "total_ms": payload["total_ms"],
+            "cache_n": payload["cache_n"], "prompt_n": payload["prompt_n"],
+            "errors": payload["errors"], "cancelled": job.cancel.is_set()})
         self.mqtt.publish_event("job.done", {k: payload[k] for k in ("id", "text", "reply", "total_ms")})
         if self.status.get("state") != "ESTOP":
             self.status.set_state("IDLE", f"Done: {reply[:60]}", last_reply=reply)

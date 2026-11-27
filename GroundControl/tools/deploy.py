@@ -51,8 +51,14 @@ def lego(board):
     # setsid + </dev/null so adb/ssh don't wait on the detached process
     kit.remote(board, f"cd {LEGO_REMOTE} && setsid nohup {LEGO_PY} -u lego_server.py "
                       f"< /dev/null > {LEGO_REMOTE}/lego.log 2>&1 &", check=False, timeout=20)
+    # Start on every boot too, so the board works on its own without this laptop (no sudo
+    # needed: a user crontab @reboot entry). Idempotent: replaces any older Ground Control line.
+    line = (f"@reboot sleep 5; cd {LEGO_REMOTE} && {LEGO_PY} -u lego_server.py "
+            f"< /dev/null > {LEGO_REMOTE}/lego.log 2>&1  # ground-control host service")
+    kit.remote(board, f"( crontab -l 2>/dev/null | grep -v 'ground-control host service'; echo '{line}' ) | crontab -",
+               check=False)
     time.sleep(2)
-    kit.remote(board, f"tail -5 {LEGO_REMOTE}/lego.log", check=False)
+    kit.remote(board, f"tail -5 {LEGO_REMOTE}/lego.log; crontab -l | grep ground-control", check=False)
 
 
 MODELS_DIR = "/var/lib/arduino-app-cli/models/llamacpp"

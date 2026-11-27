@@ -1,0 +1,33 @@
+{
+ "commands": "s1,s5,m1,d1",
+ "results": [
+  {
+   "condition": "no load",
+   "decode_tok_s": 1.68,
+   "prefill_tok_s": 2.25,
+   "mean_ms": 29820,
+   "correct": 4
+  },
+  {
+   "condition": "1 load, 1 thread, unpinned",
+   "decode_tok_s": 1.54,
+   "prefill_tok_s": 2.16,
+   "mean_ms": 32477,
+   "correct": 4
+  },
+  {
+   "condition": "1 load, 1 thread, pinned to core 3",
+   "decode_tok_s": 1.53,
+   "prefill_tok_s": 2.12,
+   "mean_ms": 32902,
+   "correct": 4
+  },
+  {
+   "condition": "1 load at 30% duty, 1 thread, pinned to core 3",
+   "decode_tok_s": 1.67,
+   "prefill_tok_s": 2.27,
+   "mean_ms": 30191,
+   "correct": 4
+  }
+ ]
+}

@@ -9,6 +9,7 @@ import json
 import math
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 import config
@@ -47,6 +48,21 @@ class LlmClient:
 
     def apply_template(self, messages):
         return self._post("/apply-template", {"model": self.model, "messages": messages}, timeout=30)["prompt"]
+
+    # ---- saved prompt caches (Part 2, A1) ----
+    def props(self):
+        r = urllib.request.urlopen(self.url + "/props", timeout=10)
+        return json.loads(r.read())
+
+    def slots(self):
+        r = urllib.request.urlopen(f"{self.url}/slots?model={urllib.parse.quote(self.model)}", timeout=10)
+        return json.loads(r.read())
+
+    def slot(self, action, filename, slot_id=0, timeout=120):
+        """Save or restore slot 0's KV cache to/from a file in the server's --slot-save-path.
+        -> the server's reply, e.g. {"n_saved": 874, "timings": {"save_ms": ...}}."""
+        return self._post(f"/slots/{slot_id}?action={action}", {"model": self.model, "filename": filename},
+                          timeout=timeout)
 
     # ---- generation ----
     def chat_stream(self, messages, schema=None, max_tokens=config.LLM_MAX_TOKENS,

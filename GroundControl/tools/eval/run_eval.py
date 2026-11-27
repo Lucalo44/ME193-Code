@@ -31,6 +31,7 @@ sys.path.insert(0, str(HERE.parent.parent / "python"))
 import config  # noqa: E402
 import skills  # noqa: E402,F401
 from jobs import Job  # noqa: E402
+from planner.normalize import normalize, turn_default_left  # noqa: E402
 from mqtt_io import topic_allowed  # noqa: E402
 from planner.llm_client import LlmClient  # noqa: E402
 from planner.planner import Planner  # noqa: E402
@@ -57,6 +58,12 @@ def arg_ok(want, got, key):
         return isinstance(got, str) and any(w in got.lower() for w in want[1:].lower().split("|"))
     if isinstance(want, str):
         return isinstance(got, str) and got.strip().lower() == want.lower()
+    if isinstance(want, (int, float)) and key == "degrees":
+        # Turns are scored by final heading (Part 2, A2): +180 and -180 end up the same way.
+        try:
+            return abs((float(got) - float(want)) % 360) < 1e-6
+        except (TypeError, ValueError):
+            return False
     if isinstance(want, (int, float)):
         try:
             return abs(float(got) - float(want)) < 1e-6
@@ -122,7 +129,7 @@ def score(case, plan):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--set", default="commands", choices=["commands", "dev"])
+    ap.add_argument("--set", default="commands", choices=["commands", "dev", "strangers"])
     ap.add_argument("--url", default="http://127.0.0.1:9999")
     ap.add_argument("--model", default=config.LLM_MODEL)
     ap.add_argument("--mode", default="json", choices=["json", "tools"])
@@ -144,6 +151,10 @@ def main():
     from lookup import Lookup, describe_apps_in_catalog, ground_app_questions
     names = describe_apps_in_catalog(Lookup(host="127.0.0.1", port=8770), patch=a.style != "ft")
     print(f"catalog app names: {names or 'host service unreachable (prompt differs from the board!)'}", flush=True)
+    if sys.platform == "darwin":       # idle sleep suspends the USB link to the board mid-run
+        import os
+        import subprocess
+        subprocess.Popen(["caffeinate", "-i", "-w", str(os.getpid())])
     client = LlmClient(a.url, a.model)
     pl = Planner(client, think_chars=a.think, style=a.style)
     if a.mode == "json":
@@ -158,8 +169,10 @@ def main():
         t0 = time.time()
         try:
             if a.mode == "json":
-                plan, info = pl.plan(Job(c["text"], source="eval"))
-                plan, _ = ground_app_questions(plan, c["text"], names)    # same guard as the board
+                text, _ = normalize(c["text"])                          # same input path as the board
+                plan, info = pl.plan(Job(text, source="eval"))
+                plan, _ = ground_app_questions(plan, text, names)       # same guards as the board
+                plan = turn_default_left(plan, text)
                 tm = info.get("timings") or {}
             else:
                 plan, info = pl.plan_with_tools(c["text"])

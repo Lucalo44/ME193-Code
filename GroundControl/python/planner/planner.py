@@ -7,11 +7,13 @@ For the dashboard it emits:
               token of a skill / mode / move / icon choice)
   llm.done    the plan, raw text, timings (prefill/decode/cache)
 """
+import hashlib
 import json
 import math
 import re
 import threading
 import time
+from pathlib import Path
 
 import config
 from dance.moves import CAR_MOVES, LEGO_MOVES, MODES
@@ -164,8 +166,11 @@ def number_guard(text, facts, question=""):
 
 
 class Planner:
-    def __init__(self, client, emit=None, think_chars=None, style=None):
+    def __init__(self, client, emit=None, think_chars=None, style=None, fingerprint=None):
         self.client = client
+        self.fingerprint = fingerprint      # () -> sha256 of the GGUF, or None (no disk cache then)
+        self.prefix_file = None             # the saved prompt cache in the runner's slot-save-path
+        self.cache_note = None              # "restored from disk in 2.1 s" / "cold warm-up 174 s"
         self.style = style or config.PLAN_STYLE
         # One generation at a time. The boot warm-up runs on its own thread; without
         # this, a command arriving mid-warm-up made llama.cpp run both side by side
@@ -178,9 +183,88 @@ class Planner:
 
     # ---- boot ----
     def warm(self):
-        """Prefill the fixed prefix once so the first real command hits the cache."""
+        """Get the fixed prefix into the model's cache: restore it from disk in seconds when a
+        matching saved file exists (Part 2, A1), else read it (about 3 minutes) and save it."""
         with self.llm_lock:
-            return self._warm()
+            r = self._restore_prefix()
+            if r:
+                return r
+            r = self._warm()
+            self.cache_note = f"cold warm-up {r['ms'] / 1000:.0f} s"
+            self._save_prefix()
+            return {**r, "restored": False, "cache_note": self.cache_note}
+
+    # ---- saved prompt cache (Part 2, A1) ----
+    def prefix_key(self):
+        """A key over everything that changes the cached KV: the weights, the exact prefix
+        token ids, the context size, the server build and the runner's settings. None when
+        the weights can't be identified: then the disk cache is never used, because a stale
+        restore would give silently wrong plans."""
+        fp = self.fingerprint() if self.fingerprint else None
+        if not fp:
+            return None
+        msgs = P.messages("show a smile", self.think_chars, self.style)
+        ids = [t["id"] for t in self.client.tokenize(self.client.apply_template(msgs))]
+        slots = self.client.slots()
+        n_ctx = slots[0].get("n_ctx") if slots else None
+        build = self.client.props().get("build_info")
+        try:
+            runner = (Path(__file__).resolve().parents[2] / "app.yaml").read_text()
+            runner = runner[runner.find("variables:"):]
+        except OSError:
+            runner = ""
+        blob = json.dumps([self.client.model, fp, ids, n_ctx, build, runner])
+        return hashlib.sha256(blob.encode()).hexdigest()[:20]
+
+    def _restore_prefix(self):
+        try:
+            key = self.prefix_key()
+        except (LlmError, OSError, ValueError, KeyError) as e:
+            print(f"[cache] no key ({e!r}); cold warm-up", flush=True)
+            key = None
+        if not key:
+            self.prefix_file = None
+            return None
+        self.prefix_file = f"gc_prefix_{key}.bin"
+        t0 = time.time()
+        try:
+            rr = self.client.slot("restore", self.prefix_file)
+        except (LlmError, OSError) as e:
+            print(f"[cache] nothing to restore ({str(e)[:80]}); cold warm-up", flush=True)
+            return None
+        restore_ms = round((time.time() - t0) * 1000)
+        w = self._warm()                                   # proves the restored prefix is reused
+        cache_n, prompt_n = w["timings"].get("cache_n") or 0, w["timings"].get("prompt_n") or 0
+        if prompt_n > 32 or cache_n < 100:                 # more than the warm command was re-read
+            print(f"[cache] restore didn't hold (cache_n {cache_n}, prompt_n {prompt_n}); cold warm-up", flush=True)
+            return None
+        ms = round((time.time() - t0) * 1000)
+        self.cache_note = f"restored from disk in {ms / 1000:.1f} s"
+        print(f"[cache] {self.cache_note} ({rr.get('n_restored')} tokens, restore {restore_ms} ms)", flush=True)
+        return {"ms": ms, "timings": w["timings"], "restored": True, "restore_ms": restore_ms,
+                "cache_note": self.cache_note}
+
+    def _save_prefix(self):
+        if not self.prefix_file:
+            return
+        try:
+            r = self.client.slot("save", self.prefix_file)
+            print(f"[cache] saved {r.get('n_saved')} tokens to {self.prefix_file} "
+                  f"({(r.get('n_written') or 0) / 1e6:.0f} MB)", flush=True)
+        except (LlmError, OSError) as e:
+            print(f"[cache] save failed: {str(e)[:120]}", flush=True)
+            self.prefix_file = None
+
+    def _reload_prefix(self):
+        """Answers and choreography use other prompts, which push the planner's prefix out of
+        the single slot; the next command would re-read 867 tokens (minutes). Put it back from
+        disk right after, while nobody is waiting."""
+        if not self.prefix_file:
+            return
+        try:
+            self.client.slot("restore", self.prefix_file)
+        except (LlmError, OSError) as e:
+            print(f"[cache] reload failed: {str(e)[:120]}", flush=True)
 
     def _warm(self):
         t0 = time.time()
@@ -331,6 +415,19 @@ class Planner:
         "give the closest fact.")
 
     def compose(self, question, facts, job_id=None, cancel=None, max_tokens=90):
+        try:
+            return self._compose(question, facts, job_id, cancel, max_tokens)
+        finally:
+            self._schedule_reload()
+
+    def _schedule_reload(self):
+        if self.prefix_file:
+            def run():
+                with self.llm_lock:
+                    self._reload_prefix()
+            threading.Thread(target=run, daemon=True, name="prefix-reload").start()
+
+    def _compose(self, question, facts, job_id=None, cancel=None, max_tokens=90):
         """One short free-text generation. Returns the answer, or None on failure
         (callers fall back to their deterministic text)."""
         msgs = [{"role": "system", "content": self.COMPOSE_SYSTEM},
@@ -381,6 +478,12 @@ class Planner:
 
     def choreograph(self, style, extract, bars, bpm=0, job_id=None, cancel=None):
         """-> {"why", "bpm", "meter", "feel", "sections"} with sections summing to `bars`, or None."""
+        try:
+            return self._choreograph(style, extract, bars, bpm, job_id, cancel)
+        finally:
+            self._schedule_reload()
+
+    def _choreograph(self, style, extract, bars, bpm=0, job_id=None, cancel=None):
         from dance.rhythm import FEELS
         from skills.dance_skill import SECTION
         schema = {"type": "object", "properties": {

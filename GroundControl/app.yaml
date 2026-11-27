@@ -13,3 +13,9 @@ bricks:
         # (~235 MB for Qwen3-1.7B) so a standard-attention model fits the runner's 2.44 GiB
         # cap. 16384 thrashed at 0.3 tok/s; 4096 slowly filled the cap once composer prompts were cached.
         LLAMA_ARG_CTX_SIZE: "2048"
+        # Saved prompt caches (docs/SPIKES.md, A1): the planner saves the fixed prefix's KV
+        # once and restores it at boot in seconds instead of re-reading 867 tokens for 3 min.
+        # /models is the host's models/llamacpp folder, so the files survive restarts.
+        LLAMA_ARG_SLOT_SAVE_PATH: "/models/slots"
+        # LLAMA_ARG_THREADS stays at App Lab's 4: 3 threads (leaving a core for perception)
+        # decoded 24% slower with nothing else running (docs/SPIKES.md, Part 2 A0).

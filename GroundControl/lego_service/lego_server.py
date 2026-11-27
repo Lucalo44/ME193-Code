@@ -273,6 +273,43 @@ def apps():
     return out
 
 
+MODELS_DIR = "/var/lib/arduino-app-cli/models/llamacpp"
+HASH_CACHE = os.path.expanduser("~/.gc-model-hashes.json")
+
+
+def model_hash(model):
+    """sha256 of a model's GGUF, for the planner's saved prompt cache key (a restored KV
+    cache from different weights would give silently wrong plans). Hashing 1 GB takes
+    ~15 s, so results are cached by (size, mtime)."""
+    import hashlib
+    import json as _json
+    rel = os.path.normpath(str(model)).lstrip("/")
+    if rel.startswith("..") or not rel:
+        return {"error": "bad model"}
+    path = os.path.join(MODELS_DIR, rel + ".gguf")
+    if not os.path.isfile(path):
+        return {"error": f"no model file for {model}"}
+    st = os.stat(path)
+    stamp = f"{st.st_size}:{int(st.st_mtime)}"
+    try:
+        cache = _json.load(open(HASH_CACHE))
+    except (OSError, ValueError):
+        cache = {}
+    hit = cache.get(path)
+    if hit and hit.get("stamp") == stamp:
+        return {"sha256": hit["sha256"], "cached": True}
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    cache[path] = {"stamp": stamp, "sha256": h.hexdigest()}
+    try:
+        _json.dump(cache, open(HASH_CACHE, "w"))
+    except OSError:
+        pass
+    return {"sha256": h.hexdigest(), "cached": False}
+
+
 def app_config(folder):
     """Top-level UPPER_CASE constants of an app's python/main.py, read with ast (never
     executed). f-strings come back as their literal text with {...} for the
@@ -408,6 +445,20 @@ class Handler(socketserver.StreamRequestHandler):
                     out = {"apps": apps()}
                 elif op == "app_config":
                     out = app_config(req.get("folder", ""))
+                elif op == "restart_runner":
+                    # Ground Control's supervisor: the model runner stopped answering.
+                    _sh("docker restart ground-control-llamacpp-models-runner-1", timeout=60)
+                    out = {"ok": True}
+                elif op == "prune_slots":
+                    # Keep the planner's current saved prompt cache, delete stale ones (100 MB each).
+                    keep = os.path.basename(str(req.get("keep", "")))
+                    d = os.path.join(MODELS_DIR, "slots")
+                    gone = [f for f in os.listdir(d) if f.startswith("gc_prefix_") and f != keep] if keep else []
+                    for f in gone:
+                        os.remove(os.path.join(d, f))
+                    out = {"removed": gone}
+                elif op == "model_hash":
+                    out = model_hash(req.get("model", ""))
                 else:
                     out = {"error": f"unknown op {op}"}
             except Exception as e:  # noqa: BLE001
