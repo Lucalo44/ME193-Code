@@ -1,5 +1,6 @@
 """The duet as ONE planner skill. The LLM writes a short score; deterministic
 code compiles and performs it. Result feeds {dance.*} placeholders."""
+import copy
 import re
 import time
 
@@ -7,7 +8,7 @@ import config
 from dance import styles
 from dance.moves import CAR_MOVES, LEGO_MOVES, MODES
 from skills.context import Cancelled, SkillError
-from skills.registry import Arr, Enum, Int, Obj, Str, skill
+from skills.registry import REGISTRY, Arr, Enum, Int, Obj, Str, skill
 
 SECTION = Obj({"bars": Int(1, config.MAX_SECTION_BARS), "mode": Enum(MODES),
                "car": Enum(CAR_MOVES), "lego": Enum(LEGO_MOVES)})
@@ -87,6 +88,7 @@ def dance(ctx, bpm, sections, where):
         else:
             score = {"bpm": bpm, "sections": sections}
         score["dancers"] = styles.dancers_for(ctx.question, where, profile["dancers"] if profile else 1)
+        remember(score, where, profile["name"] if profile else "dance")
         r = perform_looped(ctx, score, where)
     finally:
         ctx.status.update(state=prev if prev != "DANCING" else "EXECUTING")
@@ -138,6 +140,7 @@ def dance_style(ctx, style, bars, bpm, where):
         why = (score.pop("why", "") or "").strip()
     meter = 3 if score.get("meter") == 3 else 4
     score["dancers"] = styles.dancers_for(ctx.question, where, profile["dancers"] if profile else 1)
+    remember(score, where, style)
     if why and not why.endswith((".", "!", "?")):          # cut at a sentence or clause, never mid-word
         cut = max(why.rfind(". "), why.rfind(", "), why.rfind("; "))
         why = why[:cut] if cut > 20 else why.rsplit(" ", 1)[0]
@@ -183,3 +186,103 @@ def dance_style(ctx, style, bars, bpm, where):
     ctx.answers.append(text)
     return {**r, "style": style, "why": why, "source": "style library" if profile else res["title"] if res else None,
             "dancers": score["dancers"], "meter": meter}
+
+
+# ---- "loop the previous dance": the last dance, replayed with changes from the user's words.
+# The fine-tuned planner only knows the skills it was trained on, so (like "do it again")
+# deterministic code spots the reference and calls dance_previous, a skill the planner never
+# sees. Every dance remembers its final score: style, tempo, meter, where, how many figures.
+LAST_DANCE = {}
+
+
+def remember(score, where, label):
+    LAST_DANCE.clear()
+    LAST_DANCE.update(score=copy.deepcopy(score), where=where, label=label)
+
+
+PREVIOUS = re.compile(r"\b(previous|last|prior|earlier|same|that|old|the\s+other)\s+(dance|routine|choreography|"
+                      r"choreo|performance)s?\b|\bdance\s+(from\s+)?(before|earlier)\b", re.I)
+_BPM = re.compile(r"\b(\d{2,3})\s*(bpm|beats)", re.I)
+_SPEED = [(re.compile(r"\b(double[- ]time|twice as fast|double (the )?speed)\b", re.I), 2.0),
+          (re.compile(r"\b(half[- ]time|half[- ]speed|twice as slow)\b", re.I), 0.5),
+          (re.compile(r"\bmuch (faster|quicker)\b", re.I), 1.5),
+          (re.compile(r"\bmuch slower\b", re.I), 0.67),
+          (re.compile(r"\b(faster|quicker|speed (it )?up)\b", re.I), 1.25),
+          (re.compile(r"\b(slower|slow (it )?down)\b", re.I), 0.8)]
+_WHERE = [(re.compile(r"\b(both|everywhere|all of (it|them)|robots? and (the )?(led )?matrix|matrix and (the )?robots?)\b",
+                      re.I), "all"),
+          (re.compile(r"\b(on|with) the (led )?(matrix|screen|display)\b|\bon the leds?\b", re.I), "matrix"),
+          (re.compile(r"\b(on|with) the (robots?|car|lego)\b", re.I), "robots")]
+_FILLER = set("""please can could would you the a an it again now do play perform dance replay repeat redo run that
+this once more but and with on at for me just ok okay hey robot robots lets let's us show one time times make have
+figures figure dancers dancer stick both two led matrix screen display everywhere all of them x bpm beats speed
+faster slower quicker much up down double half twice as same previous last prior earlier old other routine
+choreography performance from before loop loops looped looping repeat repeated on repeat over keep going forever
+nonstop non-stop until i say stop till""".split())
+
+
+def refers_to_previous(text):
+    return bool(PREVIOUS.search(text or ""))
+
+
+def only_previous(text):
+    """True when the command is just the reference plus changes ("loop the previous dance
+    twice, faster, on the matrix"): then no LLM call is needed at all."""
+    words = re.findall(r"[a-z'-]+|\d+", (text or "").lower())
+    return all(w in _FILLER or w.isdigit() or w in _NUMWORD for w in words)
+
+
+def previous_with_changes(text):
+    """-> (score, where) for the last dance, changed by the user's words."""
+    score, where = copy.deepcopy(LAST_DANCE["score"]), LAST_DANCE["where"]
+    m = _BPM.search(text or "")
+    if m:
+        score["bpm"] = int(m.group(1))
+    else:
+        for rx, k in _SPEED:
+            if rx.search(text or ""):
+                score["bpm"] = round(score["bpm"] * k)
+                break
+    score["bpm"] = max(config.BPM_RANGE[0], min(config.BPM_RANGE[1], score["bpm"]))
+    for rx, w in _WHERE:
+        if rx.search(text or ""):
+            where = w
+            break
+    score["dancers"] = styles.dancers_for(text, where, score.get("dancers", 1))
+    return score, where
+
+
+@skill("dance_previous", "replay the previous dance, with changes from the user's words (loop, tempo, where)",
+       args={}, ns="dance", motor=True, timeout_s=config.MAX_LOOP_S + 10,
+       returns=["max_sync_error_ms", "mean_sync_error_ms", "completed"])
+def dance_previous(ctx):
+    if ctx.conductor is None:
+        raise SkillError("no conductor")
+    if not LAST_DANCE:
+        raise SkillError("there's no previous dance yet")
+    score, where = previous_with_changes(ctx.question)
+    label = LAST_DANCE["label"]
+    remember(score, where, label)                          # "faster" again builds on this one
+    meter = 3 if score.get("meter") == 3 else 4
+    prev = ctx.status.get("state")
+    ctx.status.set_state("DANCING", f"Dancing the previous dance ({label}) at {score['bpm']} bpm"
+                                    + (" on the LED matrix" if where == "matrix" else "") + _loop_note(ctx))
+    try:
+        r = perform_looped(ctx, score, where)
+    finally:
+        ctx.status.update(state=prev if prev != "DANCING" else "EXECUTING")
+    if ctx.cancel.is_set():
+        raise Cancelled("dance stopped")
+    ctx.status.update(dance=r)
+    on = {"matrix": " on the LED matrix", "all": " with the robots and the LED matrix"}.get(where, "")
+    loops = f", looped {r['loops']} times" if r.get("looped") and r["loops"] > 1 else ""
+    two = ", two dancers" if where != "robots" and score.get("dancers") == 2 else ""
+    text = f"The previous dance ({label}){on}: {r['beats'] // meter} bars at {score['bpm']} bpm{loops}{two}."
+    topic = ctx.reply_to or config.TOPIC_REPLY
+    ctx.publish(topic, text)
+    ctx.published.append(topic)
+    ctx.answers.append(text)
+    return r
+
+
+REGISTRY["dance_previous"].enabled = False      # never in the planner's catalog or grammar

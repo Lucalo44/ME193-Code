@@ -25,7 +25,8 @@ def test_schema_has_think_first_and_all_skills():
     s = plan_schema(60)
     assert list(s["properties"]) == ["parts", "steps"]
     names = [b["properties"]["skill"]["const"] for b in s["properties"]["steps"]["items"]["anyOf"]]
-    assert set(names) == set(REGISTRY) - {"read_imu"}       # read_imu: placeholders read on demand
+    assert set(names) == set(REGISTRY) - {"read_imu", "dance_previous"}   # read_imu: placeholders read on
+    # demand; dance_previous: called by code for "the previous dance", never chosen by the model
     assert "parts" not in plan_schema(0)["properties"]
 
 
@@ -333,3 +334,36 @@ def test_a_new_command_replaces_the_running_one(gc):
     gc.submit("show a heart", plan={"steps": [{"skill": "matrix_icon", "args": {"name": "heart"}}]})
     assert wait_for(lambda: first.cancel.is_set() and gc.matrix.content.get("name") == "heart", timeout=3)
     assert time.time() - t0 < 3 and gc.status.get("state") != "ESTOP"   # replaced, not e-stopped
+
+
+def test_previous_dance_is_recognised_and_changed_by_the_words():
+    from skills.dance_skill import LAST_DANCE, only_previous, previous_with_changes, refers_to_previous, remember
+    for t in ["loop the previous dance", "do the last dance again on the matrix", "same dance but faster",
+              "play that dance twice", "the dance from before, at 140 bpm"]:
+        assert refers_to_previous(t), t
+    for t in ["dance 4 bars at 100 bpm", "loop it", "show the last icon", "what was the last thing you did"]:
+        assert not refers_to_previous(t), t
+    assert only_previous("loop the previous dance 3 times, faster, on the matrix")
+    assert not only_previous("loop the previous dance then say done on luca")
+    remember({"bpm": 100, "meter": 3, "style": "waltz", "dancers": 2,
+              "sections": [{"bars": 2, "mode": "mirror", "car": "step", "lego": "wave"}]}, "matrix", "Waltz")
+    sc, where = previous_with_changes("the previous dance, faster, on the robots")
+    assert sc["bpm"] == 125 and where == "robots" and sc["meter"] == 3 and sc["style"] == "waltz"
+    assert previous_with_changes("previous dance at 150 bpm")[0]["bpm"] == 150
+    assert previous_with_changes("previous dance in double time")[0]["bpm"] == 160      # clamped
+    assert previous_with_changes("the previous dance with a stick figure")[0]["dancers"] == 1
+    assert LAST_DANCE["label"] == "Waltz"
+
+
+def test_loop_the_previous_dance_end_to_end(gc):
+    from skills.dance_skill import LAST_DANCE
+    LAST_DANCE.clear()
+    gc.submit("loop the previous dance")
+    assert wait_for(lambda: any("no previous dance" in p for _, p in gc.sent))
+    dance = {"steps": [{"skill": "dance", "args": {"bpm": 120, "sections": [
+        {"bars": 1, "mode": "unison", "car": "shimmy", "lego": "wave"}], "where": "matrix"}}]}
+    gc.submit("dance", plan=dance)
+    assert wait_for(lambda: LAST_DANCE.get("score", {}).get("bpm") == 120 and gc.queue.current is None, timeout=10)
+    gc.submit("loop the previous dance 2 times, slower")
+    assert wait_for(lambda: any(p.startswith("The previous dance (dance) on the LED matrix: 1 bars at 96 bpm, "
+                                             "looped 2 times") for _, p in gc.sent), timeout=20)

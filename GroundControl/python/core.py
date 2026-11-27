@@ -29,10 +29,24 @@ from mqtt_io import MqttIO
 from planner.llm_client import LlmClient, LlmError
 from planner.planner import Planner
 from skills.context import Ctx
+from skills.dance_skill import LAST_DANCE, only_previous, refers_to_previous
 from skills.matrix import Matrix
 from status import Status
 from viz.bus import VizBus
 
+
+
+def swap_in_previous(plan):
+    """"loop the previous dance, then say done": the model plans the whole command; its
+    dance step (which can only invent a new dance) becomes the remembered one."""
+    steps = list(plan.get("steps") or [])
+    for i, st in enumerate(steps):
+        if st.get("skill") in ("dance", "dance_style"):
+            steps[i] = {"skill": "dance_previous", "args": {}}
+            break
+    else:
+        steps.insert(0, {"skill": "dance_previous", "args": {}})
+    return {**plan, "steps": steps}
 
 class GroundControl:
     def __init__(self, hal, ui=None, llm=None, lego=config.LEGO_ENABLED, mqtt=True):
@@ -209,6 +223,17 @@ class GroundControl:
             self.viz.emit("llm.done", {"id": job.id, "plan": job.plan, "raw_text": f"(replay of: {last['text']})",
                                        "timings": {}, "decisions": []})
             plan, info = job.plan, {}
+        elif job.plan is None and refers_to_previous(job.text) and not LAST_DANCE:
+            reply = "There's no previous dance yet. Ask for a dance first."
+            self.mqtt.publish(job.reply_to, reply)
+            self._finish(job, reply, t_start, {}, [])
+            return
+        elif job.plan is None and refers_to_previous(job.text) and only_previous(job.text):
+            # "loop the previous dance (twice, faster, on the matrix)": no LLM needed
+            job.plan = {"think": "dance_previous", "steps": [{"skill": "dance_previous", "args": {}}]}
+            self.viz.emit("llm.done", {"id": job.id, "plan": job.plan, "raw_text": "(the previous dance)",
+                                       "timings": {}, "decisions": []})
+            plan, info = job.plan, {}
         elif job.plan is not None:                      # hand-written plan: no LLM
             plan, info = job.plan, {}
             self.viz.emit("llm.done", {"id": job.id, "plan": plan, "raw_text": "(hand-written plan)",
@@ -219,6 +244,8 @@ class GroundControl:
                 plan, info = self.planner.plan(job)
             except (LlmError, OSError) as e:
                 plan, info = None, {"error": f"LLM unavailable: {e}"}
+            if plan is not None and refers_to_previous(job.text):
+                plan = swap_in_previous(plan)
         if self.planner.last_tok_s:
             self.status.update(llm_tok_s=self.planner.last_tok_s)
         llm_t = info.get("timings") or {}
