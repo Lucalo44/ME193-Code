@@ -187,7 +187,7 @@ def test_two_dancers_stay_in_their_halves_and_mirror_faces_each_other():
         assert any(f[r * 13 + c] for r in range(8) for c in range(7, 12))   # right dancer
     # point is one-armed: mirrored, the right dancer points left, toward its partner
     f = tl[0]["params"]["frame"]
-    assert f[1 * 13 + 7] and not f[1 * 13 + 11]
+    assert f[2 * 13 + 7] and not f[2 * 13 + 11]
 
 
 def test_dancer_count_comes_from_the_words_then_the_style():
@@ -218,3 +218,12 @@ def test_style_and_dancers_read_from_the_words_when_the_plan_is_generic():
     assert match_text("swing your arms and dance") is None
     assert match_text("do the robot on the matrix")["key"] == "robot"
     assert match_text("dance 4 bars at 100 bpm") is None
+
+
+def test_the_head_is_the_brightest_part_and_hands_never_match_it():
+    from dance.figure import ARMS, render
+    for arms in ARMS:
+        f = render(arms=arms)
+        head = [f[r * 13 + c] for r in (0, 1) for c in (5, 6, 7)]
+        others = [v for i, v in enumerate(f) if not (i // 13 in (0, 1) and i % 13 in (5, 6, 7))]
+        assert min(head) == 7 and max(others) < 7, arms                # a raised hand is dimmer

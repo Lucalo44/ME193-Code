@@ -26,35 +26,38 @@ SOLO_X, DUO_X = 4, (1, 7)                       # left column of each 5-wide fig
 LIGHTS = (0, COLS - 1)                          # beat lights in the bottom corners
 DUO_BOUNDS = ((1, 5), (7, COLS - 2))            # each partner keeps to its own half
 
-# Each layer: {row: "5-char string"}; '#' = lit. Row 0 is the top.
-HEAD = {0: "..#.."}
-TORSO = {2: "..#..", 3: "..#..", 4: "..#.."}
+# Each layer: {row: "5-char string"}; a digit is that LED's brightness (0-7), '.' is off.
+# The head is a bright 3x2 block and the body and hands are dimmer, so a raised hand never
+# reads as the head (a 1-pixel head did, and the figure looked headless).
+HEAD = {0: ".777.", 1: ".777."}
+BACK_OF_HEAD = {0: ".444.", 1: ".444."}         # turned away (mid-spin)
+TORSO = {2: "..5..", 3: "..5..", 4: "..5.."}
 ARMS = {
-    "down":     {1: ".###.", 2: "#...#", 3: "#...#"},
-    "up":       {0: "#...#", 1: ".###."},
-    "out":      {1: "#####"},
-    "left_up":  {0: "#....", 1: ".###.", 2: "....#", 3: "....#"},
-    "right_up": {0: "....#", 1: ".###.", 2: "#....", 3: "#...."},
-    "clap":     {0: ".#.#.", 1: ".###."},
-    "point":    {1: ".####", 2: "#....", 3: "#...."},
-    "side":     {1: "..##.", 2: "...#."},           # seen from the side (turns)
-    "hips":     {1: ".###.", 2: "#...#", 3: ".#.#."},
-    "frame":    {0: "#...#", 1: "#####"},           # ballroom hold, robot arms
-    "robot_dn": {1: "#####", 2: "#...#"},
-    "fifth":    {0: ".#.#.", 1: "#...#"},           # ballet: arms rounded overhead
+    "down":     {2: ".555.", 3: "5...5", 4: "5...5"},
+    "up":       {0: "3...3", 1: "3...3", 2: ".555."},
+    "out":      {2: "55555"},
+    "left_up":  {0: "3....", 1: "3....", 2: ".555.", 3: "....5", 4: "....5"},
+    "right_up": {0: "....3", 1: "....3", 2: ".555.", 3: "5....", 4: "5...."},
+    "clap":     {2: ".555.", 3: ".565."},          # hands together in front of the chest
+    "point":    {2: ".5555", 3: "5....", 4: "5...."},
+    "side":     {2: "..55.", 3: "...5."},          # seen from the side (turns)
+    "hips":     {2: ".555.", 3: "5...5", 4: ".5.5."},
+    "frame":    {1: "3...3", 2: "55555"},          # ballroom hold, robot arms
+    "robot_dn": {2: "55555", 3: "5...5"},
+    "fifth":    {0: "3...3", 2: ".555."},          # ballet: arms rounded overhead
 }
 LEGS = {
-    "stand":  {5: ".#.#.", 6: ".#.#.", 7: ".#.#."},
-    "apart":  {5: ".#.#.", 6: "#...#", 7: "#...#"},
-    "step_l": {5: ".#.#.", 6: "#..#.", 7: "#..#."},
-    "step_r": {5: ".#.#.", 6: ".#..#", 7: ".#..#"},
-    "plie":   {5: ".#.#.", 6: "#...#", 7: ".#.#."},  # knees out
-    "rise":   {5: "..#..", 6: "..#..", 7: "..#.."},  # releve, legs together
-    "kick_r": {5: ".#.##", 6: ".#...", 7: ".#..."},
-    "kick_l": {5: "##.#.", 6: "...#.", 7: "...#."},
-    "side":   {5: "..#..", 6: "..#..", 7: ".##.."},
+    "stand":  {5: ".5.5.", 6: ".5.5.", 7: ".5.5."},
+    "apart":  {5: ".5.5.", 6: "5...5", 7: "5...5"},
+    "step_l": {5: ".5.5.", 6: "5..5.", 7: "5..5."},
+    "step_r": {5: ".5.5.", 6: ".5..5", 7: ".5..5"},
+    "plie":   {5: ".5.5.", 6: "5...5", 7: ".5.5."},  # knees out
+    "rise":   {5: "..5..", 6: "..5..", 7: "..5.."},  # releve, legs together
+    "kick_r": {5: ".5.55", 6: ".5...", 7: ".5..."},
+    "kick_l": {5: "55.5.", 6: "...5.", 7: "...5."},
+    "side":   {5: "..5..", 6: "..5..", 7: ".55.."},
 }
-BOW = {3: ".####", 4: ".#.#.", 5: ".#.#.", 6: ".#.#.", 7: ".#.#."}   # bent forward
+BOW = {3: "77555", 4: "77..5", 5: "...55", 6: "...55", 7: "...55"}   # bent forward, head down
 
 # Default pose cycles. The car lane leads with the legs, the LEGO lane with the arms.
 CAR_FIG = {
@@ -99,20 +102,23 @@ def render(arms="down", legs="stand", dx=0, bow=False, head=True):
 
 
 def draw(f, p, x0, bounds, level=7, flip=False, flip_arms=False):
-    """OR a 5-wide figure into frame f at column x0, clipped to bounds (lo, hi)."""
+    """Max a 5-wide figure into frame f at column x0, clipped to bounds (lo, hi). Each LED's
+    brightness is scaled by level/7, so a held pose dims evenly and the head stays brightest."""
     dx = -p["dx"] if flip else p["dx"]
     if p["bow"]:
         layers = [(BOW, flip)]
     else:
-        layers = [(HEAD if p["head"] else {}, False), (TORSO, False),
+        layers = [(HEAD if p["head"] else BACK_OF_HEAD, False), (TORSO, False),
                   (ARMS[p["arms"]], flip != flip_arms), (LEGS[p["legs"]], flip)]
     lo, hi = bounds
     for layer, rev in layers:
         for r, row in layer.items():
             for i, ch in enumerate(row[::-1] if rev else row):
                 c = x0 + i + dx
-                if ch == "#" and lo <= c <= hi:
-                    f[r * COLS + c] = max(f[r * COLS + c], level)
+                if ch != "." and lo <= c <= hi:
+                    v = 7 if ch == "#" else int(ch)
+                    v = v if level >= 7 else max(1, round(v * level / 7))
+                    f[r * COLS + c] = max(f[r * COLS + c], v)
     return f
 
 

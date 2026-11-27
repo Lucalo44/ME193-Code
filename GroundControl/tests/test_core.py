@@ -302,3 +302,34 @@ def test_truncated_think_is_a_prefix_not_a_mismatch():
     steps = [{"skill": s} for s in ["turn_by", "dance", "stop", "turn_by", "dance_style", "matrix_icon"]]
     t = think_for(steps)
     assert t.endswith("...") and len(t) <= 60 and "dance_sty" not in t.replace("dance_style", "")
+
+
+def test_stop_phrases_stop_but_commands_mentioning_stop_do_not():
+    from mqtt_io import is_stop
+    for t in ["stop", "Stop!", "STOP.", "please stop", "stop dancing", "ok stop it now", "stop the robots",
+              "cancel", "abort that", "halt", "freeze", "that's enough", "e-stop", "stop, thanks"]:
+        assert is_stop(t), t
+    for t in ["drive forward until I say stop", "stop at the wall", "show a stop sign", "spin then stop",
+              "dance and freeze at the end"]:
+        assert not is_stop(t), t
+
+
+def test_typed_stop_phrase_in_the_dashboard_stops_a_dance(gc):
+    dance = {"steps": [{"skill": "dance", "args": {"bpm": 60, "sections": [
+        {"bars": 4, "mode": "unison", "car": "shimmy", "lego": "wave"}], "where": "matrix"}}]}
+    gc.submit("loop it", plan=dance)
+    assert wait_for(lambda: gc.status.get("state") == "DANCING")
+    assert gc.mqtt.handle({"text": "stop dancing", "source": "ui"}) == "estop"
+    assert wait_for(lambda: gc.queue.current is None, timeout=3)
+
+
+def test_a_new_command_replaces_the_running_one(gc):
+    dance = {"steps": [{"skill": "dance", "args": {"bpm": 60, "sections": [
+        {"bars": 4, "mode": "unison", "car": "shimmy", "lego": "wave"}], "where": "matrix"}}]}
+    gc.submit("loop it", plan=dance)                        # would run until STOP
+    assert wait_for(lambda: gc.status.get("state") == "DANCING")
+    first = gc.queue.current
+    t0 = time.time()
+    gc.submit("show a heart", plan={"steps": [{"skill": "matrix_icon", "args": {"name": "heart"}}]})
+    assert wait_for(lambda: first.cancel.is_set() and gc.matrix.content.get("name") == "heart", timeout=3)
+    assert time.time() - t0 < 3 and gc.status.get("state") != "ESTOP"   # replaced, not e-stopped

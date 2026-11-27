@@ -8,6 +8,7 @@ Everything else is rate-limited, length-capped and handed to on_command.
 Payload: plain text, or JSON {"text": "...", "id": "...", "reply_to": "...", "source": "voice"}.
 """
 import json
+import re
 import threading
 import time
 import uuid
@@ -21,6 +22,16 @@ except ImportError:  # laptop tests without paho
 
 STATUS_WORDS = {"/status", "status", "status?"}
 STOP_WORDS = {"stop", "/stop", "estop", "e-stop", "freeze", "stop!", "halt"}
+# "stop", "Stop!", "please stop", "stop dancing", "ok stop it now", "cancel", "abort that"...
+# The whole message has to be a stop: "stop at the wall" or "drive until I say stop" is a command.
+_STOP = re.compile(r"^\W*((please|ok|okay|hey|now|robot|just)\W+)*(stop|halt|e-?stop|freeze|cancel|abort|enough|quit|"
+                   r"that'?s enough)(\W+(it|that|this|now|please|everything|all|dancing|the dance|moving|talking|"
+                   r"the robots?|robots?|right now|immediately|thanks|thank you))*\W*$", re.I)
+
+
+def is_stop(text):
+    t = (text or "").strip()
+    return t.lower().rstrip(".!") in STOP_WORDS or bool(_STOP.match(t))
 
 
 def topic_allowed(topic: str) -> bool:
@@ -123,7 +134,7 @@ class MqttIO:
             self.publish(reply_to, json.dumps(snap))
             self.publish_status(snap)
             return "status"
-        if low in STOP_WORDS:
+        if is_stop(text):
             self.on_estop(source=d.get("source", "mqtt"))
             self.publish(reply_to, "stopped")
             return "estop"

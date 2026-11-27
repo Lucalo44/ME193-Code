@@ -114,6 +114,7 @@ class GroundControl:
         if not text:
             return False, "empty command"
         job = Job(text=text, source=source, reply_to=reply_to or config.TOPIC_REPLY, plan=plan)
+        self.preempt(job)
         try:
             self.queue.put(job)
         except QueueFull as e:
@@ -121,6 +122,21 @@ class GroundControl:
         self.status.update(queue=len(self.queue))
         self.viz.emit("job.queued", {"id": job.id, "text": text, "source": source})
         return True, job.id
+
+    def preempt(self, job):
+        """A new command replaces whatever is running or waiting: the old plan is cancelled
+        (mid-token, mid-step or mid-dance) and the robots are stopped, without the e-stop's
+        X and ESTOP state, so the new command starts right away."""
+        cur, dropped = self.queue.cancel_all()
+        if cur is None and not dropped:
+            return
+        self.conductor.stop_all()
+        try:
+            self.hal.stop()
+        except Exception as e:  # noqa: BLE001
+            print(f"[preempt] hal.stop failed: {e!r}", flush=True)
+        self.viz.emit("job.preempted", {"by": job.id, "cancelled": cur.id if cur else None,
+                                        "dropped": [j.id for j in dropped]})
 
     def estop(self, source="mqtt"):
         """Halt everything NOW. Called from the MQTT thread, the UI, or a reflex."""

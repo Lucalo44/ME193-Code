@@ -71,20 +71,37 @@ def install_model(board, path):
     name = p.stem
     kit.remote(board, f"mkdir -p {MODELS_DIR}/custom")
     kit.push(board, [str(p)], f"{MODELS_DIR}/custom")
-    # One record for every GGUF in custom/, so installing v2 doesn't hide v1 from App Lab
-    # (an app.yaml naming a model App Lab can't see refuses to start).
-    ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-    entry = ("- downloaded_at: \\042%s\\042\\n  handler: hf-handler\\n  model_id: llamacpp:custom/%s\\n"
-             "  model_origin: user\\n  files:\\n  - %s\\n  inputs:\\n    models_repository: llamacpp\\n"
-             "    model_directory: custom\\n    model_url: llamacpp:custom/%s\\n")
-    kit.remote(board, f"cd {MODELS_DIR}/custom && {{ printf '# Written by Ground Control tools/deploy.py --model\\nmodels:\\n'; "
-                      f"for f in *.gguf; do n=${{f%.gguf}}; printf -- '{entry}' {ts} \"$n\" \"$f\" \"$f\"; done; }} "
-                      f"> .arduino_metadata.yaml", check=False)
+    write_metadata(board)
     kit.remote(board, f"grep -q '^\\[custom/{name}\\]' {MODELS_DIR}/models.ini || "
                       f"printf '\\n[custom/{name}]\\nmodel = /models/custom/{p.name}\\n' >> {MODELS_DIR}/models.ini",
                check=False)
     kit.remote(board, f"arduino-app-cli model list | grep llamacpp; df -h / | tail -1", check=False)
     print(f"app.yaml:  model: llamacpp:custom/{name}    config.py:  custom/{name}")
+    kit.remote(board, "docker restart ground-control-llamacpp-models-runner-1 > /dev/null; sleep 8; "
+                      "curl -s 127.0.0.1:9999/v1/models", check=False, timeout=90)
+
+
+def write_metadata(board):
+    """One record for every GGUF in custom/, so installing v2 doesn't hide v1 from App Lab
+    (an app.yaml naming a model App Lab can't see refuses to start), and removing one drops it."""
+    ts = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    entry = ("- downloaded_at: \\042%s\\042\\n  handler: hf-handler\\n  model_id: llamacpp:custom/%s\\n"
+             "  model_origin: user\\n  files:\\n  - %s\\n  inputs:\\n    models_repository: llamacpp\\n"
+             "    model_directory: custom\\n    model_url: llamacpp:custom/%s\\n")
+    kit.remote(board, f"cd {MODELS_DIR}/custom && {{ printf '# Written by Ground Control tools/deploy.py --model\\nmodels:\\n'; "
+                      f"for f in *.gguf; do [ -e \"$f\" ] || continue; n=${{f%.gguf}}; "
+                      f"printf -- '{entry}' {ts} \"$n\" \"$f\" \"$f\"; done; }} "
+                      f"> .arduino_metadata.yaml", check=False)
+
+
+def remove_model(board, name):
+    """Delete custom/<name>.gguf, its App Lab record and its models.ini section, then restart the runner."""
+    name = Path(name).stem
+    kit.remote(board, f"rm -f {MODELS_DIR}/custom/{name}.gguf", check=False)
+    write_metadata(board)
+    kit.remote(board, f"sed -i '/^\\[custom\\/{name}\\]$/,/^model = /d' {MODELS_DIR}/models.ini", check=False)
+    kit.remote(board, f"ls -la {MODELS_DIR}/custom; cat {MODELS_DIR}/custom/.arduino_metadata.yaml; "
+                      f"arduino-app-cli model list | grep llamacpp; df -h / | tail -1", check=False)
     kit.remote(board, "docker restart ground-control-llamacpp-models-runner-1 > /dev/null; sleep 8; "
                       "curl -s 127.0.0.1:9999/v1/models", check=False, timeout=90)
 
@@ -104,6 +121,9 @@ def main():
         return
     if args[:1] == ["--model"]:
         install_model(board, args[1])
+        return
+    if args[:1] == ["--remove-model"]:
+        remove_model(board, args[1])
         return
     if args[:1] == ["--lego"]:
         lego(board)

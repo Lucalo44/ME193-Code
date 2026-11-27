@@ -26,9 +26,9 @@ In-context prompting got the base Qwen3-1.7B to 78% on the held-out eval (docs/E
       on the login node (adds the libraries to `~/mujoco-env` with PyTorch pinned, downloads the model, builds the quantizer),
       then `sbatch job.sbatch`. On an A100 80 GB the job trained, merged and quantized v2 in one go; resubmitting resumes from
       the last checkpoint.
-3. **Install on the board**: `venv/bin/python tools/deploy.py --model ~/Downloads/gc-planner-Q4_0.gguf`.
+3. **Install on the board**: `venv/bin/python tools/deploy.py --model ~/Downloads/gc-planner-v2-Q4_0.gguf`; `--remove-model gc-planner-Q4_0` deletes one (file, record and runner entry).
    1. It copies the file to `/var/lib/arduino-app-cli/models/llamacpp/custom/` and writes an `.arduino_metadata.yaml` beside it, the same record App Lab's downloader writes. Without that file, App Lab doesn't list the model, and an app that names it won't start.
-   2. App Lab names the model after its folder, so the id is `llamacpp:custom/gc-planner-Q4_0` in `app.yaml` and `custom/gc-planner-Q4_0` as the runner's model name. App Lab rebuilds the runner's `models.ini` from these records on every app start.
+   2. App Lab names the model after its folder, so the id is `llamacpp:custom/gc-planner-v2-Q4_0` in `app.yaml` and `custom/gc-planner-v2-Q4_0` as the runner's model name. App Lab rebuilds the runner's `models.ini` from these records on every app start.
    3. No Hugging Face account is involved.
-4. **Evaluate**: `venv/bin/python tools/eval/run_eval.py --model custom/gc-planner-Q4_0`. Selecting this model switches the planner to the `ft` prompt style automatically (`config.style_for`), which drops the few-shot examples to match training.
-5. **Use it live**: it is the default now (`app.yaml` and `LLM_MODEL` in `python/config.py`). The base Qwen3-1.7B was deleted from the board to free 1 GB; to compare again, reinstall it with `arduino-app-cli model install llamacpp:unsloth/Qwen3-1.7B-GGUF:Q4_0` and add it back to `LLM_MODELS`.
+4. **Evaluate**: `venv/bin/python tools/eval/run_eval.py --model custom/gc-planner-v2-Q4_0`. Selecting any `gc-planner*` model switches the planner to the `ft` prompt style automatically (`config.style_for`), which drops the few-shot examples to match training.
+5. **Use it live**: it is the default now (`app.yaml` and `LLM_MODEL` in `python/config.py`). v1 and the base Qwen3-1.7B were deleted from the board to free space (v1's results stay in docs/EVAL.md); to compare again, reinstall it with `arduino-app-cli model install llamacpp:unsloth/Qwen3-1.7B-GGUF:Q4_0` and add it back to `LLM_MODELS`.
