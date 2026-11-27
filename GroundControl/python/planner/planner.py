@@ -374,17 +374,22 @@ class Planner:
         "(LEGO one beat behind), solo_car, solo_lego. Read the description of the dance style and write a score "
         "that captures it: a tempo typical of the style (bpm 60-160), how dancers interact (groups, partners, "
         "call and response, solos), and the movement quality (smooth, sharp, energetic, gentle). Vary the "
-        "sections. In why, say in one short sentence how the style shaped your choices. "
+        "sections. feel is the rhythm of the movement: smooth, bouncy, sharp, syncopated or driving. meter is "
+        "3 for a dance in 3/4 time (waltz-like), otherwise 4. In why, say in one short sentence how the style "
+        "shaped your choices. "
         "Reply with compact JSON on a single line, no spaces or line breaks between fields.")
 
     def choreograph(self, style, extract, bars, bpm=0, job_id=None, cancel=None):
-        """-> {"why", "bpm", "sections"} with sections summing to `bars`, or None."""
+        """-> {"why", "bpm", "meter", "feel", "sections"} with sections summing to `bars`, or None."""
+        from dance.rhythm import FEELS
         from skills.dance_skill import SECTION
         schema = {"type": "object", "properties": {
             "why": {"type": "string", "maxLength": 160},
             "bpm": {"type": "integer", "minimum": config.BPM_RANGE[0], "maximum": config.BPM_RANGE[1]},
+            "meter": {"type": "integer", "enum": [3, 4]},
+            "feel": {"type": "string", "enum": list(FEELS)},
             "sections": {"type": "array", "minItems": 1, "maxItems": config.MAX_SECTIONS, "items": SECTION.schema()}},
-            "required": ["why", "bpm", "sections"], "additionalProperties": False}
+            "required": ["why", "bpm", "meter", "feel", "sections"], "additionalProperties": False}
         user = (f"Style: {style}\nDescription (Wikipedia): {extract or 'none found; use what the name suggests'}\n"
                 f"Length: {bars} bars in total."
                 + (f"\nTempo: {bpm} bpm (the user asked for this)." if bpm else ""))
@@ -402,7 +407,7 @@ class Planner:
                 self.emit("llm.token", {"id": job_id, "attempt": 0, "compose": True, **tok})
             tracker = JsonFieldTracker()
             try:
-                r = self.client.chat_stream(msgs, schema=schema, max_tokens=200, temperature=0.3,
+                r = self.client.chat_stream(msgs, schema=schema, max_tokens=230, temperature=0.3,
                                             on_token=on_token, cancel=cancel)
                 score = json.loads(r["text"])
             except Exception as e:  # noqa: BLE001

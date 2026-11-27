@@ -11,6 +11,8 @@ CANNED = [
         {"skill": "mqtt_publish", "args": {"topic": "luca", "message": "yaw is {imu.yaw} deg"}}]}),
     (r"stick figure|danc.*(led matrix|on the matrix)|(led matrix|on the matrix).*danc", {"think": "dance_style on the matrix", "steps": [
         {"skill": "dance_style", "args": {"style": "ballet", "bars": 2, "bpm": 120, "where": "matrix"}}]}),
+    (r"adowa", {"think": "dance_style", "steps": [
+        {"skill": "dance_style", "args": {"style": "adowa", "bars": 4}}]}),
     (r"west african|waltz|salsa|tango", {"think": "dance_style", "steps": [
         {"skill": "dance_style", "args": {"style": "west african", "bars": 4}}]}),
     (r"everest|blue whale", {"think": "wikipedia", "steps": [{"skill": "wikipedia", "args": {"query": "Mount Everest"}}]}),
@@ -65,7 +67,7 @@ class FakeLLM:
         cmd = messages[-1]["content"]
         if schema is not None and cmd.startswith("Style: "):         # choreographer
             text = json.dumps({"why": "polyrhythm and call and response between dancers", "bpm": 126,
-                               "sections": [{"bars": 2, "mode": "call_response", "car": "shimmy", "lego": "clap"},
+                               "meter": 4, "feel": "syncopated", "sections": [{"bars": 2, "mode": "call_response", "car": "shimmy", "lego": "clap"},
                                             {"bars": 2, "mode": "canon", "car": "step", "lego": "pump"}]})
             toks = [{"i": i, "piece": p, "logprob": None, "p": 0.9, "top": [{"piece": p, "p": 0.9}], "t_ms": 1}
                     for i, p in enumerate(_split(text))]

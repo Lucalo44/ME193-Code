@@ -57,14 +57,23 @@ def test_wikipedia_skill_end_to_end(gc):
                                 if t == config.TOPIC_REPLY))          # composed from the top results
 
 
-def test_dance_style_is_grounded_and_performed(gc):
+def test_dance_style_outside_the_library_is_grounded_and_performed(gc):
+    gc.wiki, urls = fake_wiki()
+    gc.submit("dance an adowa")
+    assert wait_for(lambda: any(p.startswith("Adowa: 4 bars at 126 bpm") for _, p in gc.sent), timeout=30)
+    reply = next(p for _, p in gc.sent if p.startswith("Adowa"))
+    assert "call response" in reply and "from Wikipedia: African dance" in reply
+    assert "gsrsearch=adowa+dance" in urls[0]
+    assert gc.hal.left == 0 and gc.hal.right == 0           # finished and stopped
+
+
+def test_dance_style_in_the_library_needs_no_lookup(gc):
     gc.wiki, urls = fake_wiki()
     gc.submit("dance like traditional west african dance")
-    assert wait_for(lambda: any(p.startswith("West african: 4 bars at 126 bpm") for _, p in gc.sent), timeout=30)
-    reply = next(p for _, p in gc.sent if p.startswith("West african"))
-    assert "call response" in reply and "from Wikipedia: African dance" in reply
-    assert "gsrsearch=west+african+dance" in urls[0]
-    assert gc.hal.left == 0 and gc.hal.right == 0           # finished and stopped
+    assert wait_for(lambda: any(p.startswith("West African: 4 bars at 120 bpm") for _, p in gc.sent), timeout=30)
+    reply = next(p for _, p in gc.sent if p.startswith("West African"))
+    assert "polyrhythm" in reply and "from the style library" in reply
+    assert urls == []                                       # no Wikipedia, no choreographer call
 
 
 def test_get_retries_once_on_429(monkeypatch):
@@ -99,4 +108,4 @@ def test_stick_figure_ballet_at_user_tempo_on_matrix(gc):
                     timeout=30)
     assert gc.hal.drive_log == []                                        # matrix only: no motors
     reply = next(p for _, p in gc.sent if p.startswith("Ballet on the LED matrix"))
-    assert "legs calling, arms answering" in reply and "car" not in reply.lower()
+    assert "arms and legs together" in reply and "from the style library" in reply and "car" not in reply.lower()

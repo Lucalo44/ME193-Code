@@ -69,11 +69,12 @@ const Duet = (() => {
     ctx.fillStyle = Draw.css("--muted");
     for (let i = 0; i < D.count_in; i++) ctx.fillText(String(D.count_in - i), bx(-D.count_in + i) + 4, 30);
     // beat grid
+    const M = D.meter || 4;                 // beats per bar (3 for a waltz)
     for (let b = Math.ceil(b0); b <= D.beats; b++) {
-      ctx.strokeStyle = b % 4 === 0 ? Draw.css("--cv-grid-strong") : Draw.css("--cv-grid");
-      ctx.lineWidth = b % 4 === 0 ? 1.5 : 1;
+      ctx.strokeStyle = b % M === 0 ? Draw.css("--cv-grid-strong") : Draw.css("--cv-grid");
+      ctx.lineWidth = b % M === 0 ? 1.5 : 1;
       ctx.beginPath(); ctx.moveTo(bx(b), 12); ctx.lineTo(bx(b), 112); ctx.stroke();
-      if (b >= 0 && b % 4 === 0) { ctx.fillStyle = Draw.css("--muted"); ctx.fillText(`bar ${b / 4 + 1}`, bx(b) + 3, 10); }
+      if (b >= 0 && b % M === 0) { ctx.fillStyle = Draw.css("--muted"); ctx.fillText(`bar ${b / M + 1}`, bx(b) + 3, 10); }
     }
     // lane labels
     ctx.fillStyle = Draw.css("--cv-ink");

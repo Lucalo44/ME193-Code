@@ -4,6 +4,7 @@ import re
 import time
 
 import config
+from dance import styles
 from dance.moves import CAR_MOVES, LEGO_MOVES, MODES
 from skills.context import Cancelled, SkillError
 from skills.registry import Arr, Enum, Int, Obj, Str, skill
@@ -77,7 +78,16 @@ def dance(ctx, bpm, sections, where):
     ctx.status.set_state("DANCING", f"Dancing {sum(s['bars'] for s in sections)} bars at {bpm} bpm"
                                     + (" on the LED matrix" if where == "matrix" else "") + _loop_note(ctx))
     try:
-        r = perform_looped(ctx, {"bpm": bpm, "sections": sections}, where)
+        # A style named in the user's words wins over a generic plan: "two breakdancers" can
+        # reach the planner as "break" + "d" + "ancers" and come back as a plain dance.
+        profile = styles.match_text(ctx.question)
+        if profile:
+            asked_bpm = re.search(r"\d+\s*(bpm|beats)", ctx.question or "", re.I)
+            score = styles.score_for(profile, sum(sec["bars"] for sec in sections), bpm if asked_bpm else 0)
+        else:
+            score = {"bpm": bpm, "sections": sections}
+        score["dancers"] = styles.dancers_for(ctx.question, where, profile["dancers"] if profile else 1)
+        r = perform_looped(ctx, score, where)
     finally:
         ctx.status.update(state=prev if prev != "DANCING" else "EXECUTING")
     if ctx.cancel.is_set():
@@ -98,23 +108,36 @@ DANCE_CATALOG_EXTRA = (f" mode: {'|'.join(MODES)}\n"
        ns="dance", motor=True, timeout_s=config.MAX_LOOP_S + 120,
        returns=["max_sync_error_ms", "mean_sync_error_ms", "completed"])
 def dance_style(ctx, style, bars, bpm, where):
-    """Grounded choreography: read what Wikipedia says about the style, let the LLM
-    turn that description into a score (grammar-constrained), then perform it."""
-    if ctx.conductor is None or ctx.choreograph is None:
-        raise SkillError("no conductor or choreographer")
-    q = style if "dance" in style.lower() else f"{style} dance"
-    res, unreachable = None, False
-    if ctx.wiki is not None:
-        try:
-            res = ctx.wiki.lookup(q)
-        except Exception:  # noqa: BLE001  dance anyway, from the style name alone
-            res, unreachable = None, True
-    extract = res["extract"] if res else ""
+    """A style from the library (dance/styles.py) is danced from its profile: its meter,
+    tempo, rhythms and signature poses. Any other style is grounded: read what Wikipedia
+    says about it, let the LLM turn that into a score with a feel (grammar-constrained),
+    then perform it."""
+    if ctx.conductor is None:
+        raise SkillError("no conductor")
     bpm = bpm if bpm >= config.BPM_RANGE[0] else 0          # 0 (or nonsense) = let the style decide
-    score = ctx.choreograph(style, extract, bars, bpm)
-    if not score:
-        raise SkillError("I couldn't choreograph that style")
-    why = (score.pop("why", "") or "").strip()
+    profile = styles.match(style)
+    res, unreachable = None, False
+    if profile:
+        score = styles.score_for(profile, bars, bpm)
+        style = profile["name"]
+        why = profile["why"]
+    else:
+        if ctx.choreograph is None:
+            raise SkillError("no choreographer")
+        q = style if "dance" in style.lower() else f"{style} dance"
+        if ctx.wiki is not None:
+            try:
+                res = ctx.wiki.lookup(q)
+            except Exception:  # noqa: BLE001  dance anyway, from the style name alone
+                res, unreachable = None, True
+        extract = res["extract"] if res else ""
+        score = ctx.choreograph(style, extract, bars, bpm)
+        if not score:
+            raise SkillError("I couldn't choreograph that style")
+        styles.apply_feel(score, score.pop("feel", None), score.get("meter", 4))
+        why = (score.pop("why", "") or "").strip()
+    meter = 3 if score.get("meter") == 3 else 4
+    score["dancers"] = styles.dancers_for(ctx.question, where, profile["dancers"] if profile else 1)
     if why and not why.endswith((".", "!", "?")):          # cut at a sentence or clause, never mid-word
         cut = max(why.rfind(". "), why.rfind(", "), why.rfind("; "))
         why = why[:cut] if cut > 20 else why.rsplit(" ", 1)[0]
@@ -131,22 +154,32 @@ def dance_style(ctx, style, bars, bpm, where):
     if ctx.cancel.is_set():
         raise Cancelled("dance stopped")
     ctx.status.update(dance=r)
-    # On the matrix there is no car or LEGO bot: the figure's legs follow the car lane
-    # and its arms the LEGO lane, so describe the sections in those terms.
+    # On the matrix there is no car or LEGO bot. One figure's legs follow the car lane
+    # and its arms the LEGO lane; two figures are partners. Describe the sections that way.
     FIGURE_WORDS = {"unison": "arms and legs together", "mirror": "mirrored arms",
                     "call_response": "legs calling, arms answering", "canon": "arms a beat behind the legs",
                     "solo_car": "footwork", "solo_lego": "arm work"}
-    words = (lambda m: FIGURE_WORDS[m]) if where == "matrix" else (lambda m: m.replace("_", " "))
+    DUO_WORDS = {"unison": "dancing side by side", "mirror": "mirroring each other", "call_response": "taking turns",
+                 "canon": "one a beat behind the other", "solo_car": "a solo for the left dancer",
+                 "solo_lego": "a solo for the right dancer"}
+    duo = where == "matrix" and score["dancers"] == 2
+    words = ((lambda m: DUO_WORDS[m]) if duo else (lambda m: FIGURE_WORDS[m]) if where == "matrix"
+             else (lambda m: m.replace("_", " ")))
     modes = ", ".join(dict.fromkeys(words(s["mode"]) for s in score["sections"]))
-    source = (f" (from Wikipedia: {res['title']})" if res else
+    source = (" (from the style library)" if profile else
+              f" (from Wikipedia: {res['title']})" if res else
               " (Wikipedia was unreachable, so from the name alone)" if unreachable else
               " (no Wikipedia article found, so from the name alone)")
     on = {"matrix": " on the LED matrix", "all": " with the robots and the LED matrix"}.get(where, "")
     loops = (f", looped {r['loops']} times" if r.get("looped") and r["loops"] > 1 else "")
-    text = (f"{style[:1].upper() + style[1:]}{on}: {r['beats'] // 4} bars at {score['bpm']} bpm{loops}, {modes}. "
+    two = "two dancers " if duo else ""
+    of = " of 3/4" if meter == 3 else ""
+    text = (f"{style[:1].upper() + style[1:]}{on}: {r['beats'] // meter} bars{of} at {score['bpm']} bpm{loops}, "
+            f"{two}{modes}. "
             + (why.rstrip(".") + ". " if why else "") + source.strip())
     topic = ctx.reply_to or config.TOPIC_REPLY
     ctx.publish(topic, text)
     ctx.published.append(topic)
     ctx.answers.append(text)
-    return {**r, "style": style, "why": why, "source": res["title"] if res else None}
+    return {**r, "style": style, "why": why, "source": "style library" if profile else res["title"] if res else None,
+            "dancers": score["dancers"], "meter": meter}

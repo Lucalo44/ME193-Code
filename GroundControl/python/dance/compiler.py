@@ -2,6 +2,9 @@
 
 Score:
   {"bpm": 100, "sections": [{"bars": 2, "mode": "mirror", "car": "shimmy", "lego": "wave"}, ...]}
+Optional (from the style library or the choreographer, never from the planner):
+  score "meter" (3 or 4 beats per bar), "dancers" (1 or 2 stick figures), "style";
+  section "rhythm" and "fig" per lane, for the stick figures (dance/figure.py).
 
 Timeline keyframes carry both `beat` (relative to the first downbeat) and `t`
 (seconds from the start of the count-in), so the conductor schedules in
@@ -9,8 +12,10 @@ seconds and the dashboard draws in beats.
 """
 import config
 from dance.moves import CAR_MOVES, LEGO_MOVES, MODES, Keyframe, car_move, lego_move
+from dance.rhythm import valid as valid_rhythm
 
-BEATS_PER_BAR = 4
+BEATS_PER_BAR = 4          # the default meter
+LANES = ("car", "lego")
 
 
 class ScoreError(ValueError):
@@ -20,12 +25,20 @@ class ScoreError(ValueError):
 def normalize(score):
     """Clamp a score into the legal range (the grammar already enforces enums)."""
     bpm = int(max(config.BPM_RANGE[0], min(config.BPM_RANGE[1], int(score.get("bpm", 100)))))
+    meter = 3 if score.get("meter") == 3 else BEATS_PER_BAR
     secs = []
     for s in (score.get("sections") or [])[: config.MAX_SECTIONS]:
         if s.get("mode") not in MODES or s.get("car") not in CAR_MOVES or s.get("lego") not in LEGO_MOVES:
             raise ScoreError(f"bad section {s}")
-        secs.append({"bars": int(max(1, min(config.MAX_SECTION_BARS, int(s.get("bars", 1))))),
-                     "mode": s["mode"], "car": s["car"], "lego": s["lego"]})
+        sec = {"bars": int(max(1, min(config.MAX_SECTION_BARS, int(s.get("bars", 1))))),
+               "mode": s["mode"], "car": s["car"], "lego": s["lego"]}
+        rhythm = {k: v for k, v in (s.get("rhythm") or {}).items() if k in LANES and valid_rhythm(v)}
+        fig = {k: list(v)[:8] for k, v in (s.get("fig") or {}).items() if k in LANES and v}
+        if rhythm:
+            sec["rhythm"] = rhythm
+        if fig:
+            sec["fig"] = fig
+        secs.append(sec)
     if not secs:
         raise ScoreError("no sections")
     # Respect the 60 s cap by dropping bars from the end.
@@ -34,37 +47,55 @@ def normalize(score):
     total = 0
     out = []
     for s in secs:
-        b = s["bars"] * BEATS_PER_BAR
+        b = s["bars"] * meter
         if total + b > max_beats:
-            bars = (max_beats - total) // BEATS_PER_BAR
+            bars = (max_beats - total) // meter
             if bars <= 0:
                 break
             s = dict(s, bars=bars)
-            b = bars * BEATS_PER_BAR
+            b = bars * meter
         out.append(s)
         total += b
-    return {"bpm": bpm, "sections": out}
+    norm = {"bpm": bpm, "sections": out}
+    if meter != BEATS_PER_BAR:
+        norm["meter"] = meter
+    if score.get("dancers") == 2:
+        norm["dancers"] = 2
+    if score.get("style"):
+        norm["style"] = str(score["style"])[:40]
+    return norm
 
 
 def compile_score(score, build=None, intensity=0.7, count_in=None):
     build = build or config.LEGO_BUILD
-    ci = config.COUNT_IN_BEATS if count_in is None else count_in   # 0 on a loop's later passes
     score = normalize(score)
+    meter = score.get("meter", BEATS_PER_BAR)
+    # A bar of count-in: 4-3-2-1, or 3-2-1 for a waltz. 0 on a loop's later passes.
+    ci = (config.COUNT_IN_BEATS if meter == BEATS_PER_BAR else meter) if count_in is None else count_in
     bpm = score["bpm"]
     spb = 60.0 / bpm
     car, lego, blocks = [], [], []
     start = 0
     for si, s in enumerate(score["sections"]):
-        n = s["bars"] * BEATS_PER_BAR
+        n = s["bars"] * meter
         mode, cm, lm = s["mode"], s["car"], s["lego"]
+
+        def block(lane, name, st, beats, active):
+            bl = {"lane": lane, "start": st, "beats": beats, "move": name, "mode": mode, "section": si,
+                  "sec_start": start}
+            if active:                     # the section's own move (not a rest inserted by the mode)
+                for key in ("rhythm", "fig"):
+                    if lane in s.get(key, {}):
+                        bl[key] = s[key][lane]
+            blocks.append(bl)
 
         def C(name, st, beats, mirror=False):
             car.extend(car_move(name, st, beats, intensity, mirror))
-            blocks.append({"lane": "car", "start": st, "beats": beats, "move": name, "mode": mode, "section": si})
+            block("car", name, st, beats, name == cm)
 
         def L(name, st, beats, mirror=False):
             lego.extend(lego_move(name, st, beats, intensity, mirror, build))
-            blocks.append({"lane": "lego", "start": st, "beats": beats, "move": name, "mode": mode, "section": si})
+            block("lego", name, st, beats, name == lm)
 
         if mode == "unison":
             C(cm, start, n)
@@ -73,12 +104,13 @@ def compile_score(score, build=None, intensity=0.7, count_in=None):
             C(cm, start, n)
             L(lm, start, n, mirror=True)
         elif mode == "call_response":
+            call = (meter + 1) // 2                     # 2 + 2 beats, or 2 + 1 in 3/4
             for bar in range(s["bars"]):
-                b0 = start + bar * BEATS_PER_BAR
-                C(cm, b0, 2)
-                C("freeze", b0 + 2, 2)
-                L("freeze", b0, 2)
-                L(lm, b0 + 2, 2)
+                b0 = start + bar * meter
+                C(cm, b0, call)
+                C("freeze", b0 + call, meter - call)
+                L("freeze", b0, call)
+                L(lm, b0 + call, meter - call)
         elif mode == "canon":
             C(cm, start, n)
             L("freeze", start, 1)
@@ -92,12 +124,12 @@ def compile_score(score, build=None, intensity=0.7, count_in=None):
         start += n
     total_beats = start
 
-    # Matrix: count-in 4-3-2-1, a flash on every downbeat, a check at the end.
+    # Matrix: the count-in, a flash on every downbeat, a check at the end.
     mat = []
     for i in range(ci):
         mat.append(Keyframe(-ci + i, "matrix",
                             {"digit": str(ci - i)}, "count-in"))
-    for b in range(0, total_beats, BEATS_PER_BAR):
+    for b in range(0, total_beats, meter):
         mat.append(Keyframe(b, "matrix", {"icon": "note"}, "downbeat"))
         mat.append(Keyframe(b + 0.5, "matrix", {"clear": True}, "downbeat"))
     car.extend(mat)
@@ -125,6 +157,7 @@ def compile_score(score, build=None, intensity=0.7, count_in=None):
     seconds = (total_beats + ci) * spb
     if seconds > config.MAX_DANCE_S + 1e-6:
         raise ScoreError(f"dance too long: {seconds:.1f}s")
-    return {"bpm": bpm, "spb": spb, "beats": total_beats, "count_in": ci,
+    return {"bpm": bpm, "spb": spb, "beats": total_beats, "count_in": ci, "meter": meter,
+            "dancers": score.get("dancers", 1), "style": score.get("style"),
             "seconds": round(seconds, 3), "score": score, "blocks": blocks,
             "timelines": {"car": car_t, "lego": lego_t}}

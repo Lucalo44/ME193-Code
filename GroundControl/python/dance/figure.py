@@ -1,101 +1,173 @@
-"""A stick figure that dances on the 8x13 LED matrix.
+"""Stick figures that dance on the 8x13 LED matrix.
 
-The figure is a third performer. Its legs and body follow the CAR's move, and its
-arms follow the LEGO bot's move. So on its own (where="matrix") it dances both
-parts, and with the robots (where="all") it mirrors them. Frames are built from
-layers (head, torso, arms, legs) and shifted sideways for sways, so a dozen
-pieces of pixel art cover every move combination.
+One figure (the default) dances both parts: its legs follow the CAR lane and its arms
+the LEGO lane. Two figures stand side by side: the left one dances the car's part, the
+right one the LEGO's part, and in mirror sections the right one is drawn flipped, so the
+partners face each other. dance/styles.py decides how many.
+
+Timing is a 16th-note grid. Each lane has a rhythm (dance/rhythm.py): the pose changes
+only on a hit, and the figure flashes to full brightness on the hit and settles to a
+dimmer hold a 16th later, so the rhythm reads even when the pose repeats. Beat lights in
+the bottom corners mark every beat and stand taller on beat 1.
+
+Poses are written "arms/legs[/dx][/nohead]" (or "bow"); each move has a default cycle of
+them, and style profiles bring their own.
 
     figure_timeline(compiled_score) -> [{"t", "beat", "action": "frame", "params": {"frame": [...104]}}]
 """
+from functools import lru_cache
+
+from dance.rhythm import DEFAULT as DEFAULT_RHYTHM
+from dance.rhythm import is_hit
 from hal import COLS, ROWS
 
-W = 7                       # figure window width, centred on the matrix
-X0 = (COLS - W) // 2        # = 3
+HIT, HOLD, BEAT, DOWNBEAT = 7, 4, 3, 7          # brightness 0-7
+SOLO_X, DUO_X = 4, (1, 7)                       # left column of each 5-wide figure
+LIGHTS = (0, COLS - 1)                          # beat lights in the bottom corners
+DUO_BOUNDS = ((1, 5), (7, COLS - 2))            # each partner keeps to its own half
 
-# Each layer: {row: "7-char string"}; '#' = lit. Row 0 is the top.
-HEAD = {0: "...#..."}
-TORSO = {2: "...#...", 3: "...#...", 4: "...#..."}
+# Each layer: {row: "5-char string"}; '#' = lit. Row 0 is the top.
+HEAD = {0: "..#.."}
+TORSO = {2: "..#..", 3: "..#..", 4: "..#.."}
 ARMS = {
-    "down":     {1: "..###..", 2: ".#...#.", 3: ".#...#."},
-    "up":       {0: ".#.#.#.", 1: "..###.."},
-    "out":      {1: "#######"},
-    "left_up":  {0: ".#.#...", 1: "..###..", 2: ".....#."},
-    "right_up": {0: "...#.#.", 1: "..###..", 2: ".#....."},
-    "clap":     {0: "..###..", 1: "..###.."},
-    "point":    {1: "..#####", 2: ".#....."},
-    "side":     {1: "...##..", 2: "....#.."},          # seen from the side (spins)
+    "down":     {1: ".###.", 2: "#...#", 3: "#...#"},
+    "up":       {0: "#...#", 1: ".###."},
+    "out":      {1: "#####"},
+    "left_up":  {0: "#....", 1: ".###.", 2: "....#", 3: "....#"},
+    "right_up": {0: "....#", 1: ".###.", 2: "#....", 3: "#...."},
+    "clap":     {0: ".#.#.", 1: ".###."},
+    "point":    {1: ".####", 2: "#....", 3: "#...."},
+    "side":     {1: "..##.", 2: "...#."},           # seen from the side (turns)
+    "hips":     {1: ".###.", 2: "#...#", 3: ".#.#."},
+    "frame":    {0: "#...#", 1: "#####"},           # ballroom hold, robot arms
+    "robot_dn": {1: "#####", 2: "#...#"},
+    "fifth":    {0: ".#.#.", 1: "#...#"},           # ballet: arms rounded overhead
 }
 LEGS = {
-    "stand":   {5: "..#.#..", 6: "..#.#..", 7: "..#.#.."},
-    "apart":   {5: "..#.#..", 6: ".#...#.", 7: "#.....#"},
-    "step_l":  {5: "..#.#..", 6: ".#..#..", 7: "#...#.."},
-    "step_r":  {5: "..#.#..", 6: "..#..#.", 7: "..#...#"},
-    "plie":    {5: ".#...#.", 6: ".#...#.", 7: ".#...#."},
-    "side":    {5: "...#...", 6: "...#...", 7: "..##..."},
+    "stand":  {5: ".#.#.", 6: ".#.#.", 7: ".#.#."},
+    "apart":  {5: ".#.#.", 6: "#...#", 7: "#...#"},
+    "step_l": {5: ".#.#.", 6: "#..#.", 7: "#..#."},
+    "step_r": {5: ".#.#.", 6: ".#..#", 7: ".#..#"},
+    "plie":   {5: ".#.#.", 6: "#...#", 7: ".#.#."},  # knees out
+    "rise":   {5: "..#..", 6: "..#..", 7: "..#.."},  # releve, legs together
+    "kick_r": {5: ".#.##", 6: ".#...", 7: ".#..."},
+    "kick_l": {5: "##.#.", 6: "...#.", 7: "...#."},
+    "side":   {5: "..#..", 6: "..#..", 7: ".##.."},
 }
-BOW = {3: "..####.", 4: "..#.#..", 5: "..#.#..", 6: "..#.#..", 7: "..#.#.."}   # bent forward, arm hanging
+BOW = {3: ".####", 4: ".#.#.", 5: ".#.#.", 6: ".#.#.", 7: ".#.#."}   # bent forward
+
+# Default pose cycles. The car lane leads with the legs, the LEGO lane with the arms.
+CAR_FIG = {
+    "shimmy": ["out/apart/1", "out/apart/-1"],
+    "spin":   ["out/apart", "side/side", "out/apart/0/nohead", "side/side"],
+    "step":   ["right_up/step_l", "left_up/step_r"],
+    "wiggle": ["up/stand/1", "up/stand/-1"],
+    "freeze": ["down/stand"],
+    "bow":    ["bow"],
+}
+LEGO_FIG = {
+    "wave":     ["left_up/stand", "down/stand"],
+    "clap":     ["clap/plie", "out/stand"],
+    "pump":     ["up/apart", "down/plie"],
+    "point":    ["point/stand"],
+    "windmill": ["left_up/apart", "out/apart", "right_up/apart", "down/apart"],
+    "freeze":   ["down/stand"],
+    "bow":      ["bow"],
+}
+DEFAULT_FIG = {"car": CAR_FIG, "lego": LEGO_FIG}
+STILL = ("freeze", "bow")
+
+
+@lru_cache(maxsize=None)
+def pose(spec):
+    """"frame/plie/-1/nohead" -> {"arms", "legs", "dx", "head", "bow"}; raises on unknown names."""
+    if spec == "bow":
+        return {"bow": True, "arms": "down", "legs": "stand", "dx": 0, "head": False}
+    parts = spec.split("/")
+    arms, legs = parts[0], parts[1]
+    if arms not in ARMS or legs not in LEGS:
+        raise ValueError(f"unknown pose {spec!r}")
+    dx = int(parts[2]) if len(parts) > 2 and parts[2].lstrip("-").isdigit() else 0
+    return {"bow": False, "arms": arms, "legs": legs, "dx": dx, "head": "nohead" not in parts}
 
 
 def render(arms="down", legs="stand", dx=0, bow=False, head=True):
+    """One centred figure (kept for callers that draw a single pose)."""
     f = [0] * (ROWS * COLS)
-    layers = [BOW] if bow else [HEAD if head else {}, TORSO, ARMS[arms], LEGS[legs]]
-    for layer in layers:
-        for r, row in layer.items():
-            for i, ch in enumerate(row):
-                c = X0 + i + dx
-                if ch == "#" and 0 <= c < COLS:
-                    f[r * COLS + c] = 7
+    draw(f, {"arms": arms, "legs": legs, "dx": dx, "bow": bow, "head": head}, SOLO_X, (0, COLS - 1))
     return f
 
 
-def _legs(move, phase):
-    """Body/legs pose for a CAR move at `phase` beats into it -> (legs, dx, special)."""
-    q = int(phase * 4)                       # quarter-beat index
-    if move == "shimmy":
-        return "apart", (1 if q % 2 == 0 else -1), None
-    if move == "spin":
-        return {0: ("apart", 0, None), 1: ("side", 0, "side"), 2: ("apart", 0, "back"), 3: ("side", 0, "side")}[q % 4]
-    if move == "step":
-        return ("step_l" if int(phase) % 2 == 0 else "step_r"), 0, None
-    if move == "wiggle":
-        return "stand", (1 if q % 2 == 0 else -1), None
-    if move == "bow":
-        return "stand", 0, "bow"
-    return "stand", 0, None                  # freeze
+def draw(f, p, x0, bounds, level=7, flip=False, flip_arms=False):
+    """OR a 5-wide figure into frame f at column x0, clipped to bounds (lo, hi)."""
+    dx = -p["dx"] if flip else p["dx"]
+    if p["bow"]:
+        layers = [(BOW, flip)]
+    else:
+        layers = [(HEAD if p["head"] else {}, False), (TORSO, False),
+                  (ARMS[p["arms"]], flip != flip_arms), (LEGS[p["legs"]], flip)]
+    lo, hi = bounds
+    for layer, rev in layers:
+        for r, row in layer.items():
+            for i, ch in enumerate(row[::-1] if rev else row):
+                c = x0 + i + dx
+                if ch == "#" and lo <= c <= hi:
+                    f[r * COLS + c] = max(f[r * COLS + c], level)
+    return f
 
 
-def _arms(move, phase, mirror=False):
-    """Arm pose for a LEGO move at `phase` beats into it."""
-    q = int(phase * 4)
-    half = int(phase * 2) % 2
-    flip = {"left_up": "right_up", "right_up": "left_up"}
-    pick = {
-        "wave": "left_up" if half == 0 else "down",
-        "clap": "clap" if half == 0 else "out",
-        "pump": "up" if half == 0 else "down",
-        "point": "point",
-        "windmill": ["left_up", "out", "right_up", "down"][q % 4],
-        "freeze": "down",
-        "bow": "down",
-    }.get(move, "down")
-    return flip.get(pick, pick) if mirror else pick
+def _track(blocks, lane, n16, meter):
+    """Per 16th: (pose, hit, block) for one lane, or None where the lane has no block."""
+    out = [None] * n16
+    for bl in blocks:
+        if bl["lane"] != lane:
+            continue
+        cycle = [pose(s) for s in (bl.get("fig") or DEFAULT_FIG[lane][bl["move"]])]
+        rhythm = bl.get("rhythm")
+        if rhythm is None:
+            rhythm = DEFAULT_RHYTHM[lane][bl["move"]]
+        if bl["move"] in STILL and not bl.get("fig"):
+            rhythm = ""                                    # a plain freeze or bow holds still
+        s0, s1 = round(bl["start"] * 4), round((bl["start"] + bl["beats"]) * 4)
+        sec0 = round(bl.get("sec_start", bl["start"]) * 4)
+        n = -1
+        for g in range(s0, min(s1, n16)):
+            hit = g == s0 or is_hit(rhythm, g - sec0, meter)
+            n += hit
+            out[g] = (cycle[n % len(cycle)], hit, bl)
+    return out
+
+
+STAND = pose("down/stand")
+
+
+def _solo_pose(car, lego):
+    """One figure dancing both parts: legs from the car lane, arms from the LEGO lane. When
+    one lane is resting (a freeze while the other dances), the dancing lane gets the whole body."""
+    cp, _, cb = car or (STAND, False, None)
+    lp, _, lb = lego or (STAND, False, None)
+    cm, lm = (cb or {}).get("move", "freeze"), (lb or {}).get("move", "freeze")
+    if cp["bow"] or lp["bow"]:
+        return pose("bow")
+    car_rests = cm in STILL and not (cb or {}).get("fig")
+    lego_rests = lm in STILL and not (lb or {}).get("fig")
+    if lego_rests and not car_rests:
+        return cp
+    if car_rests and not lego_rests:
+        return lp
+    if cp["arms"] == "side":                               # mid-turn: the whole body turns
+        return cp
+    return {**cp, "arms": lp["arms"]}
 
 
 def figure_timeline(comp):
-    """Quarter-beat frames from the compiled score's blocks (+ count-in and ending)."""
+    """16th-note frames from the compiled score's blocks, plus the count-in and a ta-da."""
     from skills.matrix import digit_frame
     spb, count_in, beats = comp["spb"], comp["count_in"], comp["beats"]
-    lanes = {"car": [], "lego": []}
-    for bl in comp["blocks"]:
-        lanes[bl["lane"]].append(bl)
-
-    def at(lane, b):
-        for bl in lanes[lane]:
-            if bl["start"] <= b < bl["start"] + bl["beats"]:
-                return bl
-        return None
-
+    meter, dancers = comp.get("meter", 4), comp.get("dancers", 1)
+    n16 = beats * 4
+    car_t = _track(comp["blocks"], "car", n16, meter)
+    lego_t = _track(comp["blocks"], "lego", n16, meter)
     out, last = [], None
 
     def add(beat, frame):
@@ -107,21 +179,28 @@ def figure_timeline(comp):
 
     for i in range(count_in):
         add(-count_in + i, digit_frame(str(count_in - i)))
-    for q in range(beats * 4):
-        b = q / 4
-        car, lego = at("car", b), at("lego", b)
-        legs, dx, special = _legs(car["move"], b - car["start"]) if car else ("stand", 0, None)
-        arms = _arms(lego["move"], b - lego["start"], mirror=bool(lego and lego["mode"] == "mirror")) if lego else "down"
-        if special == "bow" or (lego and lego["move"] == "bow" and (b - lego["start"]) < 1.5):
-            frame = render(bow=True)
-        elif special == "side":
-            frame = render(arms="side", legs="side")
-        elif special == "back":
-            frame = render(arms=arms, legs=legs, head=False)
+    for g in range(n16):
+        f = [0] * (ROWS * COLS)
+        car, lego = car_t[g], lego_t[g]
+        if dancers == 2:
+            mirror = bool(lego and lego[2]["mode"] == "mirror")
+            draw(f, car[0] if car else STAND, DUO_X[0], DUO_BOUNDS[0], HIT if car and car[1] else HOLD)
+            draw(f, lego[0] if lego else STAND, DUO_X[1], DUO_BOUNDS[1], HIT if lego and lego[1] else HOLD,
+                 flip=mirror)
         else:
-            frame = render(arms=arms, legs=legs, dx=dx)
-        add(b, frame)
-    add(beats, render(arms="up", legs="apart"))          # ta-da
+            hit = bool((car and car[1]) or (lego and lego[1]))
+            mirror = bool(lego and lego[2]["mode"] == "mirror")
+            draw(f, _solo_pose(car, lego), SOLO_X, (1, COLS - 2), HIT if hit else HOLD, flip_arms=mirror)
+        if g % 4 == 0:                                     # the beat light, for one 16th
+            down = (g // 4) % meter == 0
+            for c in LIGHTS:
+                for r in ((5, 6, 7) if down else (7,)):
+                    f[r * COLS + c] = DOWNBEAT if down else BEAT
+        add(g / 4, f)
+    end = [0] * (ROWS * COLS)                              # ta-da
+    for x0, bounds in (zip(DUO_X, DUO_BOUNDS) if dancers == 2 else [(SOLO_X, (0, COLS - 1))]):
+        draw(end, pose("up/apart"), x0, bounds)
+    add(beats, end)
     for i, k in enumerate(out):
         k["i"] = i
     return out
