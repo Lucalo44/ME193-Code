@@ -80,6 +80,13 @@ class GroundControl:
         self.self_model = SelfModel(hal, self.status)
         self.lookup = Lookup()
         self.command_log = CommandLog()
+        self.router = None                                # fast path (Part 2, A3); the LLM is the fallback
+        if config.FASTPATH:
+            try:
+                from fastpath.router import Router
+                self.router = Router()
+            except (OSError, ValueError, KeyError) as e:
+                print(f"[router] fast path off: {e!r}", flush=True)
         # The fine-tuned model was trained without app names in its catalog; keep its prompt identical.
         self.app_names = describe_apps_in_catalog(self.lookup, patch=self.planner.style != "ft")
         self.memory = Memory()
@@ -106,6 +113,16 @@ class GroundControl:
             self._wire_ui()
         if not warm:
             self.matrix.icon("smile")                     # else _warm shows the hourglass, then the smiley
+
+    def _route(self, job):
+        try:
+            d = self.router.route(job.text)
+        except Exception as e:  # noqa: BLE001  the LLM is always the fallback
+            print(f"[router] {e!r}", flush=True)
+            return {"fast": False}
+        self.viz.emit("router", {"id": job.id, **{k: v for k, v in d.items() if k != "plan"},
+                                 "plan": d["plan"]})
+        return d
 
     def _model_fingerprint(self):
         """The GGUF's sha256 from the host service. At boot the service (started by cron) can
@@ -298,6 +315,14 @@ class GroundControl:
             plan, info = job.plan, {}
             self.viz.emit("llm.done", {"id": job.id, "plan": plan, "raw_text": "(hand-written plan)",
                                        "timings": {}, "decisions": []})
+        elif job.plan is None and self.router is not None and (d := self._route(job))["fast"]:
+            # Fast path (Part 2, A3): a common one-step command, planned by a small network
+            # and deterministic slot parsers in well under a millisecond. No LLM call.
+            job.plan, plan, info = d["plan"], d["plan"], {}
+            step0 = d["plan"]["steps"][0]
+            args = ", ".join(f"{v}" for v in step0["args"].values())
+            self.viz.emit("llm.done", {"id": job.id, "plan": plan, "decisions": [], "timings": {},
+                                       "raw_text": f"(fast path: {step0['skill']}({args}), {d['ms']} ms, no tokens generated)"})
         else:
             self.matrix.thinking()
             try:

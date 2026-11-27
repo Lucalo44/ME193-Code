@@ -896,7 +896,9 @@ def main():
     ap.add_argument("--n", type=int, default=8000, help="planner examples")
     ap.add_argument("--out", default=str(HERE / "data"))
     ap.add_argument("--val", type=float, default=0.05)
+    ap.add_argument("--seed", type=int, default=193, help="other seeds make fresh data (the fast path's calibration set)")
     a = ap.parse_args()
+    R.seed(a.seed)
     held = {c["text"].lower().strip() for f in ("commands.yaml", "dev.yaml")
             for c in yaml.safe_load(open(HERE.parent / "eval" / f))}
     # Also hold out near-duplicates (same words, different numbers or punctuation), so the

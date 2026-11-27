@@ -14,6 +14,7 @@ Every command becomes one JSON plan: a short `think` naming the skills, then up 
    3. A new command cancels whatever is still running and starts right away.
    4. "do it again" replays the last plan.
    5. "loop the previous dance twice, faster, on the matrix" replays the last dance with those changes.
+   6. Common one-step commands ("show a heart", "what time is it?", "turn right 90 degrees", "dance a waltz") go through a small network of my own instead of the LLM, and are planned in under a millisecond (about 30 ms end to end on the board).
 2. **Single actions.** "show a heart", "write HELLO", "drive backwards for 3 seconds", "turn left 90 degrees", "spin around three times". The LED matrix has 24 icons, and anything without an icon ("draw a giraffe") gets written as a word.
 3. **Sequences and replies.** "Type Hi on the LED matrix and then send back on topic luca 'I am done'", up to 6 steps in a chain. Messages can carry live values: "what is your yaw? reply on luca" writes `{imu.yaw}`, and the executor fills in the real reading as the message goes out.
 4. **Questions it answers with tools, not guesses.** The model picks a tool and copies the inputs, and code produces the facts:
@@ -45,19 +46,20 @@ Every command becomes one JSON plan: a short `think` naming the skills, then up 
 
 ## How it works
 
-A command goes through six stages. Only the third one is the model.
+A command goes through seven stages. Only the fourth one is the model, and many commands never reach it.
 
 1. **Reflexes** ([python/mqtt_io.py](../python/mqtt_io.py), [python/core.py](../python/core.py)). Status, stop, "do it again" and "the previous dance" are caught here with plain pattern matching. A new command cancels the running one first. Before anything else, a normalizer ([python/planner/normalize.py](../python/planner/normalize.py)) fixes speech-to-text slips, but only where a unit word makes the reading certain: "spin to times" becomes "spin two times", while "go to the left" is left alone. Across all 84 held-out and the dev commands, it changes exactly one.
 2. **The prompt** ([python/planner/prompt.py](../python/planner/prompt.py)). The rules and the skill list come to 867 tokens, with no few-shot examples, since the fine-tune moved those into the weights. llama.cpp keeps that prefix in its KV cache, so only the 20-odd tokens of the command itself cost anything. The cache is also saved to disk (100 MB) and restored at boot, keyed to the exact weights, prefix tokens and server settings, so a stale cache can never be used ([docs/SPIKES.md](SPIKES.md)).
-3. **Constrained generation** ([python/planner/planner.py](../python/planner/planner.py)). A JSON grammar built from the skill registry ([python/skills/registry.py](../python/skills/registry.py)) means the model can only write a valid plan: real skill names, arguments inside their ranges. It writes the `think` first, which works as a scratchpad. If the steps don't match the skills it named, a repair pass pins the think and forces exactly that sequence.
-4. **Guards.** Small pieces of code catch the mistakes the model makes most:
+3. **The fast path** ([python/fastpath/](../python/fastpath/)). A 134k-parameter intent classifier, written from scratch in numpy, reads hashed words and character trigrams and picks one of 20 one-step intents or "none". It takes a command only if it's confident, the command has no "and", "then" or "don't", and deterministic parsers can read every slot. It took 21 of the 84 held-out commands and got all 21 right. Everything else goes on to the model.
+4. **Constrained generation** ([python/planner/planner.py](../python/planner/planner.py)). A JSON grammar built from the skill registry ([python/skills/registry.py](../python/skills/registry.py)) means the model can only write a valid plan: real skill names, arguments inside their ranges. It writes the `think` first, which works as a scratchpad. If the steps don't match the skills it named, a repair pass pins the think and forces exactly that sequence.
+5. **Guards.** Small pieces of code catch the mistakes the model makes most:
    1. Questions about my installed apps get a real lookup instead of an imagined answer.
    2. Composed answers lose any sentence with an invented number.
    3. A think cut off at its length cap is matched as a prefix, not treated as a mismatch.
    4. Turns follow one rule: positive is left, and a turn with no direction ("turn 180 degrees") goes left. The eval scores turns by final heading.
    5. A named style or "two dancers" in the user's own words wins over a generic dance plan. "Breakdancers" reaches the model as "break" + "d" + "ancers", and it once came back as a plain dance.
-5. **Execution** ([python/executor.py](../python/executor.py)). Each step runs with its own timeout, placeholders like `{imu.yaw}` and `{dance.max_sync_error_ms}` are filled in with live values, and a plan that sends nothing still replies "done".
-6. **Dancing** ([python/dance/](../python/dance/)). The compiler turns a score into keyframes per performer, with a count-in (4-3-2-1, or 3-2-1 for a waltz). The conductor gives every performer the same start time and measures how in sync they were. The matrix figures run on a 16th-note grid: a pose changes only on a rhythm hit, the figure flashes on the hit, and corner lights mark every beat.
+6. **Execution** ([python/executor.py](../python/executor.py)). Each step runs with its own timeout, placeholders like `{imu.yaw}` and `{dance.max_sync_error_ms}` are filled in with live values, and a plan that sends nothing still replies "done".
+7. **Dancing** ([python/dance/](../python/dance/)). The compiler turns a score into keyframes per performer, with a count-in (4-3-2-1, or 3-2-1 for a waltz). The conductor gives every performer the same start time and measures how in sync they were. The matrix figures run on a 16th-note grid: a pose changes only on a rhythm hit, the figure flashes on the hit, and corner lights mark every beat.
 
 The dashboard shows all of this live: the prompt as token chips (dimmed where the cache saved the work), every token with its top-5 alternatives, the decisions where the model picked a skill or mode, and the dance on a beat grid.
 

@@ -15,7 +15,7 @@ MAX_KEY, MAX_VALUE, MAX_ITEMS = 30, 120, 100
 
 
 def _key(k):
-    k = (k or "").lower().strip()
+    k = (k or "").lower().strip().replace("'", "").replace("\u2019", "")   # "dogs name" = "dog's name" (voice drops apostrophes)
     k = re.sub(r"^(my|your|the)\s+", "", k)
     return re.sub(r"\s+", " ", k)[:MAX_KEY]
 

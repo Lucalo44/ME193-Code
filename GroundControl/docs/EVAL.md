@@ -2,6 +2,48 @@
 
 All numbers come from the real models on the board (llama.cpp in App Lab's runner), called from the laptop through `adb forward tcp:9999 tcp:9999`. Plans are scored, not executed. To reproduce, run `venv/bin/python tools/eval/run_eval.py [--model ...] [--style think|parts|ft] [--think 0] [--mode tools]`, then `tools/eval/make_table.py`.
 
+## Fast path: a small network in front of the LLM (Part 2, A3, 2026-11-27)
+
+**Abstract.** I trained a 134,549-parameter intent classifier ([python/fastpath/](../python/fastpath/)) that plans common one-step commands without the LLM. It takes a command only when the network is confident, the command has no "and", "then", "don't" or similar, and every slot parses. It took 21 of the 84 held-out commands, got all 21 right, and routes in 0.05 ms.
+
+**Methods.**
+
+1. **Model.** Hashed word unigrams, word bigrams and character trigrams (4,096 buckets) feed an embedding bag (mean, 32 dims), then a 64-unit ReLU layer and a softmax over 21 intents (20 plus "none"). It is written from scratch in numpy, including the backward pass, which a gradient check verifies (`tests/test_fastpath_model.py`). That way the same file trains on the laptop and runs on the board, with no PyTorch or onnxruntime. The model is 251 kB and trains in 9 s.
+2. **Data.** The fine-tune's synthetic commands, which already exclude eval commands and their near-duplicates. A plan with one whitelisted step gets that intent; everything else is "none".
+   1. One extra set: more one-step positives from the generator's templates, both bare and wrapped in politeness. The fine-tune data had about 3 examples per icon, so the network first learned that "heart" means "none".
+   2. Hard negatives made from every positive: "X and send done", "don't X", "X then spin around".
+3. **Slots** are deterministic parsers ([parse.py](../python/fastpath/parse.py)). They refuse anything they can't read cleanly: a misspelled count, an unknown speed word, a two-word text without quotes.
+4. **Calibration.** The thresholds come from a fresh set of 21,241 generated commands from another seed, minus anything seen in training. The rule is the most coverage at 99.9% precision, where a plan counts as right only if it equals the plan in the data. The plan asked for 99.5%. I raised it because intents with no slot (the time, self-reports) have only the network to catch a wrong guess.
+
+**Results.**
+
+| Set | Taken by the fast path | Right | Precision |
+|---|---|---|---|
+| Calibration (generated, unseen) | 1,627 of 3,889 eligible (42%) | 1,626 | 99.94% |
+| Held out (`commands.yaml`, 84) | 21 (25% of all commands) | 21 | 100% |
+| Dev (`dev.yaml`, 22) | 3 | 3 | 100% |
+| Strangers | not collected yet | | |
+
+On the board, from MQTT send to done:
+
+| Command | Time |
+|---|---|
+| "show a heart" | 68 ms |
+| "what time is it?" | 23 ms |
+| "show a smiley face" | 29 ms |
+
+All three took about 15–20 s through the LLM. The 21 held-out commands it takes averaged 24.1 s of LLM planning. Across the held-out mix, planning time drops from 23.8 s to 17.8 s per command (25% less). That mix is mostly multi-step commands by design, so everyday use should save more. Questions still pay for the answer composer afterwards ("how hot are you?" took 46 s, almost all of it phrasing the answer).
+
+**Error.** One mistake in 1,627 is 99.94%, but the calibration set comes from the same generator as the training data, so it has the same blind spots. Three things kept the precision honest:
+
+1. **The first calibration set was too small.** It had only 66 accepted commands. Scaling to 21,000 showed 77 slot-parsing mistakes the small one hid. Examples: "what's my lab partner **again pls**" became a memory key, and the typo in "to the **righht**" turned left.
+2. **One bug was mine.** "Right now" was on the politeness list, so "turn to the right now" lost its direction.
+3. **Two generator bugs showed up.** Some dance templates drop the tempo from the text but keep a random bpm in the plan, and the memory store treated "dogs name" and "dog's name" as different keys. The memory one is fixed; the template one goes into the v3 data (A5).
+
+The strangers set will be the real test.
+
+**Conclusions.** A network smaller than one layer of the LLM handles a quarter of the held-out commands and the obvious everyday ones, three orders of magnitude faster. The slot parsers and the marker rule do as much for safety as the network does. Every mistake on the big calibration set was a parser problem, not a classification problem.
+
 ## Current: Part 2 checkpoint 1, same v2 model (84 commands, 2026-11-27)
 
 Nothing about the model changed. Two pieces of code now sit around it: a normalizer that fixes speech-to-text slips before planning (`python/planner/normalize.py`), and a turn rule (positive = left, no direction = left). Turns are now scored by final heading, so +180 and -180 both count. The run went through the same input path as the board (`run_eval.py` normalizes and applies the same guards).

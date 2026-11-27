@@ -240,6 +240,7 @@
     }
     S.plan = d.plan;
     const t = d.timings || {};
+    if (String(d.raw_text || "").startsWith("(fast path")) { S.plan = d.plan; renderPlan(); return; }
     $("gen-stats").textContent = `${t.predicted_n} tokens · ${t.tok_s} tok/s · prefill ${(t.prefill_ms / 1000).toFixed(1)} s (${t.prompt_n} new, ${t.cache_n} cached) · decode ${(t.decode_ms / 1000).toFixed(1)} s`;
     const parts = d.plan.parts || [];
     if (d.plan.think) $("think-bubble").textContent = d.plan.think;
@@ -323,6 +324,28 @@
     $("stream").appendChild(div);
   });
   socket.on("llm.done", llmDone);
+  // Fast path (Part 2, A3): the router's softmax over intents, its threshold, and its decision.
+  socket.on("router", (d) => {
+    if (d.id !== S.jobId) return;
+    const tau = d.tau || 0;
+    const rows = Object.entries(d.probs || {}).map(([k, p]) => {
+      const chosen = k === d.intent;
+      return `<div class="opt${chosen ? " chosen" : ""}"><div class="lbl"><div class="fill" style="width:${(p * 100).toFixed(1)}%"></div>` +
+        `<div class="tau" style="left:${(tau * 100).toFixed(1)}%" title="threshold τ = ${tau}"></div>` +
+        `<span>${esc(k)}</span></div><div class="p">${(p * 100).toFixed(1)}%</div></div>`;
+    }).join("");
+    const step = d.fast && d.plan ? d.plan.steps[0] : null;
+    const verdict = d.fast
+      ? `FAST PATH ${d.p.toFixed(3)} → ${esc(step.skill)}(${esc(Object.values(step.args).join(", "))}) · ${d.ms} ms`
+      : `→ LLM (${esc(d.reason || "")})`;
+    $("decisions").innerHTML = `<div class="dec router"><div class="key">router</div><div class="opts">${rows}` +
+      `<div class="verdict ${d.fast ? "fast" : "llm"}">${verdict}</div></div></div>`;
+    if (d.fast) {
+      $("think-bubble").innerHTML = `<span class="muted">fast path: no tokens generated</span>`;
+      $("stream").innerHTML = `<div class="empty">no tokens generated: a 134k-parameter network routed this in ${d.ms} ms</div>`;
+      $("gen-stats").textContent = `fast path · ${d.ms} ms · 0 tokens`;
+    }
+  });
   socket.on("llm.guard", (g) => {
     if (g.id !== S.jobId) return;
     S.guard = g.removed;

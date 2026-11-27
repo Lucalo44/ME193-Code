@@ -6,3 +6,4 @@ tools/finetune/data/
 memory.json
 logs/
 tools/eval/results/commands.board.jsonl
+tools/fastpath/calib_data/

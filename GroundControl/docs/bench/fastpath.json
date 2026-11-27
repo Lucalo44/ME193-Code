@@ -1,0 +1,32 @@
+{
+ "date": "2026-11-27",
+ "params": 134549,
+ "train_rows": 18320,
+ "calibration": {
+  "tau": 0.5,
+  "margin": 0.2,
+  "precision": 0.9994,
+  "coverage": 0.4184,
+  "accepted": 1627,
+  "wrong": 1
+ },
+ "held_out": {
+  "n": 84,
+  "accepted": 21,
+  "correct": 21,
+  "precision": 1.0,
+  "coverage": 0.25,
+  "route_ms_mean": 0.054,
+  "wrong": []
+ },
+ "dev": {
+  "n": 22,
+  "accepted": 3,
+  "correct": 3,
+  "precision": 1.0,
+  "coverage": 0.1364,
+  "route_ms_mean": 0.053,
+  "wrong": []
+ },
+ "train_s": 9
+}
